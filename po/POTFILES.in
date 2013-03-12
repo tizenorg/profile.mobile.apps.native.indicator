@@ -1,0 +1,3 @@
+# List of source files containing translatable strings.
+modules/clock/clock.c
+modules/network/rssi.c

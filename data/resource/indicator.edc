@@ -1,0 +1,905 @@
+/*
+ * Copyright 2012  Samsung Electronics Co., Ltd
+ *
+ * Licensed under the Flora License, Version 1.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *  http://floralicense.org/license/
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include "indicator_gui.h"
+#include "indicator_common.edc"
+
+collections {
+	group {
+		name: "indicator";
+		script {
+			public bg_set, badge_set, theme, changepad, changebg, changeHomePad;
+		}
+		styles
+		{
+			style {
+				name: "textblock_style";
+				base: "font=Tizen:style=Medium text_class=tizen color=#FFFFFFFF ";
+			}
+			style {
+				name: "textblock_outline_style";
+				base: "font=Tizen:style=Medium text_class=tizen color=#FFFFFFFF";
+			}
+			style {
+				name: "message_style";
+				base: "font=Tizen:style=Medium text_class=tizen font_size=23 color=#FFFFFFCC valign=middle wrap=none ellipsis=1";
+			}
+		}
+
+		images {
+			image: "B03_Status_bar_line.PNG" COMP;
+		}
+
+		parts {
+			part {
+				name: "background";
+				type: RECT;
+				scale: 1;
+				description {
+					state: "default" 0.0;
+					min: 0 INDICATOR_HEIGHT;
+					color: 0 0 0 0;
+				}
+			}
+			part {
+				name: "padding.top";
+				type: RECT;
+				scale: 1;
+				mouse_events: 0;
+				description {
+					state: "default" 0.0;
+					min: 0 INDICATOR_PADDING_H;
+					fixed: 0 1;
+					rel1 { relative: 0.0 0.0; to: "background"; }
+					rel2 { relative: 1.0 0.0; to: "background"; }
+					align: 0.0 0.0;
+					visible: 0;
+				}
+			}
+			part {
+				name: "padding.bottom";
+				type: RECT;
+				scale: 1;
+				mouse_events: 0;
+				description {
+					state: "default" 0.0;
+					min: 0 INDICATOR_PADDING_H;
+					fixed: 0 1;
+					rel1 { relative: 0.0 1.0; to: "background"; }
+					rel2 { relative: 1.0 1.0; to: "background"; }
+					align: 0.0 1.0;
+					visible: 0;
+				}
+
+			}
+
+			part {
+				name: "padding.left";
+				type: RECT;
+				scale: 1;
+				mouse_events: 0;
+				description {
+					state: "default" 0.0;
+					min: LEFT_PADDING_WIDTH 0;
+					fixed: 1 0;
+					rel1.relative: 0.0 0.0;
+					rel2.relative: 0.0 1.0;
+					color: 0 0 0 0;
+					visible: 0;
+				}
+			}
+
+
+			part {
+				name: "padding.right";
+				type: RECT;
+				mouse_events: 0;
+				scale: 1;
+				description {
+					state: "default" 0.0;
+					min: RIGHT_PADDING_WIDTH 0;
+					fixed: 1 0;
+					rel1.relative: 1.0 0.0;
+					color: 0 0 0 0;
+					visible: 0;
+				}
+			}
+			part {
+				name: "elm.rect.bg";
+				type: RECT;
+				scale: 1;
+				mouse_events: 0;
+				description {
+					state: "default" 0.0;
+					rel1 {
+						relative: 0.0 0.0;
+						to: "background";
+					}
+					rel2 {
+						relative: 1.0 1.0;
+						to: "background";
+					}
+					color: INDI_DEFAULT_BG_COLOR;
+				}
+				description {
+					state: "opaque" 0.0;
+					inherit: "default" 0.0;
+				}
+				description {
+					state: "translucent" 0.0;
+					inherit: "default" 0.0;
+					color: INDI_DEFAULT_BG_TRANSLUCENT;
+
+				}
+				description {
+					state: "notification" 0.0;
+					inherit: "default" 0.0;
+					color: 0 0 0 0;
+					visible: 0;
+
+				}
+				description {
+					state: "transparent" 0.0;
+					inherit: "notification" 0.0;
+					color: INDI_DEFAULT_BG_TRANSPARENT;
+				}
+			}
+
+			part {
+				name: "elm.rect.left_con";
+				type: RECT;
+				scale: 1;
+				mouse_events: 0;
+				description {
+					state: "default" 0.0;
+					min: HOME_PADDING_PORTRAIT 0;
+					visible: 0;
+					fixed: 1 0;
+					rel1 { relative: 0.0 0.0; to: "elm.rect.bg"; }
+					rel2 { relative: 0.0 1.0; to: "elm.rect.bg"; }
+					align: 0.0 0.0;
+				}
+				description {
+					state: "landscape" 0.0;
+					inherit: "default" 0.0;
+					min: HOME_PADDING_LANDSCAPE 0;
+				}
+			}
+
+			part {
+				name: "icon_bg";
+				type: RECT;
+				scale: 1;
+				mouse_events: 0;
+				description {
+					state: "default" 0.0;
+					visible: 0;
+					rel1 { relative: 1.0 0.0; to_x: padding.separator; to_y: elm.rect.bg; }
+					rel2 { relative: 0.0 1.0; to_x: padding.separator2; to_y: elm.rect.bg; }
+					align: 0.0 0.0;
+				}
+			}
+
+			part {
+				name: "elm.rect.middle_con";
+				type: RECT;
+				scale: 1;
+				mouse_events: 0;
+				description {
+					state: "default" 0.0;
+					visible: 0;
+					rel1 { relative: 0.0 0.0; to: "icon_bg"; }
+					rel2 { relative: 1.0 1.0; to: "icon_bg"; }
+				}
+				description {
+					state: "show" 0.0;
+					inherit: "default" 0.0;
+				}
+				description {
+					state: "hide" 0.0;
+					inherit: "default" 0.0;
+					min: 0 INDICATOR_HEIGHT;
+					fixed: 0 1;
+					rel1 { relative: 0.0 0.0; to: "icon_bg"; }
+					rel2 { relative: 1.0 0.0; to: "icon_bg"; }
+					align: 0.0 1.0;
+				}
+
+			}
+
+			part {
+				name: "message.bg";
+				type: RECT;
+				scale: 1;
+				mouse_events: 0;
+				description {
+					state: "default" 0.0;
+					visible: 0;
+					min: 0 INDICATOR_HEIGHT;
+					fixed: 0 1;
+					rel1 { relative: 0.0 1.0; to: "elm.rect.middle_con"; }
+					rel2 { relative: 1.0 1.0; to: "elm.rect.middle_con"; }
+					align: 0.0 0.0;
+					visible: 0;
+				}
+			}
+
+			part {
+				name: "message.padding.left";
+				type: RECT;
+				scale: 1;
+				mouse_events: 0;
+				description {
+					state: "default" 0.0;
+					min: MESSAGE_PADDING 0;
+					fixed: 1 0;
+					rel1 {
+						relative: 0.0 0.0;
+						to: "message.bg";
+					}
+					rel2 {
+						relative: 0.0 1.0;
+						to: "message.bg";
+					}
+					align: 0.0 0.0;
+					visible: 0;
+				}
+			}
+			part {
+				name: "message.padding.right";
+				type: RECT;
+				scale: 1;
+				mouse_events: 0;
+				description {
+					state: "default" 0.0;
+					min: MESSAGE_PADDING 0;
+					fixed: 1 0;
+					rel1 {
+						relative: 1.0 0.0;
+						to: "message.bg";
+					}
+					rel2 {
+						relative: 1.0 1.0;
+						to: "message.bg";
+					}
+					align: 1.0 0.0;
+					visible: 0;
+				}
+			}
+			part {
+				name: "message.padding.top";
+				type: RECT;
+				scale: 1;
+				mouse_events: 0;
+				description {
+					state: "default" 0.0;
+					min: 0 INDICATOR_PADDING_H;
+					fixed: 0 1;
+					rel1 { relative: 0.0 0.0; to: "message.bg"; }
+					rel2 { relative: 1.0 0.0; to: "message.bg"; }
+					align: 0.0 0.0;
+					visible: 0;
+				}
+			}
+			part {
+				name: "message.padding.bottom";
+				type: RECT;
+				scale: 1;
+				mouse_events: 0;
+				description {
+					state: "default" 0.0;
+					min: 0 INDICATOR_PADDING_H;
+					fixed: 0 1;
+					rel1 { relative: 0.0 1.0; to: "message.bg"; }
+					rel2 { relative: 1.0 1.0; to: "message.bg"; }
+					align: 0.0 1.0;
+					visible: 0;
+				}
+
+			}
+			part {
+				name: "message.text";
+				type: TEXTBLOCK;
+				scale: 1;
+				mouse_events: 0;
+				description {
+					state: "default" 0.0;
+					fixed: 1 1;
+					visible: 1;
+					rel1 {
+						relative: 1.0 1.0;
+						to_x: "message.padding.left";
+						to_y: "message.bg";
+					}
+
+					rel2 {
+						relative: 0.0 0.0;
+						to_x: "message.padding.right";
+						to_y: "message.bg";
+					}
+					text {
+						style: "message_style";
+						min: 0 1;
+					}
+				}
+			}
+
+			part {
+				name: elm.swallow.fixed0;
+				type: SWALLOW;
+				mouse_events: 0;
+				scale: 1;
+				description {
+					state: "default" 0.0;
+					min: HOME_PADDING_PORTRAIT APPTRAY_ICON_HEIGHT;
+					fixed: 1 0;
+					rel1 { relative: 1.0 0.0; to_x: padding.left; to_y: elm.rect.left_con; }
+					rel2 { relative: 1.0 1.0; to_x: padding.left; to_y: elm.rect.left_con; }
+					align: 0.0 0.5;
+					visible: 1;
+				}
+				description {
+					state: "landscape" 0.0;
+					min: HOME_PADDING_LANDSCAPE APPTRAY_ICON_HEIGHT;
+					fixed: 1 0;
+					rel1 { relative: 1.0 0.0; to_x: padding.left; to_y: elm.rect.left_con; }
+					rel2 { relative: 1.0 1.0; to_x: padding.left; to_y: elm.rect.left_con; }
+					align: 0.0 0.5;
+					visible: 1;
+				}
+			}
+
+			part {
+				name: "seperator.image";
+				type: IMAGE;
+				scale: 1;
+				mouse_events: 0;
+				description {
+					state: "default" 0.0;
+					visible: 0;
+					min: 4 36;
+					fixed: 1 1;
+					image.normal: "B03_Status_bar_line.PNG";
+					rel1 {
+						relative: 1.0 0.5;
+						to_x: "elm.swallow.fixed0";
+						to_y: "elm.rect.bg";
+					}
+					rel2 {
+						relative: 1.0 0.5;
+						to_x: "elm.swallow.fixed0";
+						to_y: "elm.rect.bg";
+					}
+					align: 0.0 0.5;
+					visible : 0;
+				}
+			}
+
+			part {
+				name: "padding.separator";
+				type: RECT;
+				mouse_events: 0;
+				scale: 1;
+				description {
+					state: "default" 0.0;
+					min: PADDING_WIDTH 0;
+					fixed: 1 0;
+					rel1 {
+						relative: 1.0 1.0;
+						to_x: "seperator.image";
+						to_y: "padding.top";
+					}
+					rel2 {
+						relative: 1.0 0.0;
+						to_x: "seperator.image";
+						to_y: "padding.bottom";
+					}
+					align: 0.0 0.5;
+					visible: 1;
+					color: 0 0 0 0;
+				}
+			}
+
+
+			DYNAMIC_RECT_FROM_LEFT( "elm.rect.fixed2", "elm.swallow.fixed3", "elm.rect.middle_con", DEFAULT_ICON_PADDING, FIXED4_DYNAMIC_PADDING, INDI_DEFAULT_BG_COLOR, 0)
+			SWALLOW_PART_FROM_LEFT_WITH_EFFECT( "elm.swallow.fixed2", "elm.rect.fixed2", "elm.rect.middle_con", DEFAULT_ICON_WIDTH, DEFAULT_ICON_HEIGHT )
+
+			FIXED_RECT_FROM_LEFT( "elm.rect.fixed3", "elm.swallow.fixed2", "elm.rect.middle_con", DEFAULT_ICON_PADDING, INDI_DEFAULT_BG_COLOR, 0)
+			SWALLOW_PART_FROM_LEFT_WITH_EFFECT( "elm.swallow.fixed1", "elm.rect.fixed3", "elm.rect.middle_con", DEFAULT_ICON_WIDTH, DEFAULT_ICON_HEIGHT )
+
+			FIXED_RECT_FROM_LEFT( "elm.rect.nonfixed", "elm.swallow.fixed1", "elm.rect.middle_con", DEFAULT_ICON_PADDING, INDI_DEFAULT_BG_COLOR, 0)
+			SWALLOW_PART_FROM_LEFT_WITH_EFFECT( "elm.swallow.nonfixed", "elm.rect.nonfixed", "elm.rect.middle_con", 0, 0)
+
+			SWALLOW_PART_FROM_RIGHT_WITH_EFFECT( "elm.swallow.noti", "clock.padding.left", "elm.rect.middle_con", 0, 0)
+
+			part {
+				name: elm.swallow.fixed4;
+				type: SWALLOW;
+				mouse_events: 0;
+				scale: 1;
+				description {
+					state: "default" 0.0;
+					min: HOME_PADDING_PORTRAIT APPTRAY_ICON_HEIGHT;
+					fixed: 1 0;
+					rel1 { relative: 0.0 0.0; to_x: padding.right; to_y: elm.rect.left_con; }
+					rel2 { relative: 0.0 1.0; to_x: padding.right; to_y: elm.rect.left_con; }
+					align: 1.0 0.5;
+					visible: 1;
+				}
+				description {
+					state: "landscape" 0.0;
+					min: HOME_PADDING_LANDSCAPE APPTRAY_ICON_HEIGHT;
+					fixed: 1 0;
+					rel1 { relative: 0.0 0.0; to_x: padding.right; to_y: elm.rect.left_con; }
+					rel2 { relative: 0.0 1.0; to_x: padding.right; to_y: elm.rect.left_con; }
+					align: 1.0 0.5;
+					visible: 1;
+				}
+			}
+
+			part {
+				name: "seperator.image2";
+				type: IMAGE;
+				scale: 1;
+				mouse_events: 0;
+				description {
+					state: "default" 0.0;
+					visible: 0;
+					min: 4 36;
+					fixed: 1 1;
+					image.normal: "B03_Status_bar_line.PNG";
+					rel1 {
+						relative: 0.0 0.5;
+						to_x: "elm.swallow.fixed4";
+						to_y: "elm.rect.bg";
+					}
+					rel2 {
+						relative: 0.0 0.5;
+						to_x: "elm.swallow.fixed4";
+						to_y: "elm.rect.bg";
+					}
+					align: 1.0 0.5;
+					visible : 0;
+				}
+			}
+
+			part {
+				name: "padding.separator2";
+				type: RECT;
+				mouse_events: 0;
+				scale: 1;
+				description {
+					state: "default" 0.0;
+					min: PADDING_WIDTH 0;
+					fixed: 1 0;
+					rel1 {
+						relative: 1.0 1.0;
+						to_x: "seperator.image2";
+						to_y: "padding.top";
+					}
+					rel2 {
+						relative: 1.0 0.0;
+						to_x: "seperator.image2";
+						to_y: "padding.bottom";
+					}
+					align: 0.0 0.5;
+					visible: 1;
+					color: 0 0 0 0;
+				}
+			}
+
+			part {
+				name: "clock.padding.left";
+				type: RECT;
+				mouse_events: 0;
+				scale: 1;
+				description {
+					state: "default" 0.0;
+					min: 12 0;
+					fixed: 1 0;
+					rel1.to_x: "elm.rect.clock";
+					rel2 { relative: 0.0 1.0; to_x: "elm.rect.clock"; }
+					visible: 0;
+				}
+			}
+
+			part {
+				name: "clock.padding.top";
+				type: RECT;
+				mouse_events: 0;
+				scale: 1;
+				description {
+					state: "default" 0.0;
+					min: 116 5;
+					fixed: 1 1;
+					rel1 { relative: 0.5 0.0; to_x: elm.rect.bg; to_y: elm.rect.middle_con; }
+					rel2 { relative: 0.5 0.0; to_x: elm.rect.bg; to_y: elm.rect.middle_con; }
+					visible: 0;
+				}
+			}
+			part {
+				name: "elm.rect.clock";
+				type: RECT;
+				mouse_events: 0;
+				scale: 1;
+				description {
+					state: "default" 0.0;
+					min: CLOCK_WIDTH CLOCK_HEIGHT;
+					fixed: 1 1;
+					rel1 	{ relative: 0.5 1.0; to: "clock.padding.top"; }
+					rel2 { relative: 0.5 1.0; to: "clock.padding.top"; }
+					align: 0.5 0.0;
+					visible: 0;
+				}
+				description {
+					state: "ampm" 0.0;
+					min: CLOCK_WIDTH CLOCK_HEIGHT;
+					fixed: 1 1;
+					rel1 	{ relative: 0.5 1.0; to: "clock.padding.top"; }
+					rel2 { relative: 0.5 1.0; to: "clock.padding.top"; }
+					align: 0.5 0.0;
+					visible: 0;
+				}
+			}
+			part {
+				name: "elm.rect.innerclock";
+				type: RECT;
+				mouse_events: 0;
+				scale: 1;
+				description {
+					state: "default" 0.0;
+					rel1 { relative: 0.5 0.5; to: "elm.rect.clock";}
+					rel2 { relative: 0.5 0.5; to: "elm.rect.clock";}
+				}
+			}
+			part {
+				name: "elm.text.clock";
+				type: TEXTBLOCK;
+				mouse_events: 0;
+				scale: 1;
+				description {
+					state: "default" 0.0;
+					rel1.to: "elm.rect.innerclock";
+					rel2.to: "elm.rect.innerclock";
+					fixed: 1 1;
+					text {
+						style: "textblock_style";
+						min: 1 1;
+						align: 0.5 0.5;
+					}
+				}
+				description {
+					state: "set_color" 0.0;
+					inherit: "default" 0.0;
+					text {
+						style: "textblock_outline_style";
+					}
+				}
+			}
+
+			part {
+				name: "elm.swallow.fixed3";
+				type: SWALLOW;
+				mouse_events: 0;
+				scale: 1;
+				description {
+					state: "default" 0.0;
+					min: BATTERY_ICON_WIDTH BATTERY_ICON_HEIGHT;
+					fixed: 1 1;
+					rel1 	{ relative: 0.5 0.0; to: "clock.padding.bottom"; }
+					rel2 { relative: 0.5 0.0; to: "clock.padding.bottom"; }
+					align: 0.5 1.0;
+					visible: 1;
+				}
+			}
+
+			part {
+				name: "clock.padding.bottom";
+				type: RECT;
+				mouse_events: 0;
+				scale: 1;
+				description {
+					state: "default" 0.0;
+					min: 116 5;
+					fixed: 1 1;
+					rel1 { relative: 0.5 1.0; to: "elm.rect.bg";}
+					rel2 { relative: 0.5 1.0; to: "elm.rect.bg";}
+					align: 0.5 1.0;
+					visible: 0;
+				}
+			}
+
+			part {
+				name: "clock.padding.right";
+				type: RECT;
+				mouse_events: 0;
+				scale: 1;
+				description {
+					state: "default" 0.0;
+					min: 12 0;
+					fixed: 1 0;
+					rel1 { relative: 1.0 0.0; to_x: "elm.rect.clock"; }
+					rel2 { relative: 0.0 1.0; to_x: "elm.rect.clock"; }
+					visible: 0;
+				}
+			}
+
+			part {
+				name: "elm.padding.badge.left";
+				type: RECT;
+				mouse_events: 0;
+				scale: 1;
+				description {
+					state: "default" 0.0;
+					min: 3 0;
+					fixed: 1 0;
+					rel1.to: "elm.text.badge";
+					rel2 { to: "elm.text.badge"; relative: 0.0 1.0; }
+					align: 1.0 0.5;
+					visible: 1;
+				}
+			}
+
+			part {
+				name: "elm.padding.badge.right";
+				type: RECT;
+				mouse_events: 0;
+				scale: 1;
+				description {
+					state: "default" 0.0;
+					min: 3 0;
+					fixed: 1 0;
+					rel1 { to: "elm.text.badge"; relative: 1.0 0.0; }
+					rel2.to: "elm.text.badge";
+					align: 0.0 0.5;
+					visible: 1;
+				}
+			}
+
+			part {
+				name: "elm.image.badge";
+				type: IMAGE;
+				mouse_events: 0;
+				scale: 1;
+				description {
+					state: "default" 0.0;
+					min: 18 18;
+					fixed: 1 1;
+					rel1.to: "elm.padding.badge.left";
+					rel2.to: "elm.padding.badge.right";
+					image {
+						border: 8 8 8 8;
+						border_scale: 1;
+					}
+					visible: 0;
+				}
+				description {
+					state: "show" 0.0;
+					inherit: "default" 0.0;
+					visible: 1;
+				}
+				description {
+					state: "show2" 0.0;
+					inherit: "default" 0.0;
+					visible: 1;
+				}
+			}
+
+			part {
+				name: "elm.text.badge";
+				type: TEXT;
+				mouse_events: 0;
+				scale: 1;
+				description {
+					state: "default" 0.0;
+					rel1 { to: "elm.rect.clock"; relative: 0.95 0.2; }
+					rel2 { to: "elm.rect.clock"; relative: 0.95 0.2; }
+					color: 255 255 255 255;
+					align: 1.0 0.0;
+					text {
+						font: "Tizen";
+						size: 15;
+						min: 1 0;
+						align: 0.5 0.5;
+					}
+				}
+				description {
+					state: "default2" 0.0;
+					inherit: "default" 0.0;
+					color: 0 0 0 255;
+				}
+			}
+
+		programs {
+			program {
+				name: "change_padding_1";
+				action: STATE_SET "changePad" 0.0;
+				signal: "change,padding,1";
+				source: "elm.rect.*";
+				script {
+					if (get_int(changepad) == 0) {
+						set_int(changepad,1);
+					}
+				}
+			}
+
+			program {
+				name: "change_padding_2";
+				action: STATE_SET "changePad" 0.0;
+				signal: "change,padding,2";
+				source: "elm.rect.*";
+				script {
+					if (get_int(changepad) == 1) {
+						set_int(changepad,0);
+					}
+				}
+			}
+
+			program {
+				name: "home_pressed";
+				signal: "home.pressed";
+				source: "indicator.prog";
+				script {
+				}
+			}
+
+			program {
+				name: "change_home_pad_1";
+				action: STATE_SET "changeHomePad" 0.0;
+				signal: "change,home,pad,1";
+				source: "elm.rect.*";
+				script {
+					if (get_int(changeHomePad) == 0) {
+						set_state(PART:"elm.rect.left_con", "landscape", 0.0);
+						set_state(PART:"elm.swallow.fixed0", "landscape", 0.0);
+						set_int(changeHomePad,1);
+					}
+				}
+			}
+
+			program {
+				name: "change_home_pad_2";
+				action: STATE_SET "changeHomePad" 0.0;
+				signal: "change,home,pad,2";
+				source: "elm.rect.*";
+				script {
+					if (get_int(changeHomePad) == 1) {
+						set_state(PART:"elm.rect.left_con", "default", 0.0);
+						set_state(PART:"elm.swallow.fixed0", "default", 0.0);
+						set_int(changeHomePad, 0);
+					}
+				}
+			}
+
+			program {
+				name: "bg_opaque";
+				action: STATE_SET "default" 0.0;
+				signal: "bg.opaque";
+				source: "indicator.prog";
+				script {
+					set_int(bg_set, 0);
+					set_state(PART:"elm.rect.bg", "opaque", 0.0);
+				}
+
+			}
+			program {
+				name: "bg_translucent";
+				action: STATE_SET "default" 0.0;
+				signal: "bg.translucent";
+				source: "indicator.prog";
+				script {
+					set_int(bg_set, 1);
+					set_state(PART:"elm.rect.bg", "translucent", 0.0);
+				}
+
+			}
+			program {
+				name: "bg_transparent";
+				signal: "bg.transparent";
+				source: "indicator.prog";
+				script {
+					set_int(bg_set, 2);
+					set_state(PART:"elm.rect.bg", "transparent", 0.0);
+				}
+
+			}
+			program {
+				name: "bg_notification";
+				signal: "bg.notification";
+				source: "indicator.prog";
+				script {
+					set_int(bg_set, 3);
+					set_state(PART:"elm.rect.bg", "notification", 0.0);
+				}
+
+			}
+
+			program {
+				name: "clock_size_default";
+				signal: "indicator.clock.default";
+				source: "indicator.prog";
+				script {
+					set_state(PART:"elm.rect.clock", "default", 0.0);
+				}
+
+			}
+			program {
+				name: "clock_size_ampm";
+				signal: "indicator.clock.ampm";
+				source: "indicator.prog";
+				script {
+					set_state(PART:"elm.rect.clock", "ampm", 0.0);
+				}
+
+			}
+
+			program {
+				name: "show.noti";
+				action: STATE_SET "show" 0.0;
+				signal: "indicator.noti.show";
+				source: "indicator.prog";
+				target: "elm.swallow.noti";
+				target: "elm.swallow.nonfixed";
+				target: "elm.swallow.fixed1";
+				target: "elm.swallow.fixed2";
+				target: "seperator.image";
+				target: "seperator.image2";
+			}
+			program {
+				name: "hide.noti";
+				action: STATE_SET "default" 0.0;
+				signal: "indicator.noti.hide";
+				source: "indicator.prog";
+				target: "elm.swallow.noti";
+				target: "elm.swallow.nonfixed";
+				target: "elm.swallow.fixed1";
+				target: "elm.swallow.fixed2";
+				target: "seperator.image";
+				target: "seperator.image2";
+			}
+
+			program {
+				name: "badge_show";
+				signal: "badge,show,1";
+				source: "elm.image.badge";
+				script {
+					if (get_int(badge_set) == 0) {
+						set_int(badge_set, 1);
+						if (get_int(theme) == 2) {
+							set_state(PART:"elm.image.badge", "show2", 0.0);
+							set_state(PART:"elm.text.badge", "default2", 0.0);
+						} else {
+							set_state(PART:"elm.image.badge", "show", 0.0);
+							set_state(PART:"elm.text.badge", "default", 0.0);
+						}
+					}
+				}
+			}
+
+			program {
+				name: "badge_hide";
+				signal: "badge,hide,1";
+				source: "elm.image.badge";
+				script {
+					if (get_int(badge_set) == 1) {
+						set_int(badge_set, 0);
+						set_state(PART:"elm.image.badge", "default", 0.0);
+					}
+				}
+			}
+		}
+	}
+}

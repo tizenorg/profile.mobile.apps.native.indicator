@@ -1,0 +1,6 @@
+msgid "IDS_IDLE_OPT_AM_ABB"
+msgstr "오전"
+
+msgid "IDS_IDLE_OPT_PM_ABB"
+msgstr "오후"
+

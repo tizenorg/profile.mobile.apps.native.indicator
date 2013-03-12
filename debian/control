@@ -1,0 +1,20 @@
+Source: indicator
+Section: devel
+Priority: extra
+Maintainer: Jeonghoon Park <jh1979.park@samsung.com>, Youngjoo Park <yjoo93.park@samsung.com>
+Uploaders: Jeonghoon Park <jh1979.park@samsung.com>
+Build-Depends: debhelper (>= 5), libappcore-efl-dev, libelm-dev, libdbus-1-dev, libheynoti-dev, libslp-setting-dev, dlog-dev, libprivilege-control-dev, libnotification-dev, libslp-utilx-dev, libstatus-dev
+Standards-Version: 0.1.0
+
+Package: org.tizen.indicator
+Section: utils
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libslp-setting-0
+Description: indicator window
+
+Package: org.tizen.indicator-dbg
+Section: debug
+Architecture: any 
+Depends: org.tizen.indicator (= ${Source-Version})
+Description: indicator window (unstripped) 
+

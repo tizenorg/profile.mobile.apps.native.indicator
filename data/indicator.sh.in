@@ -1,0 +1,2 @@
+@BINDIR@/@PROJECT_NAME@ &
+sleep 7
