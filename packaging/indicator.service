@@ -2,7 +2,6 @@
 Description=Start the indicator
 Before=core-efl.target
 After=xorg.target starter.service e17.service
-Requires=starter.service
 
 [Service]
 ExecStart=/usr/apps/org.tizen.indicator/bin/indicator
