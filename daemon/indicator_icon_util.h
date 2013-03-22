@@ -48,4 +48,7 @@ extern Eina_Bool indicator_util_icon_del(Indicator_Icon_Object *icon);
 
 extern void indicator_util_event_count_set(int count, void *data);
 extern unsigned int indicator_util_max_visible_event_count(int type);
+extern unsigned int indicator_util_get_update_flag(void);
+void indicator_util_set_update_flag(unsigned int val);
+
 #endif /*__INDICATOR_ICON_UTIL_H__*/

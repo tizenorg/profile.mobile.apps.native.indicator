@@ -17,6 +17,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <vconf.h>
 #include <notification.h>
 #include "common.h"
 #include "indicator.h"
@@ -76,7 +77,6 @@ struct noti_status {
 
 
 static Eina_List *status_list;
-static int noti_cnt;
 
 static void set_app_state(void* data)
 {
@@ -120,10 +120,25 @@ static void free_image_icon(struct noti_status *data)
 		if (data->icon[i])
 		{
 			if (data->icon[i]->img_obj.data)
-				free((char *)data->icon[i]->img_obj.data);
+			{
+				free(data->icon[i]->img_obj.data);
+			}
+
+			if (data->icon[i]->name)
+			{
+				free(data->icon[i]->name);
+			}
 
 			free(data->icon[i]);
 		}
+
+	}
+
+	if(data!=NULL)
+	{
+		INFO("noti data free!");
+		free(data);
+		data = NULL;
 	}
 }
 
@@ -155,13 +170,16 @@ static void show_image_icon(struct noti_status *data)
 			}
 			DBG("Get Path of Notication %s : %s",data->icon[0]->name, icon_path);
 			if (icon_path == NULL
-				|| !ecore_file_exists(icon_path)) {
+				|| !ecore_file_exists(icon_path))
+			{
 				int i = 0;
 				for(i=0 ; i<INDICATOR_WIN_MAX ; i++)
 				{
 					data->icon[i]->img_obj.data = NULL;
 				}
-			} else {
+			}
+			else
+			{
 				show_icon_with_path(data, icon_path);
 			}
 		}
@@ -172,7 +190,6 @@ static void show_image_icon_all( void )
 {
 	Eina_List *l;
 	struct noti_status *data;
-	int total = 0, noti_count = 0;
 
 	EINA_LIST_REVERSE_FOREACH(status_list, l, data) {
 		if (data) {
@@ -186,7 +203,7 @@ static void _icon_add(struct noti_status *noti_data, const char *name, void *dat
 {
 	int i = 0;
 	DBG("noti_data %x",noti_data);
-	retif(noti_data == NULL || data == NULL, NULL, "Invalid parameter!");
+	retif(noti_data == NULL || data == NULL, , "Invalid parameter!");
 
 	for (i=0 ; i<INDICATOR_WIN_MAX ; i++)
 	{
@@ -211,46 +228,23 @@ static void _icon_add(struct noti_status *noti_data, const char *name, void *dat
 	return;
 }
 
-static void _set_noti_cnt(int cnt)
-{
-	if (cnt >= 0) {
-		noti_cnt = cnt;
-		indicator_util_event_count_set(noti_cnt, noti[0].ad);
-	}
-}
-
-static int _get_noti_cnt(void)
-{
-	return noti_cnt;
-}
-
-static void _update_all_status(void)
+static void _remove_all_noti(void)
 {
 	Eina_List *l;
-	struct noti_status *data;
-	int total = 0, noti_count = 0;
-
-	EINA_LIST_FOREACH(status_list, l, data) {
-		if (data) {
-			DBG("%s is updated! Cnt : %d",
-				data->icon[0]->name, data->cnt);
-			notification_get_count(NOTIFICATION_TYPE_NONE, NULL,
-				NOTIFICATION_GROUP_ID_NONE,
-				NOTIFICATION_PRIV_ID_NONE,
-				&noti_count);
-			data->cnt = noti_count;
-
-			if (data->cnt == 0)
-				hide_image_icon(data);
-			else
-				total += data->cnt;
-		}
+	struct noti_status *n_data;
+	EINA_LIST_FOREACH(status_list, l, n_data) {
+		DBG("Clear Status List : %s", n_data->icon[0]->name);
+		hide_image_icon(n_data);
+		free_image_icon(n_data);
+		status_list = eina_list_remove_list(status_list, l);
 	}
+	eina_list_free(status_list);
+
 }
 
 static void _change_icon_status(void *data, notification_list_h noti_list)
 {
-	int cnt = 0, new_cnt = 0;
+	int new_cnt = 0;
 	Eina_List *l = NULL;
 	notification_h noti = NULL;
 	struct noti_status *n_data = NULL;
@@ -319,7 +313,6 @@ static void _change_icon_status(void *data, notification_list_h noti_list)
 				status->noti = noti;
 				insert_icon_list(status);
 				status_list = eina_list_append(status_list, status);
-				cnt = _get_noti_cnt() + status->cnt;
 			}
 		}
 	}
@@ -330,20 +323,29 @@ static void _change_icon_status(void *data, notification_list_h noti_list)
 void update_noti_module_new(void *data, notification_type_e type)
 {
 	notification_list_h list = NULL;
+	notification_list_h noti_list_head = NULL;
 	notification_error_e noti_err = NOTIFICATION_ERROR_NONE;
 	int get_event_count = indicator_util_max_visible_event_count(INDICATOR_WIN_LAND);
 
 	retif(data == NULL, , "Invalid parameter!");
 
-	noti_err = notification_get_grouping_list(NOTIFICATION_TYPE_NONE,
+	INFO("update_noti_module_new %d", type);
+
+	noti_err = notification_get_list(NOTIFICATION_TYPE_NONE,
 				get_event_count, &list);
 
+	noti_list_head = list;
+
 	if (noti_err != NOTIFICATION_ERROR_NONE || list == NULL) {
-		_update_all_status();
+		INFO("update_noti_module_new %d %x", noti_err, list);
+		_remove_all_noti();
+		notification_free_list(noti_list_head);
 		return;
 	}
 
 	_change_icon_status(data, list);
+
+	notification_free_list(noti_list_head);
 }
 
 

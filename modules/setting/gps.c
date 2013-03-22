@@ -32,6 +32,7 @@ static int register_gps_module(void *data);
 static int unregister_gps_module(void);
 static int hib_enter_gps_module(void);
 static int hib_leave_gps_module(void *data);
+static int wake_up_cb(void *data);
 
 Indicator_Icon_Object gps[INDICATOR_WIN_MAX] = {
 {
@@ -48,7 +49,8 @@ Indicator_Icon_Object gps[INDICATOR_WIN_MAX] = {
 	.init = register_gps_module,
 	.fini = unregister_gps_module,
 	.hib_enter = hib_enter_gps_module,
-	.hib_leave = hib_leave_gps_module
+	.hib_leave = hib_leave_gps_module,
+	.wake_up = wake_up_cb
 },
 {
 	.win_type = INDICATOR_WIN_LAND,
@@ -64,7 +66,8 @@ Indicator_Icon_Object gps[INDICATOR_WIN_MAX] = {
 	.init = register_gps_module,
 	.fini = unregister_gps_module,
 	.hib_enter = hib_enter_gps_module,
-	.hib_leave = hib_leave_gps_module
+	.hib_leave = hib_leave_gps_module,
+	.wake_up = wake_up_cb
 }
 };
 
@@ -85,6 +88,7 @@ static const char *icon_path[LEVEL_MAX] = {
 	[LEVEL_GPS_ON] = "Bluetooth, NFC, GPS/B03_GPS_On.png",
 	[LEVEL_GPS_SEARCHING] = "Bluetooth, NFC, GPS/B03_GPS_Searching.png",
 };
+static int updated_while_lcd_off = 0;
 
 static void set_app_state(void* data)
 {
@@ -187,11 +191,59 @@ static void indicator_gps_change_cb(keynode_t *node, void *data)
 {
 
 	retif(data == NULL, , "Invalid parameter!");
-	retif(node == NULL, , "node is NULL");
+
+	if(indicator_util_get_update_flag()==0)
+	{
+		updated_while_lcd_off = 1;
+		DBG("need to update %d",updated_while_lcd_off);
+		return;
+	}
+	updated_while_lcd_off = 0;
 
 	indicator_gps_state_icon_set(indicator_gps_state_get(), data);
 
 	return;
+}
+
+static void indicator_gps_pm_state_change_cb(keynode_t *node, void *data)
+{
+	int status = 0;
+	int ret = 0;
+	retif(data == NULL, , "Invalid parameter!");
+
+	vconf_get_int(VCONFKEY_PM_STATE, &status);
+
+	if(status == VCONFKEY_PM_STATE_LCDOFF)
+	{
+		int gps_status = 0;
+		ret = vconf_get_int(VCONFKEY_LOCATION_GPS_STATE, &gps_status);
+		if (ret < 0)
+			ERR("fail to get [%s]", VCONFKEY_LOCATION_GPS_STATE);
+
+		INFO("GPS STATUS: %d", gps_status);
+		switch (gps_status) {
+		case IND_POSITION_STATE_SEARCHING:
+			show_image_icon(data, LEVEL_GPS_SEARCHING);
+			icon_animation_set(ICON_ANI_NONE);
+			break;
+		case IND_POSITION_STATE_OFF:
+		case IND_POSITION_STATE_CONNECTED:
+		default:
+			break;
+		}
+	}
+}
+
+static int wake_up_cb(void *data)
+{
+	if(updated_while_lcd_off==0 && gps[0].obj_exist==EINA_FALSE)
+	{
+		DBG("ICON WAS NOT UPDATED");
+		return OK;
+	}
+
+	indicator_gps_change_cb(NULL, data);
+	return OK;
 }
 
 static int register_gps_module(void *data)
@@ -207,6 +259,11 @@ static int register_gps_module(void *data)
 	if (ret != OK)
 		ERR("Failed to register callback! : VCONFKEY_LOCATION_GPS_STATE");
 
+	ret = vconf_notify_key_changed(VCONFKEY_PM_STATE,
+				       indicator_gps_pm_state_change_cb, data);
+	if (ret != OK)
+		ERR("Failed to register callback! : VCONFKEY_LOCATION_GPS_STATE");
+
 	indicator_gps_state_icon_set(indicator_gps_state_get(), data);
 
 	return ret;
@@ -218,6 +275,11 @@ static int unregister_gps_module(void)
 
 	ret = vconf_ignore_key_changed(VCONFKEY_LOCATION_GPS_STATE,
 				       indicator_gps_change_cb);
+	if (ret != OK)
+		ERR("Failed to unregister callback!");
+
+	ret = vconf_ignore_key_changed(VCONFKEY_PM_STATE,
+				       indicator_gps_pm_state_change_cb);
 	if (ret != OK)
 		ERR("Failed to unregister callback!");
 

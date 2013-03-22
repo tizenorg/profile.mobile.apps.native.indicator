@@ -23,6 +23,7 @@
 #include "indicator_icon_list.h"
 #include "indicator_ui.h"
 #include "indicator_gui.h"
+#include "indicator_util.h"
 #include <vconf.h>
 
 #define DEFAULT_SIZE	(CLOCK_WIDTH + (PADDING_WIDTH * 2))
@@ -37,7 +38,7 @@ Eina_List *_view_fixed_list[INDICATOR_WIN_MAX];
 Eina_List *_view_system_list[INDICATOR_WIN_MAX];
 Eina_List *_view_noti_list[INDICATOR_WIN_MAX];
 
-extern int indicator_icon_show_state;
+extern int indicator_icon_show_state[INDICATOR_WIN_MAX];
 
 static Evas_Object *indicator_box_add(Evas_Object * parent)
 {
@@ -62,7 +63,7 @@ static void _update_window(win_info *win)
 	int root_w, root_h;
 	Ecore_X_Window xwin, root;
 
-	retif(win == NULL, NULL, "Invalid parameter!");
+	retif(win == NULL, , "Invalid parameter!");
 
 	INFO("_update_window");
 
@@ -109,7 +110,7 @@ static void _update_display(win_info *win)
 	Eina_List *l;
 	int i = 0;
 
-	retif(win == NULL, NULL, "Invalid parameter!");
+	retif(win == NULL, , "Invalid parameter!");
 
 	for (i = 0; i < _FIXED_COUNT; ++i)
 		elm_box_unpack_all(win->_fixed_box[i]);
@@ -280,7 +281,7 @@ static void _update_display(win_info *win)
 
 void indicator_util_update_display(win_info *win)
 {
-	retif(win == NULL, FAIL, "Invalid parameter!");
+	retif(win == NULL, , "Invalid parameter!");
 
 	_update_window(win);
 
@@ -761,32 +762,84 @@ int indicator_util_check_home_icon_area(win_info *win, Evas_Coord curr_x, Evas_C
 	return 0;
 }
 
-void indicator_util_show_hide_icons(void* data,int bShow)
+static void indicator_util_icon_state(int win_type, int bShow)
 {
-	struct appdata *ad = (struct appdata *)data;
-	Indicator_Icon_Object *icon;
-	Eina_List *l;
+	DBG("win_type(%d) Show(%d)",win_type,bShow);
+	indicator_icon_show_state[win_type] = bShow;
+}
+
+void indicator_util_show_hide_icons(void* data,int bShow, int bEffect)
+{
+	win_info *win = (win_info *)data;
+	Ecore_Evas *ee_port;
 	retif(data == NULL, , "Invalid parameter!");
 
-	int i = 0;
-
-	DBG("Show = %d",bShow);
-
 	if(bShow)
 	{
-		indicator_clock_display_battery_percentage(data);
-	}
-
-	if(bShow)
-	{
-		indicator_signal_emit(data,"indicator.noti.show", "indicator.prog");
+		indicator_util_icon_state(win->type,1);
 	}
 	else
 	{
-		indicator_signal_emit(data,"indicator.noti.hide", "indicator.prog");
+		indicator_util_icon_state(win->type,0);
+	}
+
+
+	ee_port = ecore_evas_ecore_evas_get(evas_object_evas_get(win->win_main));
+
+	if(win->type == INDICATOR_WIN_LAND)
+	{
+		DBG("land = %d",bShow);
+		if(bShow==FALSE)
+		{
+			int mode = 2;
+			int bRepeat = 1;
+			ecore_evas_msg_send(ee_port, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_REPEAT_EVENT, &bRepeat, sizeof(int));
+			ecore_evas_msg_send(ee_port, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_TYPE, &mode, sizeof(int));
+		}
+		else
+		{
+			int mode = 1;
+			int bRepeat = 0;
+			ecore_evas_msg_send(ee_port, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_REPEAT_EVENT, &bRepeat, sizeof(int));
+			ecore_evas_msg_send(ee_port, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_TYPE, &mode, sizeof(int));
+		}
+	}
+	else
+	{
+		DBG("port = %d",bShow);
+		int mode = 1;
+		int bRepeat = 0;
+		ecore_evas_msg_send(ee_port, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_REPEAT_EVENT, &bRepeat, sizeof(int));
+		ecore_evas_msg_send(ee_port, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_TYPE, &mode, sizeof(int));
+	}
+
+	if(bEffect)
+	{
+		if(bShow)
+		{
+			indicator_signal_emit_by_win(data,"indicator.clip.show", "indicator.prog");
+			indicator_signal_emit_by_win(data,"indicator.noti.show", "indicator.prog");
+		}
+		else
+		{
+			indicator_signal_emit_by_win(data,"indicator.clip.hide", "indicator.prog");
+			indicator_signal_emit_by_win(data,"indicator.noti.hide", "indicator.prog");
+		}
+	}
+	else
+	{
+		if(bShow)
+		{
+			indicator_signal_emit_by_win(data,"indicator.clip.show.noeffect", "indicator.prog");
+			indicator_signal_emit_by_win(data,"indicator.noti.show.noeffect", "indicator.prog");
+		}
+		else
+		{
+			indicator_signal_emit_by_win(data,"indicator.clip.hide.noeffect", "indicator.prog");
+			indicator_signal_emit_by_win(data,"indicator.noti.hide.noeffect", "indicator.prog");
+		}
 	}
 }
-
 
 Eina_Bool indicator_util_is_show_icon(Indicator_Icon_Object *obj)
 {

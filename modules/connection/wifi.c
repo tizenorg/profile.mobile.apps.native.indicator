@@ -30,8 +30,7 @@
 
 static int register_wifi_module(void *data);
 static int unregister_wifi_module(void);
-extern void show_trnsfr_icon(void *data);
-extern void hide_trnsfr_icon(void);
+static int wake_up_cb(void *data);
 
 Indicator_Icon_Object wifi[INDICATOR_WIN_MAX] = {
 {
@@ -46,7 +45,8 @@ Indicator_Icon_Object wifi[INDICATOR_WIN_MAX] = {
 	.obj_exist = EINA_FALSE,
 	.area = INDICATOR_ICON_AREA_FIXED,
 	.init = register_wifi_module,
-	.fini = unregister_wifi_module
+	.fini = unregister_wifi_module,
+	.wake_up = wake_up_cb
 },
 {
 	.win_type = INDICATOR_WIN_LAND,
@@ -60,7 +60,8 @@ Indicator_Icon_Object wifi[INDICATOR_WIN_MAX] = {
 	.obj_exist = EINA_FALSE,
 	.area = INDICATOR_ICON_AREA_FIXED,
 	.init = register_wifi_module,
-	.fini = unregister_wifi_module
+	.fini = unregister_wifi_module,
+	.wake_up = wake_up_cb
 }
 };
 
@@ -81,6 +82,7 @@ static const char *icon_path[LEVEL_WIFI_MAX] = {
 };
 
 static Eina_Bool wifi_transferring = EINA_FALSE;
+static int updated_while_lcd_off = 0;
 
 static void set_app_state(void* data)
 {
@@ -120,6 +122,15 @@ static void indicator_wifi_change_cb(keynode_t *node, void *data)
 	int ret;
 
 	retif(data == NULL, , "Invalid parameter!");
+
+	if(indicator_util_get_update_flag()==0)
+	{
+		updated_while_lcd_off = 1;
+		DBG("need to update %d",updated_while_lcd_off);
+		return;
+	}
+	updated_while_lcd_off = 0;
+
 	ret = vconf_get_int(VCONFKEY_WIFI_STRENGTH, &strength);
 	if (ret == OK) {
 		INFO("CONNECTION WiFi Strength: %d", strength);
@@ -136,7 +147,6 @@ static void indicator_wifi_change_cb(keynode_t *node, void *data)
 		INFO("CONNECTION WiFi Status: %d", status);
 		if (status != VCONFKEY_WIFI_TRANSFER) {
 			if ( wifi_transferring == EINA_TRUE ) {
-				hide_trnsfr_icon();
 				wifi_transferring = EINA_FALSE;
 			}
 		}
@@ -151,7 +161,6 @@ static void indicator_wifi_change_cb(keynode_t *node, void *data)
 			return;
 		} else if (status == VCONFKEY_WIFI_TRANSFER) {
 			if (wifi_transferring != EINA_TRUE) {
-				show_trnsfr_icon(data);
 				wifi_transferring = EINA_TRUE;
 			}
 			return;
@@ -159,6 +168,18 @@ static void indicator_wifi_change_cb(keynode_t *node, void *data)
 	}
 	hide_image_icon();
 	return;
+}
+
+static int wake_up_cb(void *data)
+{
+	if(updated_while_lcd_off==0)
+	{
+		DBG("ICON WAS NOT UPDATED");
+		return OK;
+	}
+
+	indicator_wifi_change_cb(NULL, data);
+	return OK;
 }
 
 static int register_wifi_module(void *data)

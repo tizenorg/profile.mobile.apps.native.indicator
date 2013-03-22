@@ -91,7 +91,7 @@ void indicator_signal_emit(void* data, const char *emission, const char *source)
 
 	for(i=0;i<INDICATOR_WIN_MAX;i++)
 	{
-		retif(ad->win[i].layout_main == NULL, FAIL, "Invalid parameter!");
+		retif(ad->win[i].layout_main == NULL, , "Invalid parameter!");
 		edje = elm_layout_edje_get(ad->win[i].layout_main);
 		edje_object_signal_emit(edje, emission, source);
 	}
@@ -106,9 +106,31 @@ void indicator_part_text_emit(void* data, const char *part, const char *text)
 
 	for(i=0;i<INDICATOR_WIN_MAX;i++)
 	{
-		retif(ad->win[i].layout_main == NULL, FAIL, "Invalid parameter!");
+		retif(ad->win[i].layout_main == NULL, , "Invalid parameter!");
 		edje = elm_layout_edje_get(ad->win[i].layout_main);
 		edje_object_part_text_set(edje, part, text);
 	}
+}
+
+void indicator_signal_emit_by_win(void* data, const char *emission, const char *source)
+{
+	win_info *win = (win_info*)data;
+	retif(data == NULL, , "Invalid parameter!");
+	Evas_Object *edje;
+
+	retif(win->layout_main == NULL, , "Invalid parameter!");
+	edje = elm_layout_edje_get(win->layout_main);
+	edje_object_signal_emit(edje, emission, source);
+}
+
+void indicator_part_text_emit_by_win(void* data, const char *part, const char *text)
+{
+	win_info *win = (win_info*)data;
+	retif(data == NULL, , "Invalid parameter!");
+	Evas_Object *edje;
+
+	retif(win->layout_main == NULL, , "Invalid parameter!");
+	edje = elm_layout_edje_get(win->layout_main);
+	edje_object_part_text_set(edje, part, text);
 }
 

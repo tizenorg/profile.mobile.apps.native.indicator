@@ -24,17 +24,15 @@
 #include "modules.h"
 #include "indicator_ui.h"
 
-#define ICON_PRIORITY	INDICATOR_PRIORITY_SYSTEM_3
+#define ICON_PRIORITY	INDICATOR_PRIORITY_SYSTEM_4
 #define MODULE_NAME		"bluetooth"
-#define TIMER_INTERVAL	0.3
-
-extern void show_trnsfr_icon(void *data);
-extern void hide_trnsfr_icon(void);
+#define TIMER_INTERVAL	0.5
 
 static int register_bluetooth_module(void *data);
 static int unregister_bluetooth_module(void);
 static int hib_enter_bluetooth_module(void);
 static int hib_leave_bluetooth_module(void *data);
+static int wake_up_cb(void *data);
 
 Indicator_Icon_Object bluetooth[INDICATOR_WIN_MAX] = {
 {
@@ -51,7 +49,8 @@ Indicator_Icon_Object bluetooth[INDICATOR_WIN_MAX] = {
 	.init = register_bluetooth_module,
 	.fini = unregister_bluetooth_module,
 	.hib_enter = hib_enter_bluetooth_module,
-	.hib_leave = hib_leave_bluetooth_module
+	.hib_leave = hib_leave_bluetooth_module,
+	.wake_up = wake_up_cb
 },
 {
 	.win_type = INDICATOR_WIN_LAND,
@@ -67,7 +66,8 @@ Indicator_Icon_Object bluetooth[INDICATOR_WIN_MAX] = {
 	.init = register_bluetooth_module,
 	.fini = unregister_bluetooth_module,
 	.hib_enter = hib_enter_bluetooth_module,
-	.hib_leave = hib_leave_bluetooth_module
+	.hib_leave = hib_leave_bluetooth_module,
+	.wake_up = wake_up_cb
 }
 
 };
@@ -90,6 +90,8 @@ static const char *icon_path[LEVEL_MAX] = {
 
 static Ecore_Timer *timer;
 static Eina_Bool bt_transferring = EINA_FALSE;
+static int updated_while_lcd_off = 0;
+
 
 static void set_app_state(void* data)
 {
@@ -159,7 +161,6 @@ static void show_bluetooth_icon(void *data, int status)
 	}
 	if (status & DATA_TRANSFER) {
 		if(bt_transferring != EINA_TRUE) {
-			show_trnsfr_icon(data);
 			bt_transferring	= EINA_TRUE;
 		}
 		return;
@@ -190,13 +191,19 @@ static void indicator_bluetooth_change_cb(keynode_t *node, void *data)
 
 	retif(data == NULL, , "Invalid parameter!");
 
+	if(indicator_util_get_update_flag()==0)
+	{
+		updated_while_lcd_off = 1;
+		DBG("need to update %d",updated_while_lcd_off);
+		return;
+	}
+	updated_while_lcd_off = 0;
+
 	ret = vconf_get_int(VCONFKEY_BT_STATUS, &status);
 	if (ret == OK) {
 		INFO("BT STATUS: %d", status);
-		/* Check transferring Icon animation */
 		if (!(status & VCONFKEY_BT_STATUS_TRANSFER)) {
 			if (bt_transferring == EINA_TRUE) {
-				hide_trnsfr_icon();
 				bt_transferring = EINA_FALSE;
 			}
 		}
@@ -235,6 +242,35 @@ static void indicator_bluetooth_change_cb(keynode_t *node, void *data)
 	return;
 }
 
+static void indicator_bluetooth_pm_state_change_cb(keynode_t *node, void *data)
+{
+	int status = 0;
+
+	retif(data == NULL, , "Invalid parameter!");
+
+	vconf_get_int(VCONFKEY_PM_STATE, &status);
+
+	if(status == VCONFKEY_PM_STATE_LCDOFF)
+	{
+		if (timer != NULL) {
+			ecore_timer_del(timer);
+			timer = NULL;
+		}
+	}
+}
+
+static int wake_up_cb(void *data)
+{
+	if(updated_while_lcd_off==0&&bluetooth[0].obj_exist==EINA_FALSE)
+	{
+		DBG("ICON WAS NOT UPDATED");
+		return OK;
+	}
+
+	indicator_bluetooth_change_cb(NULL, data);
+	return OK;
+}
+
 static int register_bluetooth_module(void *data)
 {
 	int r = 0, ret = -1;
@@ -252,6 +288,13 @@ static int register_bluetooth_module(void *data)
 
 	ret = vconf_notify_key_changed(VCONFKEY_BT_DEVICE,
 				       indicator_bluetooth_change_cb, data);
+	if (ret != OK) {
+		ERR("Failed to register callback!");
+		r = r | ret;
+	}
+
+	ret = vconf_notify_key_changed(VCONFKEY_PM_STATE,
+				       indicator_bluetooth_pm_state_change_cb, data);
 	if (ret != OK) {
 		ERR("Failed to register callback!");
 		r = r | ret;
@@ -276,10 +319,15 @@ static int unregister_bluetooth_module(void)
 	if (ret != OK)
 		ERR("Failed to unregister callback!");
 
+	ret = vconf_ignore_key_changed(VCONFKEY_PM_STATE,
+				       indicator_bluetooth_pm_state_change_cb);
+	if (ret != OK)
+		ERR("Failed to unregister callback!");
+
+
 	delete_timer();
 
 	if (bt_transferring == EINA_TRUE) {
-		hide_trnsfr_icon();
 		bt_transferring = EINA_FALSE;
 	}
 

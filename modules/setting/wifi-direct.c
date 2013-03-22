@@ -24,14 +24,13 @@
 #include "modules.h"
 #include "indicator_ui.h"
 
-#define ICON_PRIORITY	INDICATOR_PRIORITY_SYSTEM_3
+#define ICON_PRIORITY	INDICATOR_PRIORITY_SYSTEM_4
 #define MODULE_NAME		"wifi_direct"
-
-extern void show_trnsfr_icon(void *data);
-extern void hide_trnsfr_icon(void);
 
 static int register_wifi_direct_module(void *data);
 static int unregister_wifi_direct_module(void);
+static int wake_up_cb(void *data);
+
 
 Indicator_Icon_Object wifi_direct[INDICATOR_WIN_MAX] = {
 {
@@ -47,6 +46,7 @@ Indicator_Icon_Object wifi_direct[INDICATOR_WIN_MAX] = {
 	.area = INDICATOR_ICON_AREA_SYSTEM,
 	.init = register_wifi_direct_module,
 	.fini = unregister_wifi_direct_module,
+	.wake_up = wake_up_cb
 },
 {
 	.win_type = INDICATOR_WIN_LAND,
@@ -61,11 +61,13 @@ Indicator_Icon_Object wifi_direct[INDICATOR_WIN_MAX] = {
 	.area = INDICATOR_ICON_AREA_SYSTEM,
 	.init = register_wifi_direct_module,
 	.fini = unregister_wifi_direct_module,
+	.wake_up = wake_up_cb
 }
 
 };
 
 static Eina_Bool wifi_direct_transferring = EINA_FALSE;
+static int updated_while_lcd_off = 0;
 
 enum {
 	WIFI_DIRECT_ACTIVATE = 0,
@@ -129,6 +131,14 @@ static void indicator_wifi_direct_change_cb(keynode_t *node, void *data)
 
 	retif(data == NULL, , "Invalid parameter!");
 
+	if(indicator_util_get_update_flag()==0)
+	{
+		updated_while_lcd_off = 1;
+		DBG("need to update %d",updated_while_lcd_off);
+		return;
+	}
+	updated_while_lcd_off = 0;
+
 	ret = vconf_get_int(VCONFKEY_WIFI_DIRECT_STATE, &status);
 
 	if (ret == OK) {
@@ -157,6 +167,17 @@ static void indicator_wifi_direct_change_cb(keynode_t *node, void *data)
 	return;
 }
 
+static int wake_up_cb(void *data)
+{
+	if(updated_while_lcd_off==0)
+	{
+		DBG("ICON WAS NOT UPDATED");
+		return OK;
+	}
+
+	indicator_wifi_direct_change_cb(NULL, data);
+	return OK;
+}
 
 static void
 indicator_wifi_direct_transfer_change_cb(keynode_t *node, void *data)
@@ -173,19 +194,16 @@ indicator_wifi_direct_transfer_change_cb(keynode_t *node, void *data)
 		switch (status) {
 		case VCONFKEY_WIFI_DIRECT_TRANSFER_START:
 			if (wifi_direct_transferring != EINA_TRUE) {
-				show_trnsfr_icon(data);
 				wifi_direct_transferring = EINA_TRUE;
 			}
 			break;
 		case VCONFKEY_WIFI_DIRECT_TRANSFER_FAIL:
 			if (wifi_direct_transferring == EINA_TRUE) {
-				hide_trnsfr_icon();
 				wifi_direct_transferring = EINA_FALSE;
 			}
 			break;
 		case VCONFKEY_WIFI_DIRECT_TRANSFER_FINISH:
 			if (wifi_direct_transferring == EINA_TRUE) {
-				hide_trnsfr_icon();
 				wifi_direct_transferring = EINA_FALSE;
 			}
 			break;
@@ -231,7 +249,6 @@ static int unregister_wifi_direct_module(void)
 		ERR("Failed to unregister callback!");
 
 	if (wifi_direct_transferring == EINA_TRUE) {
-		hide_trnsfr_icon();
 		wifi_direct_transferring = EINA_FALSE;
 	}
 

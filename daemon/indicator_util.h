@@ -21,5 +21,7 @@ extern char *set_label_text_color(const char *txt);
 extern const char *get_icon_dir(void);
 void indicator_signal_emit(void* data, const char *emission, const char *source);
 void indicator_part_text_emit(void* data, const char *part, const char *text);
+void indicator_signal_emit_by_win(void* data, const char *emission, const char *source);
+void indicator_part_text_emit_by_win(void* data, const char *part, const char *text);
 
 #endif

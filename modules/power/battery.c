@@ -36,6 +36,7 @@
 
 static int register_battery_module(void *data);
 static int unregister_battery_module(void);
+static int wake_up_cb(void *data);
 
 Indicator_Icon_Object battery[INDICATOR_WIN_MAX] = {
 {
@@ -50,7 +51,8 @@ Indicator_Icon_Object battery[INDICATOR_WIN_MAX] = {
 	.img_obj = {0,0,BATTERY_ICON_WIDTH,BATTERY_ICON_HEIGHT},
 	.obj_exist = EINA_FALSE,
 	.init = register_battery_module,
-	.fini = unregister_battery_module
+	.fini = unregister_battery_module,
+	.wake_up = wake_up_cb
 },
 {
 	.win_type = INDICATOR_WIN_LAND,
@@ -64,7 +66,8 @@ Indicator_Icon_Object battery[INDICATOR_WIN_MAX] = {
 	.img_obj = {0,0,BATTERY_ICON_WIDTH,BATTERY_ICON_HEIGHT},
 	.obj_exist = EINA_FALSE,
 	.init = register_battery_module,
-	.fini = unregister_battery_module
+	.fini = unregister_battery_module,
+	.wake_up = wake_up_cb
 }
 };
 
@@ -75,7 +78,6 @@ enum {
 };
 
 static int clock_mode = INDICATOR_CLOCK_MODE_12H;
-
 
 enum {
 	BATTERY_ICON_WIDTH_12H,
@@ -193,37 +195,11 @@ static const char *fuel_guage_icon_path[BATTERY_ICON_WIDTH_NUM][FUEL_GAUGE_LV_NU
 	[BATTERY_ICON_WIDTH_24H][FUEL_GAUGE_LV_20] = "Power/24H/B03_battery_animation_24h_20.png",
 };
 
-static const char *fuel_guage_charging_icon_path[FUEL_GAUGE_LV_NUM] = {
-	[FUEL_GAUGE_LV_0] = "Power/battery_20/B03_Power_charging_00.png",
-	[FUEL_GAUGE_LV_1] = "Power/battery_20/B03_Power_charging_01.png",
-	[FUEL_GAUGE_LV_2] = "Power/battery_20/B03_Power_charging_02.png",
-	[FUEL_GAUGE_LV_3] = "Power/battery_20/B03_Power_charging_03.png",
-	[FUEL_GAUGE_LV_4] = "Power/battery_20/B03_Power_charging_04.png",
-	[FUEL_GAUGE_LV_5] = "Power/battery_20/B03_Power_charging_05.png",
-	[FUEL_GAUGE_LV_6] = "Power/battery_20/B03_Power_charging_06.png",
-	[FUEL_GAUGE_LV_7] = "Power/battery_20/B03_Power_charging_07.png",
-	[FUEL_GAUGE_LV_8] = "Power/battery_20/B03_Power_charging_08.png",
-	[FUEL_GAUGE_LV_9] = "Power/battery_20/B03_Power_charging_09.png",
-	[FUEL_GAUGE_LV_10] = "Power/battery_20/B03_Power_charging_10.png",
-	[FUEL_GAUGE_LV_11] = "Power/battery_20/B03_Power_charging_11.png",
-	[FUEL_GAUGE_LV_12] = "Power/battery_20/B03_Power_charging_12.png",
-	[FUEL_GAUGE_LV_13] = "Power/battery_20/B03_Power_charging_13.png",
-	[FUEL_GAUGE_LV_14] = "Power/battery_20/B03_Power_charging_14.png",
-	[FUEL_GAUGE_LV_15] = "Power/battery_20/B03_Power_charging_15.png",
-	[FUEL_GAUGE_LV_16] = "Power/battery_20/B03_Power_charging_16.png",
-	[FUEL_GAUGE_LV_17] = "Power/battery_20/B03_Power_charging_17.png",
-	[FUEL_GAUGE_LV_18] = "Power/battery_20/B03_Power_charging_18.png",
-	[FUEL_GAUGE_LV_19] = "Power/battery_20/B03_Power_charging_19.png",
-	[FUEL_GAUGE_LV_20] = "Power/battery_20/B03_Power_charging_20.png",
-};
-
 struct battery_level_info {
 	int current_level;
 	int current_capa;
 	int min_level;
 	int max_level;
-	const char **icon_path;
-	const char **charing_icon_path;
 };
 
 static struct battery_level_info _level;
@@ -338,8 +314,6 @@ static void indicator_battery_level_init(void)
 	_level.current_level = -1;
 	_level.current_capa = -1;
 	_level.max_level = FUEL_GAUGE_LV_MAX;
-	_level.icon_path = fuel_guage_icon_path;
-	_level.charing_icon_path = fuel_guage_icon_path;
 	indicator_battery_get_time_format();
 }
 
@@ -448,7 +422,6 @@ static void indicator_battery_check_percentage_option(void *data)
 		ERR("Fail to get [%s: %d]",
 			VCONFKEY_SETAPPL_BATTERY_PERCENTAGE_BOOL, ret);
 
-
 	int i = 0;
 	for(i=0 ; i<INDICATOR_WIN_MAX ; i++)
 	{
@@ -483,6 +456,12 @@ static void indicator_battery_update_display(void *data)
 	int level = 0;
 
 	retif(data == NULL, , "Invalid parameter!");
+
+	if(indicator_util_get_update_flag()==0)
+	{
+		DBG("need to update");
+		return;
+	}
 
 	ret = vconf_get_int(VCONFKEY_SYSMAN_BATTERY_CAPACITY, &battery_capa);
 	if (ret != OK)
@@ -540,9 +519,7 @@ static void indicator_battery_charging_cb(keynode_t *node, void *data)
 
 static void indicator_battery_percentage_option_cb(keynode_t *node, void *data)
 {
-	hide_battery_icon();
-	indicator_battery_check_percentage_option(data);
-	show_battery_icon();
+
 }
 
 static void indicator_battery_change_cb(keynode_t *node, void *data)
@@ -559,6 +536,26 @@ static void indicator_battery_clock_format_changed_cb(keynode_t *node, void *dat
 	indicator_battery_get_time_format();
 
 	indicator_battery_update_display(data);
+}
+
+static void indicator_battery_pm_state_change_cb(keynode_t *node, void *data)
+{
+	int status = 0;
+	retif(data == NULL, , "Invalid parameter!");
+
+	vconf_get_int(VCONFKEY_PM_STATE, &status);
+
+	if(status == VCONFKEY_PM_STATE_LCDOFF)
+	{
+		delete_timer();
+	}
+}
+
+static int wake_up_cb(void *data)
+{
+	INFO("BATTERY wake_up_cb");
+	indicator_battery_clock_format_changed_cb(NULL, data);
+	return OK;
 }
 
 static int register_battery_module(void *data)
@@ -604,8 +601,12 @@ static int register_battery_module(void *data)
 		ERR("Fail: register VCONFKEY_REGIONFORMAT_TIME1224");
 		r = r | ret;
 	}
-
-	indicator_battery_update_display(data);
+	ret = vconf_notify_key_changed(VCONFKEY_PM_STATE,
+					       indicator_battery_pm_state_change_cb, data);
+	if (ret != OK) {
+		ERR("Fail: register VCONFKEY_REGIONFORMAT_TIME1224");
+		r = r | ret;
+	}
 
 	return r;
 }
@@ -632,6 +633,11 @@ static int unregister_battery_module(void)
 
 	ret = vconf_ignore_key_changed(VCONFKEY_SETAPPL_BATTERY_PERCENTAGE_BOOL,
 				       indicator_battery_percentage_option_cb);
+	if (ret != OK)
+		ERR("Failed to unregister callback!");
+
+	ret = vconf_ignore_key_changed(VCONFKEY_PM_STATE,
+				       indicator_battery_pm_state_change_cb);
 	if (ret != OK)
 		ERR("Failed to unregister callback!");
 

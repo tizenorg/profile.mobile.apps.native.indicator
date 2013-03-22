@@ -31,5 +31,6 @@ void indicator_hib_enter_modules(void *data);
 void indicator_hib_leave_modules(void *data);
 void indicator_lang_changed_modules(void *data);
 void indicator_region_changed_modules(void *data);
-
+void indicator_minictrl_control_modules(int action, const char* name, void *data);
+void indicator_wake_up_modules(void *data);
 #endif

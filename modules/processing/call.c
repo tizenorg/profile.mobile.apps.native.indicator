@@ -33,7 +33,7 @@
 
 static int register_call_module(void *data);
 static int unregister_call_module(void);
-static void mctrl_monitor_cb(int action, const char *name, void *data);
+static int mctrl_monitor_cb(int action, const char *name, void *data);
 
 Indicator_Icon_Object call[INDICATOR_WIN_MAX] = {
 {
@@ -179,19 +179,19 @@ static void indicator_call_change_cb(keynode_t *node, void *data)
 
 }
 
-static void mctrl_monitor_cb(int action, const char *name, void *data)
+static int mctrl_monitor_cb(int action, const char *name, void *data)
 {
 	int ret = 0;
 	int status = 0;
 
-	retif(!data, , "data is NULL");
-	retif(!name, , "name is NULL");
+	retif(!data, FAIL, "data is NULL");
+	retif(!name, FAIL, "name is NULL");
 
 	if(strncmp(name,MINICONTROL_VOICE_NAME,strlen(MINICONTROL_VOICE_NAME))!=0
 		&&strncmp(name,MINICONTROL_VIDEO_NAME,strlen(MINICONTROL_VIDEO_NAME))!=0)
 	{
 		ERR("_mctrl_monitor_cb: no call%s",name);
-		return;
+		return FAIL;
 	}
 
 	DBG("_mctrl_monitor_cb:%s %d",name,action);
@@ -204,7 +204,7 @@ static void mctrl_monitor_cb(int action, const char *name, void *data)
 		ret = vconf_get_int(VCONFKEY_CALL_STATE, &status);
 		if (ret == FAIL) {
 			ERR("Failed to get VCONFKEY_CALL_STATE!");
-			return;
+			return FAIL;
 		}
 		INFO("Call state = %d", status);
 		switch (status) {
@@ -226,6 +226,7 @@ static void mctrl_monitor_cb(int action, const char *name, void *data)
 	default:
 		break;
 	}
+	return OK;
 }
 
 static int register_call_module(void *data)

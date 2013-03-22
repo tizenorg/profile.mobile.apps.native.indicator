@@ -32,7 +32,11 @@
 
 static int register_voice_recorder_module(void *data);
 static int unregister_voice_recorder_module(void);
-static void mctrl_monitor_cb(int action, const char *name, void *data);
+static int mctrl_monitor_cb(int action, const char *name, void *data);
+static int wake_up_cb(void *data);
+
+static int vr_registerd = 0;
+static int updated_while_lcd_off = 0;
 
 Indicator_Icon_Object voice_recorder[INDICATOR_WIN_MAX] = {
 {
@@ -48,7 +52,8 @@ Indicator_Icon_Object voice_recorder[INDICATOR_WIN_MAX] = {
 	.area = INDICATOR_ICON_AREA_NOTI,
 	.init = register_voice_recorder_module,
 	.fini = unregister_voice_recorder_module,
-	.minictrl_control = mctrl_monitor_cb
+	.minictrl_control = mctrl_monitor_cb,
+	.wake_up = wake_up_cb
 },
 {
 	.win_type = INDICATOR_WIN_LAND,
@@ -63,7 +68,8 @@ Indicator_Icon_Object voice_recorder[INDICATOR_WIN_MAX] = {
 	.area = INDICATOR_ICON_AREA_NOTI,
 	.init = register_voice_recorder_module,
 	.fini = unregister_voice_recorder_module,
-	.minictrl_control = mctrl_monitor_cb
+	.minictrl_control = mctrl_monitor_cb,
+	.wake_up = wake_up_cb
 }
 
 };
@@ -119,6 +125,14 @@ static void show_voicerecoder_icon(void *data)
 
 	retif(data == NULL, , "Invalid parameter!");
 
+	if(indicator_util_get_update_flag()==0)
+	{
+		updated_while_lcd_off = 1;
+		DBG("need to update %d",updated_while_lcd_off);
+		return;
+	}
+	updated_while_lcd_off = 0;
+
 	ret = vconf_get_int(VCONFKEY_VOICERECORDER_STATE, &status);
 	if (ret == OK) {
 		INFO("VOICE RECORDER state: %d", status);
@@ -142,41 +156,67 @@ static void show_voicerecoder_icon(void *data)
 
 static void indicator_voice_recorder_change_cb(keynode_t *node, void *data)
 {
-	int status;
-	int ret;
-
 	retif(data == NULL, , "Invalid parameter!");
 
 	show_voicerecoder_icon(data);
 	return;
 }
 
-static void mctrl_monitor_cb(int action, const char *name, void *data)
+static int mctrl_monitor_cb(int action, const char *name, void *data)
 {
-	retif(!data, , "data is NULL");
-	retif(!name, , "name is NULL");
+	retif(!data, FAIL, "data is NULL");
+	retif(!name, FAIL, "name is NULL");
 
 	if(strncmp(name,MINICONTROL_NAME,strlen(MINICONTROL_NAME))!=0)
 	{
 		ERR("_mctrl_monitor_cb: no VR %s",name);
-		return;
+		return FAIL;
 	}
 
 	DBG("_mctrl_monitor_cb:%s %d",name,action);
 
 	switch (action) {
 	case MINICONTROL_ACTION_START:
+		vr_registerd = 1;
 		vconf_notify_key_changed(VCONFKEY_VOICERECORDER_STATE, indicator_voice_recorder_change_cb, data);
 		show_voicerecoder_icon(data);
 		break;
 	case MINICONTROL_ACTION_STOP:
-		hide_image_icon();
+		vr_registerd = 0;
+
+		if(indicator_util_get_update_flag()==1)
+		{
+			hide_image_icon();
+		}
+
 		vconf_ignore_key_changed(VCONFKEY_VOICERECORDER_STATE, indicator_voice_recorder_change_cb);
 		break;
 	default:
 		break;
 	}
+
+	return OK;
 }
+
+static int wake_up_cb(void *data)
+{
+	if(updated_while_lcd_off==0)
+	{
+		DBG("ICON WAS NOT UPDATED");
+		return OK;
+	}
+
+	if(vr_registerd==1)
+	{
+		indicator_voice_recorder_change_cb(NULL, data);
+	}
+	else
+	{
+		hide_image_icon();
+	}
+	return OK;
+}
+
 
 static int register_voice_recorder_module(void *data)
 {

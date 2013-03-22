@@ -4,7 +4,7 @@
 
 Name:       org.tizen.indicator
 Summary:    indicator window
-Version:    0.1.47
+Version:    0.1.69
 Release:    1
 Group:      utils
 License:    Flora Software License
@@ -44,6 +44,10 @@ indicator window.
 
 %build
 LDFLAGS+="-Wl,--rpath=%{PREFIX}/lib -Wl,--as-needed";export LDFLAGS
+CFLAGS+=" -fvisibility=hidden -fvisibility-inlines-hidden"; export CFLAGS
+CXXFLAGS+=" -fvisibility=hidden -fvisibility-inlines-hidden"; export CXXFLAGS
+FFLAGS+=" -fvisibility=hidden -fvisibility-inlines-hidden"; export FFLAGS
+
 cmake . -DCMAKE_INSTALL_PREFIX=%{PREFIX} -DCMAKE_INSTALL_PREFIXRW=%{PREFIXRW}
 make %{?jobs:-j%jobs}
 
@@ -67,10 +71,11 @@ ln -sf ../indicator.service %{buildroot}%{_libdir}/systemd/user/core-efl.target.
 rm -rf %{buildroot}
 
 %post
-vconftool set -t int memory/radio/state 0 -i -g 6518
-vconftool set -t int memory/music/state 0 -i -g 6518
-vconftool set -t int memory/private/%{name}/home_pressed 0 -i -g 6518
-vconftool set -t bool memory/private/%{name}/started 0 -i -u 5000
+vconftool set -t int memory/radio/state 0 -i -g 6518 -f
+vconftool set -t int memory/music/state 0 -i -g 6518 -f
+vconftool set -t int memory/private/%{name}/home_pressed 0 -i -g 6518 -f
+vconftool set -t bool memory/private/%{name}/started 0 -i -u 5000 -f
+vconftool set -t int memory/private/%{name}/battery_disp 0 -i -u 5000 -f
 
 %postun -p /sbin/ldconfig
 

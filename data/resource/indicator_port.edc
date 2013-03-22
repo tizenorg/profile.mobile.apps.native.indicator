@@ -102,7 +102,6 @@ collections {
 				}
 			}
 
-
 			part {
 				name: "padding.right";
 				type: RECT;
@@ -132,7 +131,7 @@ collections {
 						relative: 1.0 1.0;
 						to: "background";
 					}
-					color: INDI_DEFAULT_BG_COLOR;
+					color: INDI_DEFAULT_BG_TRANSPARENT;
 				}
 				description {
 					state: "opaque" 0.0;
@@ -171,11 +170,6 @@ collections {
 					rel1 { relative: 0.0 0.0; to: "elm.rect.bg"; }
 					rel2 { relative: 0.0 1.0; to: "elm.rect.bg"; }
 					align: 0.0 0.0;
-				}
-				description {
-					state: "landscape" 0.0;
-					inherit: "default" 0.0;
-					min: HOME_PADDING_LANDSCAPE 0;
 				}
 			}
 
@@ -351,15 +345,6 @@ collections {
 					align: 0.0 0.5;
 					visible: 1;
 				}
-				description {
-					state: "landscape" 0.0;
-					min: HOME_PADDING_LANDSCAPE APPTRAY_ICON_HEIGHT;
-					fixed: 1 0;
-					rel1 { relative: 1.0 0.0; to_x: padding.left; to_y: elm.rect.left_con; }
-					rel2 { relative: 1.0 1.0; to_x: padding.left; to_y: elm.rect.left_con; }
-					align: 0.0 0.5;
-					visible: 1;
-				}
 			}
 
 			part {
@@ -384,6 +369,11 @@ collections {
 						to_y: "elm.rect.bg";
 					}
 					align: 0.0 0.5;
+					visible : 0;
+				}
+				description {
+					state: "show" 0.0;
+					inherit: "default" 0.0;
 					visible : 0;
 				}
 			}
@@ -413,7 +403,6 @@ collections {
 				}
 			}
 
-
 			DYNAMIC_RECT_FROM_LEFT( "elm.rect.fixed2", "elm.swallow.fixed3", "elm.rect.middle_con", DEFAULT_ICON_PADDING, FIXED4_DYNAMIC_PADDING, INDI_DEFAULT_BG_COLOR, 0)
 			SWALLOW_PART_FROM_LEFT_WITH_EFFECT( "elm.swallow.fixed2", "elm.rect.fixed2", "elm.rect.middle_con", DEFAULT_ICON_WIDTH, DEFAULT_ICON_HEIGHT )
 
@@ -433,15 +422,6 @@ collections {
 				description {
 					state: "default" 0.0;
 					min: HOME_PADDING_PORTRAIT APPTRAY_ICON_HEIGHT;
-					fixed: 1 0;
-					rel1 { relative: 0.0 0.0; to_x: padding.right; to_y: elm.rect.left_con; }
-					rel2 { relative: 0.0 1.0; to_x: padding.right; to_y: elm.rect.left_con; }
-					align: 1.0 0.5;
-					visible: 1;
-				}
-				description {
-					state: "landscape" 0.0;
-					min: HOME_PADDING_LANDSCAPE APPTRAY_ICON_HEIGHT;
 					fixed: 1 0;
 					rel1 { relative: 0.0 0.0; to_x: padding.right; to_y: elm.rect.left_con; }
 					rel2 { relative: 0.0 1.0; to_x: padding.right; to_y: elm.rect.left_con; }
@@ -472,6 +452,11 @@ collections {
 						to_y: "elm.rect.bg";
 					}
 					align: 1.0 0.5;
+					visible : 0;
+				}
+				description {
+					state: "show" 0.0;
+					inherit: "default" 0.0;
 					visible : 0;
 				}
 			}
@@ -722,6 +707,74 @@ collections {
 					color: 0 0 0 255;
 				}
 			}
+			part {
+				name: "slide_clip";
+				type: RECT;
+				scale: 1;
+				description {
+					state: "default" 0.0;
+					rel1 {
+						relative: 1.0 -1.0;
+						to_x: "seperator.image";
+						to_y: "elm.rect.bg";
+					}
+					rel2 {
+						relative: 1.0 1.0;
+						to_x: "clock.padding.left";
+						to_y: "elm.rect.bg";
+					}
+					color: 255 255 255 0;
+				}
+				description {
+					state: "show" 0.0;
+					rel1 {
+						relative: 1.0 0.0;
+						to_x: "seperator.image";
+						to_y: "elm.rect.bg";
+					}
+					rel2 {
+						relative: 1.0 1.0;
+						to_x: "clock.padding.left";
+						to_y: "elm.rect.bg";
+					}
+					color: 255 255 255 255;
+				}
+			}
+			part {
+				name: "slide_clip2";
+				type: RECT;
+				scale: 1;
+				description {
+					state: "default" 0.0;
+					rel1 {
+						relative: 1.0 -1.0;
+						to_x: "clock.padding.right";
+						to_y: "elm.rect.bg";
+					}
+					rel2 {
+						relative: 0.0 1.0;
+						to_x: "seperator.image2";
+						to_y: "elm.rect.bg";
+					}
+					color: 255 255 255 0;
+				}
+				description {
+					state: "show" 0.0;
+					rel1 {
+						relative: 1.0 0.0;
+						to_x: "clock.padding.right";
+						to_y: "elm.rect.bg";
+					}
+					rel2 {
+						relative: 0.0 1.0;
+						to_x: "seperator.image2";
+						to_y: "elm.rect.bg";
+					}
+					color: 255 255 255 255;
+				}
+			}
+
+		}
 
 		programs {
 			program {
@@ -756,33 +809,6 @@ collections {
 				}
 			}
 
-			program {
-				name: "change_home_pad_1";
-				action: STATE_SET "changeHomePad" 0.0;
-				signal: "change,home,pad,1";
-				source: "elm.rect.*";
-				script {
-					if (get_int(changeHomePad) == 0) {
-						set_state(PART:"elm.rect.left_con", "landscape", 0.0);
-						set_state(PART:"elm.swallow.fixed0", "landscape", 0.0);
-						set_int(changeHomePad,1);
-					}
-				}
-			}
-
-			program {
-				name: "change_home_pad_2";
-				action: STATE_SET "changeHomePad" 0.0;
-				signal: "change,home,pad,2";
-				source: "elm.rect.*";
-				script {
-					if (get_int(changeHomePad) == 1) {
-						set_state(PART:"elm.rect.left_con", "default", 0.0);
-						set_state(PART:"elm.swallow.fixed0", "default", 0.0);
-						set_int(changeHomePad, 0);
-					}
-				}
-			}
 
 			program {
 				name: "bg_opaque";
@@ -847,9 +873,74 @@ collections {
 			}
 
 			program {
+				name: "show.clip.noeffect";
+				in: 0.15 0.0;
+				action: STATE_SET "show" 0.0;
+				signal: "indicator.clip.show.noeffect";
+				source: "indicator.prog";
+				target: "slide_clip";
+				target: "slide_clip2";
+			}
+
+			program {
+				name: "show.clip";
+				in: 0.15 0.0;
+				action: STATE_SET "show" 0.0;
+				signal: "indicator.clip.show";
+				source: "indicator.prog";
+				target: "slide_clip";
+				target: "slide_clip2";
+				transition: LINEAR 0.15;
+			}
+
+			program {
+				name: "hide.clip.noeffect";
+				action: STATE_SET "default" 0.0;
+				signal: "indicator.clip.hide.noeffect";
+				source: "indicator.prog";
+				target: "slide_clip";
+				target: "slide_clip2";
+			}
+
+			program {
+				name: "hide.clip";
+				action: STATE_SET "default" 0.0;
+				signal: "indicator.clip.hide";
+				source: "indicator.prog";
+				target: "slide_clip";
+				target: "slide_clip2";
+				transition: LINEAR 0.15;
+			}
+			program {
+				name: "show.noti.noeffect";
+				action: STATE_SET "show" 0.0;
+				signal: "indicator.noti.show.noeffect";
+				source: "indicator.prog";
+				target: "elm.swallow.noti";
+				target: "elm.swallow.nonfixed";
+				target: "elm.swallow.fixed1";
+				target: "elm.swallow.fixed2";
+				target: "seperator.image";
+				target: "seperator.image2";
+			}
+
+			program {
 				name: "show.noti";
 				action: STATE_SET "show" 0.0;
 				signal: "indicator.noti.show";
+				source: "indicator.prog";
+				target: "elm.swallow.noti";
+				target: "elm.swallow.nonfixed";
+				target: "elm.swallow.fixed1";
+				target: "elm.swallow.fixed2";
+				target: "seperator.image";
+				target: "seperator.image2";
+				transition: LINEAR 0.3;
+			}
+			program {
+				name: "hide.noti.noeffect";
+				action: STATE_SET "default" 0.0;
+				signal: "indicator.noti.hide.noeffect";
 				source: "indicator.prog";
 				target: "elm.swallow.noti";
 				target: "elm.swallow.nonfixed";
@@ -869,7 +960,9 @@ collections {
 				target: "elm.swallow.fixed2";
 				target: "seperator.image";
 				target: "seperator.image2";
+				transition: LINEAR 0.3;
 			}
+
 
 			program {
 				name: "badge_show";

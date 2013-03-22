@@ -26,11 +26,14 @@
 
 #define ICON_PRIORITY	INDICATOR_PRIORITY_NOTI_2
 #define MODULE_NAME		"active_sync"
+#define TIMER_INTERVAL	0.5
+#define SYNC_ICON_NUM 4
 
 static int register_active_sync_module(void *data);
 static int unregister_active_sync_module(void);
 static int hib_enter_active_sync_module(void);
 static int hib_leave_active_sync_module(void *data);
+static int wake_up_cb(void *data);
 
 Indicator_Icon_Object active_sync[INDICATOR_WIN_MAX] = {
 {
@@ -47,7 +50,8 @@ Indicator_Icon_Object active_sync[INDICATOR_WIN_MAX] = {
 	.init = register_active_sync_module,
 	.fini = unregister_active_sync_module,
 	.hib_enter = hib_enter_active_sync_module,
-	.hib_leave = hib_leave_active_sync_module
+	.hib_leave = hib_leave_active_sync_module,
+	.wake_up = wake_up_cb
 },
 {
 	.type = INDICATOR_IMG_ICON,
@@ -63,15 +67,22 @@ Indicator_Icon_Object active_sync[INDICATOR_WIN_MAX] = {
 	.init = register_active_sync_module,
 	.fini = unregister_active_sync_module,
 	.hib_enter = hib_enter_active_sync_module,
-	.hib_leave = hib_leave_active_sync_module
+	.hib_leave = hib_leave_active_sync_module,
+	.wake_up = wake_up_cb
 }
 };
 
 static const char *icon_path[] = {
-	"Processing/B03_Processing_Syncing.png",
-	"Processing/B03_Processing_Syncerror.png",
+	"Processing/B03_Processing_Syncing_01.png",
+	"Processing/B03_Processing_Syncing_02.png",
+	"Processing/B03_Processing_Syncing_03.png",
+	"Processing/B03_Processing_Syncing_04.png",
 	NULL
 };
+
+static Ecore_Timer *timer;
+static int icon_index = 0;
+static int updated_while_lcd_off = 0;
 
 static void set_app_state(void* data)
 {
@@ -84,15 +95,13 @@ static void set_app_state(void* data)
 
 }
 
-static void show_image_icon(void* data)
+static void show_image_icon(void* data, int index)
 {
 	int i = 0;
 	for (i=0 ; i<INDICATOR_WIN_MAX ; i++)
 	{
-		active_sync[i].img_obj.data = icon_path[0];
+		active_sync[i].img_obj.data = icon_path[index];
 		indicator_util_icon_show(&active_sync[i]);
-		indicator_util_icon_animation_set(&active_sync[i],
-							  ICON_ANI_ROTATE);
 	}
 }
 
@@ -105,26 +114,76 @@ static void hide_image_icon(void)
 	}
 }
 
+static Eina_Bool show_sync_icon_cb(void* data)
+{
+	DBG("show_sync_icon_cb!, %d",icon_index);
+	show_image_icon(data,icon_index);
+	icon_index = (++icon_index % SYNC_ICON_NUM) ? icon_index : 0;
+
+	return ECORE_CALLBACK_RENEW;
+}
+
+static void show_sync_icon(void* data)
+{
+	if(timer==NULL)
+	{
+		timer = ecore_timer_add(TIMER_INTERVAL,	show_sync_icon_cb, data);
+	}
+	else
+	{
+		ERR("show_sync_icon!, timer");
+	}
+}
+
+static void hide_sync_icon(void)
+{
+	DBG("hide_sync_icon!, %d",icon_index);
+	if (timer != NULL) {
+		ecore_timer_del(timer);
+		timer = NULL;
+		icon_index = 0;
+	}
+
+	hide_image_icon();
+}
+
+
 static void indicator_active_sync_change_cb(keynode_t *node, void *data)
 {
 	int status = 0;
 	int ret = 0;
+	int result = 0;
 
 	retif(data == NULL, , "Invalid parameter!");
 
-	if (ret == FAIL) {
-		ERR("Failed to get VCONFKEY_SYNC_STATE!");
-		return;
+}
+
+static void indicator_active_sync_pm_state_change_cb(keynode_t *node, void *data)
+{
+	int status = 0;
+	retif(data == NULL, , "Invalid parameter!");
+
+	vconf_get_int(VCONFKEY_PM_STATE, &status);
+
+	if(status == VCONFKEY_PM_STATE_LCDOFF)
+	{
+		if (timer != NULL) {
+			ecore_timer_del(timer);
+			timer = NULL;
+		}
+	}
+}
+
+static int wake_up_cb(void *data)
+{
+	if(updated_while_lcd_off==0&&active_sync[0].obj_exist==EINA_FALSE)
+	{
+		DBG("ICON WAS NOT UPDATED");
+		return OK;
 	}
 
-	if (status == TRUE) {
-		INFO("Active sync is set");
-		show_image_icon(data);
-
-	} else {
-		INFO("Active sync is unset");
-		hide_image_icon();
-	}
+	indicator_active_sync_change_cb(NULL, data);
+	return OK;
 }
 
 static int register_active_sync_module(void *data)
@@ -135,11 +194,6 @@ static int register_active_sync_module(void *data)
 
 	set_app_state(data);
 
-	if (ret != OK)
-		ERR("Failed to register callback!");
-
-	indicator_active_sync_change_cb(NULL, data);
-
 	return ret;
 }
 
@@ -147,18 +201,12 @@ static int unregister_active_sync_module(void)
 {
 	int ret = 0;
 
-	if (ret != OK)
-		ERR("Failed to unregister callback!");
-
 	return OK;
 }
 
 static int hib_enter_active_sync_module(void)
 {
 	int ret = 0;
-
-	if (ret != OK)
-		ERR("Failed to unregister callback!");
 
 	return OK;
 }
@@ -169,8 +217,5 @@ static int hib_leave_active_sync_module(void *data)
 
 	retif(data == NULL, FAIL, "Invalid parameter!");
 
-	retif(ret != OK, FAIL, "Failed to register callback!");
-
-	indicator_active_sync_change_cb(NULL, data);
 	return OK;
 }

@@ -53,6 +53,34 @@
 				name: partName; \
 				type: SWALLOW; \
 				mouse_events: 0; \
+				clip_to : slide_clip2; \
+				scale: 1; \
+				description { \
+					state: "default" 0.0; \
+					min: MinWidth MinHeight; \
+					fixed: 1 0; \
+					rel1 { relative: 1.0 -1.0; to_x: rel_x; to_y: rel_y; } \
+					rel2 { relative: 1.0 0.0; to_x: rel_x; to_y: rel_y; } \
+					align: 0.0 0.5; \
+					visible: 1; \
+				} \
+				description { \
+					state: "show" 0.0; \
+					min: MinWidth MinHeight; \
+					fixed: 1 0; \
+					rel1 { relative: 1.0 0.0; to_x: rel_x; to_y: rel_y; } \
+					rel2 { relative: 1.0 1.0; to_x: rel_x; to_y: rel_y; } \
+					align: 0.0 0.5; \
+					visible: 1; \
+				} \
+			} \
+
+#define SWALLOW_PART_FROM_LEFT_WITH_EFFECT2( partName, rel_x, rel_y, MinWidth, MinHeight) \
+			part { \
+				name: partName; \
+				type: SWALLOW; \
+				mouse_events: 0; \
+				clip_to : slide_clip2; \
 				scale: 1; \
 				description { \
 					state: "default" 0.0; \
@@ -113,6 +141,34 @@
 				name: partName; \
 				type: SWALLOW; \
 				mouse_events: 0; \
+				clip_to : slide_clip; \
+				scale: 1; \
+				description { \
+					state: "default" 0.0; \
+					min: MinWidth MinHeight; \
+					fixed: 1 0; \
+					rel1 { relative: 0.0 -1.0; to_x: rel_x; to_y: rel_y; } \
+					rel2 { relative: 0.0 0.0; to_x: rel_x; to_y: rel_y; } \
+					align: 1.0 0.5; \
+					visible: 1; \
+				} \
+				description { \
+					state: "show" 0.0; \
+					min: MinWidth MinHeight; \
+					fixed: 1 0; \
+					rel1 { relative: 0.0 0.0; to_x: rel_x; to_y: rel_y; } \
+					rel2 { relative: 0.0 1.0; to_x: rel_x; to_y: rel_y; } \
+					align: 1.0 0.5; \
+					visible: 1; \
+				} \
+			} \
+
+#define SWALLOW_PART_FROM_RIGHT_WITH_EFFECT2( partName, rel_x, rel_y, MinWidth, MinHeight) \
+			part { \
+				name: partName; \
+				type: SWALLOW; \
+				mouse_events: 0; \
+				clip_to : slide_clip; \
 				scale: 1; \
 				description { \
 					state: "default" 0.0; \

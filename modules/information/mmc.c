@@ -29,6 +29,7 @@
 
 static int register_mmc_module(void *data);
 static int unregister_mmc_module(void);
+static int wake_up_cb(void *data);
 
 Indicator_Icon_Object mmc[INDICATOR_WIN_MAX] = {
 {
@@ -42,7 +43,8 @@ Indicator_Icon_Object mmc[INDICATOR_WIN_MAX] = {
 	.obj_exist = EINA_FALSE,
 	.area = INDICATOR_ICON_AREA_NOTI,
 	.init = register_mmc_module,
-	.fini = unregister_mmc_module
+	.fini = unregister_mmc_module,
+	.wake_up = wake_up_cb
 },
 {
 	.win_type = INDICATOR_WIN_LAND,
@@ -55,7 +57,8 @@ Indicator_Icon_Object mmc[INDICATOR_WIN_MAX] = {
 	.obj_exist = EINA_FALSE,
 	.area = INDICATOR_ICON_AREA_NOTI,
 	.init = register_mmc_module,
-	.fini = unregister_mmc_module
+	.fini = unregister_mmc_module,
+	.wake_up = wake_up_cb
 }
 
 };
@@ -64,6 +67,7 @@ static const char *icon_path[] = {
 	"Background playing/B03_Memorycard.png",
 	NULL
 };
+static int updated_while_lcd_off = 0;
 
 static void set_app_state(void* data)
 {
@@ -104,13 +108,20 @@ static void icon_animation_set(enum indicator_icon_ani type)
 	}
 }
 
-
 static void indicator_mmc_change_cb(keynode_t *node, void *data)
 {
 	int status = 0;
 	int ret;
 
 	retif(data == NULL, , "Invalid parameter!");
+
+	if(indicator_util_get_update_flag()==0)
+	{
+		updated_while_lcd_off = 1;
+		DBG("need to update %d",updated_while_lcd_off);
+		return;
+	}
+	updated_while_lcd_off = 0;
 
 	ret = vconf_get_int(VCONFKEY_FILEMANAGER_DB_STATUS, &status);
 	if (ret == FAIL) {
@@ -132,6 +143,44 @@ static void indicator_mmc_change_cb(keynode_t *node, void *data)
 	}
 }
 
+static void indicator_mmc_pm_state_change_cb(keynode_t *node, void *data)
+{
+	int status = 0;
+	int ret = 0;
+	retif(data == NULL, , "Invalid parameter!");
+
+	vconf_get_int(VCONFKEY_PM_STATE, &status);
+
+	if(status == VCONFKEY_PM_STATE_LCDOFF)
+	{
+		int sos_status = 0;
+		ret = vconf_get_int(VCONFKEY_FILEMANAGER_DB_STATUS, &sos_status);
+		if (ret < 0)
+			ERR("fail to get [%s]", VCONFKEY_FILEMANAGER_DB_STATUS);
+
+		INFO("mmc STATUS: %d", sos_status);
+		switch (sos_status) {
+		case VCONFKEY_FILEMANAGER_DB_UPDATING:
+			icon_animation_set(ICON_ANI_NONE);
+			break;
+		default:
+			break;
+		}
+	}
+}
+
+static int wake_up_cb(void *data)
+{
+	if(updated_while_lcd_off==0 && mmc[0].obj_exist == EINA_FALSE)
+	{
+		DBG("ICON WAS NOT UPDATED");
+		return OK;
+	}
+
+	indicator_mmc_change_cb(NULL, data);
+	return OK;
+}
+
 static int register_mmc_module(void *data)
 {
 	int ret;
@@ -144,6 +193,12 @@ static int register_mmc_module(void *data)
 				       indicator_mmc_change_cb, data);
 	if (ret != OK)
 		ERR("Failed to register mmcback!");
+
+	ret = vconf_notify_key_changed(VCONFKEY_PM_STATE,
+					       indicator_mmc_pm_state_change_cb, data);
+	if (ret != OK)
+		ERR("Failed to register callback! : VCONFKEY_PM_STATE");
+
 
 	indicator_mmc_change_cb(NULL, data);
 
@@ -158,6 +213,12 @@ static int unregister_mmc_module(void)
 				       indicator_mmc_change_cb);
 	if (ret != OK)
 		ERR("Failed to unregister mmcback!");
+
+
+	ret = vconf_ignore_key_changed(VCONFKEY_PM_STATE,
+					       indicator_mmc_pm_state_change_cb);
+	if (ret != OK)
+		ERR("Failed to unregister callback!");
 
 	return OK;
 }

@@ -35,6 +35,7 @@
 
 static int register_earphone_module(void *data);
 static int unregister_earphone_module(void);
+static int wake_up_cb(void *data);
 
 Indicator_Icon_Object earphone[INDICATOR_WIN_MAX] = {
 {
@@ -48,7 +49,8 @@ Indicator_Icon_Object earphone[INDICATOR_WIN_MAX] = {
 	.obj_exist = EINA_FALSE,
 	.area = INDICATOR_ICON_AREA_NOTI,
 	.init = register_earphone_module,
-	.fini = unregister_earphone_module
+	.fini = unregister_earphone_module,
+	.wake_up = wake_up_cb
 },
 {
 	.win_type = INDICATOR_WIN_LAND,
@@ -61,7 +63,8 @@ Indicator_Icon_Object earphone[INDICATOR_WIN_MAX] = {
 	.obj_exist = EINA_FALSE,
 	.area = INDICATOR_ICON_AREA_NOTI,
 	.init = register_earphone_module,
-	.fini = unregister_earphone_module
+	.fini = unregister_earphone_module,
+	.wake_up = wake_up_cb
 }
 
 };
@@ -70,6 +73,8 @@ static const char *icon_path[] = {
 	"Earphone/B03_Earphone.png",
 	NULL
 };
+static int updated_while_lcd_off = 0;
+
 
 static void set_app_state(void* data)
 {
@@ -108,6 +113,14 @@ static void indicator_earphone_change_cb(keynode_t *node, void *data)
 
 	retif(data == NULL, , "Invalid parameter!");
 
+	if(indicator_util_get_update_flag()==0)
+	{
+		updated_while_lcd_off = 1;
+		DBG("need to update %d",updated_while_lcd_off);
+		return;
+	}
+	updated_while_lcd_off = 0;
+
 	ret = vconf_get_int(VCONFKEY_SYSMAN_EARJACK, &status);
 	if (ret == FAIL) {
 		ERR("Failed to get VCONFKEY_MMC_STATE!");
@@ -126,6 +139,18 @@ static void indicator_earphone_change_cb(keynode_t *node, void *data)
 		hide_image_icon();
 		break;
 	}
+}
+
+static int wake_up_cb(void *data)
+{
+	if(updated_while_lcd_off==0)
+	{
+		DBG("ICON WAS NOT UPDATED");
+		return OK;
+	}
+
+	indicator_earphone_change_cb(NULL, data);
+	return OK;
 }
 
 static int register_earphone_module(void *data)

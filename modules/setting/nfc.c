@@ -24,13 +24,15 @@
 #include "modules.h"
 #include "indicator_ui.h"
 
-#define ICON_PRIORITY	INDICATOR_PRIORITY_SYSTEM_3
+#define ICON_PRIORITY	INDICATOR_PRIORITY_SYSTEM_4
 #define MODULE_NAME		"nfc"
 
 static int register_nfc_module(void *data);
 static int unregister_nfc_module(void);
 static int hib_enter_nfc_module(void);
 static int hib_leave_nfc_module(void *data);
+static int wake_up_cb(void *data);
+
 
 Indicator_Icon_Object nfc[INDICATOR_WIN_MAX] = {
 {
@@ -47,7 +49,8 @@ Indicator_Icon_Object nfc[INDICATOR_WIN_MAX] = {
 	.init = register_nfc_module,
 	.fini = unregister_nfc_module,
 	.hib_enter = hib_enter_nfc_module,
-	.hib_leave = hib_leave_nfc_module
+	.hib_leave = hib_leave_nfc_module,
+	.wake_up = wake_up_cb
 },
 {
 	.win_type = INDICATOR_WIN_LAND,
@@ -63,7 +66,8 @@ Indicator_Icon_Object nfc[INDICATOR_WIN_MAX] = {
 	.init = register_nfc_module,
 	.fini = unregister_nfc_module,
 	.hib_enter = hib_enter_nfc_module,
-	.hib_leave = hib_leave_nfc_module
+	.hib_leave = hib_leave_nfc_module,
+	.wake_up = wake_up_cb
 }
 };
 
@@ -76,6 +80,7 @@ enum {
 static const char *icon_path[NFC_NUM] = {
 	[NFC_ON] = "Bluetooth, NFC, GPS/B03_NFC_On.png",
 };
+static int updated_while_lcd_off = 0;
 
 static void set_app_state(void* data)
 {
@@ -118,6 +123,14 @@ static void indicator_nfc_change_cb(keynode_t *node, void *data)
 
 	retif(data == NULL, , "Invalid parameter!");
 
+	if(indicator_util_get_update_flag()==0)
+	{
+		updated_while_lcd_off = 1;
+		DBG("need to update %d",updated_while_lcd_off);
+		return;
+	}
+	updated_while_lcd_off = 0;
+
 	ret = vconf_get_bool(VCONFKEY_NFC_STATE, &status);
 	if (ret == OK) {
 		INFO("NFC STATUS: %d", status);
@@ -130,6 +143,18 @@ static void indicator_nfc_change_cb(keynode_t *node, void *data)
 
 	hide_image_icon();
 	return;
+}
+
+static int wake_up_cb(void *data)
+{
+	if(updated_while_lcd_off==0)
+	{
+		DBG("ICON WAS NOT UPDATED");
+		return OK;
+	}
+
+	indicator_nfc_change_cb(NULL, data);
+	return OK;
 }
 
 static int register_nfc_module(void *data)

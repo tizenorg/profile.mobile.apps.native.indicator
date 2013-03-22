@@ -30,8 +30,6 @@
 
 static int register_usb_module(void *data);
 static int unregister_usb_module(void);
-extern void show_trnsfr_icon(void *data);
-extern void hide_trnsfr_icon(void);
 
 Indicator_Icon_Object usb[INDICATOR_WIN_MAX] = {
 {

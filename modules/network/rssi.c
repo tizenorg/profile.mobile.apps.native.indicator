@@ -37,6 +37,7 @@ static int unregister_rssi_module(void);
 static int hib_enter_rssi_module(void);
 static int hib_leave_rssi_module(void *data);
 static int language_changed_cb(void *data);
+static int wake_up_cb(void *data);
 
 Indicator_Icon_Object rssi[INDICATOR_WIN_MAX] = {
 {
@@ -54,7 +55,8 @@ Indicator_Icon_Object rssi[INDICATOR_WIN_MAX] = {
 	.fini = unregister_rssi_module,
 	.hib_enter = hib_enter_rssi_module,
 	.hib_leave = hib_leave_rssi_module,
-	.lang_changed = language_changed_cb
+	.lang_changed = language_changed_cb,
+	.wake_up = wake_up_cb
 },
 {
 	.win_type = INDICATOR_WIN_LAND,
@@ -71,7 +73,8 @@ Indicator_Icon_Object rssi[INDICATOR_WIN_MAX] = {
 	.fini = unregister_rssi_module,
 	.hib_enter = hib_enter_rssi_module,
 	.hib_leave = hib_leave_rssi_module,
-	.lang_changed = language_changed_cb
+	.lang_changed = language_changed_cb,
+	.wake_up = wake_up_cb
 }
 };
 
@@ -91,6 +94,7 @@ enum {
 };
 
 static int bRoaming = 0;
+static int updated_while_lcd_off = 0;
 
 static const char *icon_path[LEVEL_MAX] = {
 	[LEVEL_RSSI_0] = "RSSI/B03_RSSI_Sim_00.png",
@@ -182,6 +186,14 @@ static void indicator_rssi_change_cb(keynode_t *node, void *data)
 
 	retif(data == NULL, , "Invalid parameter!");
 
+	if(indicator_util_get_update_flag()==0)
+	{
+		updated_while_lcd_off = 1;
+		DBG("need to update %d",updated_while_lcd_off);
+		return;
+	}
+	updated_while_lcd_off = 0;
+
 	ret = vconf_get_bool(VCONFKEY_TELEPHONY_FLIGHT_MODE, &status);
 	if (ret == OK && status == TRUE) {
 		INFO("RSSI Status: Flight Mode");
@@ -239,6 +251,19 @@ static int language_changed_cb(void *data)
 	indicator_rssi_change_cb(NULL, data);
 	return OK;
 }
+
+static int wake_up_cb(void *data)
+{
+	if(updated_while_lcd_off==0)
+	{
+		DBG("ICON WAS NOT UPDATED");
+		return OK;
+	}
+
+	indicator_rssi_change_cb(NULL, data);
+	return OK;
+}
+
 
 static int register_rssi_module(void *data)
 {

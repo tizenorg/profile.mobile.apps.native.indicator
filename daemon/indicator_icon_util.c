@@ -24,6 +24,8 @@
 #include "indicator_gui.h"
 #include "indicator_util.h"
 
+static unsigned int update_icon_flag = 1;
+
 static void _animation_set(Indicator_Icon_Object *icon, int type)
 {
 	Evas_Object *img_edje, *txt_edje;
@@ -466,7 +468,6 @@ void indicator_util_icon_hide(Indicator_Icon_Object *icon)
 
 	retif(icon == NULL, , "Invalid parameter!");
 
-	memset(icon->data, 0x00, sizeof(icon->data));
 	icon->wish_to_show = EINA_FALSE;
 
 	DBG("%s icon is hidden!", icon->name);
@@ -487,7 +488,6 @@ void indicator_util_icon_hide(Indicator_Icon_Object *icon)
 
 void indicator_util_event_count_set(int count, void *data)
 {
-	struct appdata *ad = data;
 	static int _cnt = -1;
 	char buf[1024];
 
@@ -510,4 +510,15 @@ void indicator_util_event_count_set(int count, void *data)
 unsigned int indicator_util_max_visible_event_count(int type)
 {
 	return indicator_get_max_count_in_non_fixed_list(type);
+}
+
+unsigned int indicator_util_get_update_flag(void)
+{
+	return update_icon_flag;
+}
+
+void indicator_util_set_update_flag(unsigned int val)
+{
+	INFO("SET UPDATE FLAG %d",val);
+	update_icon_flag = val;
 }

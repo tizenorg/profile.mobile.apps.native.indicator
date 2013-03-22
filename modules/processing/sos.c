@@ -30,6 +30,8 @@
 
 static int register_sos_module(void *data);
 static int unregister_sos_module(void);
+static int wake_up_cb(void *data);
+
 
 Indicator_Icon_Object sos[INDICATOR_WIN_MAX] = {
 {
@@ -44,7 +46,8 @@ Indicator_Icon_Object sos[INDICATOR_WIN_MAX] = {
 	.obj_exist = EINA_FALSE,
 	.area = INDICATOR_ICON_AREA_NOTI,
 	.init = register_sos_module,
-	.fini = unregister_sos_module
+	.fini = unregister_sos_module,
+	.wake_up = wake_up_cb
 },
 {
 	.win_type = INDICATOR_WIN_LAND,
@@ -58,7 +61,8 @@ Indicator_Icon_Object sos[INDICATOR_WIN_MAX] = {
 	.obj_exist = EINA_FALSE,
 	.area = INDICATOR_ICON_AREA_NOTI,
 	.init = register_sos_module,
-	.fini = unregister_sos_module
+	.fini = unregister_sos_module,
+	.wake_up = wake_up_cb
 }
 };
 
@@ -66,6 +70,7 @@ static const char *icon_path[] = {
 	"Call/B03_Call_SOSmessge_active.png",
 	NULL
 };
+static int updated_while_lcd_off = 0;
 
 static void set_app_state(void* data)
 {
@@ -108,6 +113,31 @@ static void icon_animation_set(enum indicator_icon_ani type)
 	}
 }
 
+static void indicator_sos_pm_state_change_cb(keynode_t *node, void *data)
+{
+	int status = 0;
+	int ret = 0;
+	retif(data == NULL, , "Invalid parameter!");
+
+	vconf_get_int(VCONFKEY_PM_STATE, &status);
+
+	if(status == VCONFKEY_PM_STATE_LCDOFF)
+	{
+		int sos_status = 0;
+		ret = vconf_get_int(VCONFKEY_MESSAGE_SOS_STATE, &sos_status);
+		if (ret < 0)
+			ERR("fail to get [%s]", VCONFKEY_MESSAGE_SOS_STATE);
+
+		INFO("SOS STATUS: %d", sos_status);
+		switch (sos_status) {
+		case VCONFKEY_MESSAGE_SOS_STANDBY:
+			icon_animation_set(ICON_ANI_NONE);
+			break;
+		default:
+			break;
+		}
+	}
+}
 
 static void indicator_sos_change_cb(keynode_t *node, void *data)
 {
@@ -116,6 +146,14 @@ static void indicator_sos_change_cb(keynode_t *node, void *data)
 	int ret;
 
 	retif(data == NULL, , "Invalid parameter!");
+
+	if(indicator_util_get_update_flag()==0)
+	{
+		updated_while_lcd_off = 1;
+		DBG("need to update %d",updated_while_lcd_off);
+		return;
+	}
+	updated_while_lcd_off = 0;
 
 	ret = vconf_get_bool(VCONFKEY_MESSAGE_SOS_SEND_OPTION, &send_option);
 	if (ret == FAIL)
@@ -139,6 +177,17 @@ static void indicator_sos_change_cb(keynode_t *node, void *data)
 	else
 		icon_animation_set(ICON_ANI_NONE);
 }
+static int wake_up_cb(void *data)
+{
+	if(updated_while_lcd_off==0&&sos[0].obj_exist==EINA_FALSE)
+	{
+		DBG("ICON WAS NOT UPDATED");
+		return OK;
+	}
+
+	indicator_sos_change_cb(NULL, data);
+	return OK;
+}
 
 static int register_sos_module(void *data)
 {
@@ -160,6 +209,11 @@ static int register_sos_module(void *data)
 		ERR("Failed to register callback! [%s]",
 				VCONFKEY_MESSAGE_SOS_STATE);
 
+	ret = vconf_notify_key_changed(VCONFKEY_PM_STATE,
+					       indicator_sos_pm_state_change_cb, data);
+	if (ret != OK)
+		ERR("Failed to register callback! : VCONFKEY_PM_STATE");
+
 	indicator_sos_change_cb(NULL, data);
 
 	return ret;
@@ -180,6 +234,12 @@ static int unregister_sos_module(void)
 	if (ret != OK)
 		ERR("Failed to unregister callback!  [%s]",
 				VCONFKEY_MESSAGE_SOS_STATE);
+
+	ret = vconf_ignore_key_changed(VCONFKEY_PM_STATE,
+					       indicator_sos_pm_state_change_cb);
+	if (ret != OK)
+		ERR("Failed to unregister callback!");
+
 	return OK;
 }
 

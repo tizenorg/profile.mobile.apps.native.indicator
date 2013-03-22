@@ -24,7 +24,7 @@
 #include "modules.h"
 #include "indicator_icon_util.h"
 
-#define ICON_PRIORITY	INDICATOR_PRIORITY_SYSTEM_2
+#define ICON_PRIORITY	INDICATOR_PRIORITY_SYSTEM_3
 #define MODULE_NAME		"alarm"
 
 static int register_alarm_module(void *data);

@@ -29,6 +29,7 @@
 
 static int register_mobile_hotspot_module(void *data);
 static int unregister_mobile_hotspot_module(void);
+static int wake_up_cb(void *data);
 
 Indicator_Icon_Object mobile_hotspot[INDICATOR_WIN_MAX] = {
 {
@@ -42,7 +43,8 @@ Indicator_Icon_Object mobile_hotspot[INDICATOR_WIN_MAX] = {
 	.obj_exist = EINA_FALSE,
 	.area = INDICATOR_ICON_AREA_NOTI,
 	.init = register_mobile_hotspot_module,
-	.fini = unregister_mobile_hotspot_module
+	.fini = unregister_mobile_hotspot_module,
+	.wake_up = wake_up_cb
 },
 {
 	.win_type = INDICATOR_WIN_LAND,
@@ -56,7 +58,8 @@ Indicator_Icon_Object mobile_hotspot[INDICATOR_WIN_MAX] = {
 	.obj_exist = EINA_FALSE,
 	.area = INDICATOR_ICON_AREA_NOTI,
 	.init = register_mobile_hotspot_module,
-	.fini = unregister_mobile_hotspot_module
+	.fini = unregister_mobile_hotspot_module,
+	.wake_up = wake_up_cb
 }
 
 };
@@ -89,6 +92,7 @@ static const char *icon_path[MOBILEAP_MAX] = {
 	[MOBILEAP_CONNECTED8] = "Connection/B03_MobileAP_connected_08.png",
 	[MOBILEAP_CONNECTED9] = "Connection/B03_MobileAP_connected_09.png",
 };
+static int updated_while_lcd_off = 0;
 
 static void set_app_state(void* data)
 {
@@ -124,6 +128,15 @@ static void indicator_mobile_hotspot_change_cb(keynode_t *node, void *data)
 	int ret;
 
 	retif(data == NULL, , "Invalid parameter!");
+
+	if(indicator_util_get_update_flag()==0)
+	{
+		updated_while_lcd_off = 1;
+		DBG("need to update %d",updated_while_lcd_off);
+		return;
+	}
+	updated_while_lcd_off = 0;
+
 	ret = vconf_get_int(VCONFKEY_MOBILE_HOTSPOT_MODE, &status);
 	if (ret == OK) {
 		INFO("mobile_hotspot status: %d", status);
@@ -162,6 +175,18 @@ static void indicator_mobile_hotspot_change_cb(keynode_t *node, void *data)
 
 	hide_image_icon();
 	return;
+}
+
+static int wake_up_cb(void *data)
+{
+	if(updated_while_lcd_off==0)
+	{
+		DBG("ICON WAS NOT UPDATED");
+		return OK;
+	}
+
+	indicator_mobile_hotspot_change_cb(NULL, data);
+	return OK;
 }
 
 static int register_mobile_hotspot_module(void *data)

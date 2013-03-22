@@ -54,7 +54,7 @@ extern Icon_AddType indicator_is_enable_to_insert_in_non_fixed_list(Indicator_Ic
 extern int indicator_util_get_priority_in_move_area(win_info *win, Evas_Coord, Evas_Coord);
 int indicator_util_check_indicator_area(win_info *win,Evas_Coord curr_x, Evas_Coord curr_y);
 int indicator_util_check_home_icon_area(win_info *win,Evas_Coord curr_x, Evas_Coord curr_y);
-void indicator_util_show_hide_icons(void* data, int bShow);
+void indicator_util_show_hide_icons(void* data, int bShow, int bEffect);
 extern Eina_Bool indicator_util_is_show_icon(Indicator_Icon_Object *obj);
 int indicator_util_handle_animated_gif(Indicator_Icon_Object *icon);
 

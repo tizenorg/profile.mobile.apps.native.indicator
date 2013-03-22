@@ -59,13 +59,22 @@
 #endif
 #endif
 
+#define MENUSCREEN_PKG_NAME "com.samsung.menuscreen"
 #define APP_TRAY_PKG_NAME "com.samsung.app-tray"
 
 static Eina_Bool home_button_pressed = EINA_FALSE;
-static Eina_Bool show_hide_pressed = EINA_FALSE;
+static Eina_Bool show_hide_pressed[INDICATOR_WIN_MAX] = {EINA_FALSE,EINA_FALSE};
+static Ecore_Timer *hide_timer = NULL;
 
+int indicator_icon_show_state[INDICATOR_WIN_MAX] = {0,};
+int indicator_icon_backup_state[INDICATOR_WIN_MAX] = {0,};
 
-int indicator_icon_show_state = 0;
+static int is_quickpanel_opened = 0;
+static int is_apptray_opened = 0;
+static int current_angle = 0;
+Evas_Coord_Point indicator_press_coord = {0,0};
+
+#define STR_ATOM_MV_INDICATOR_GEOMETRY          "_E_MOVE_INDICATOR_GEOMETRY"
 
 static void _change_home_padding(void *data, int angle);
 static void _change_nonfixed_icon_padding(void *data, Eina_Bool status);
@@ -95,40 +104,9 @@ static void _indicator_mouse_up_cb(void *data, Evas * e, Evas_Object * obj,
 				   void *event);
 
 
-static void _change_home_padding(void *data, int angle)
-{
-	struct appdata *ad = (struct appdata *)data;
-
-	retif(data == NULL, , "Invalid parameter!");
-
-	switch (angle) {
-	case 0:
-		indicator_signal_emit(data,
-			"change,home,pad,2", "elm.rect.*");
-		break;
-	case 90:
-		indicator_signal_emit(data,
-			"change,home,pad,1", "elm.rect.*");
-		break;
-	case 180:
-		indicator_signal_emit(data,
-			"change,home,pad,2", "elm.rect.*");
-		break;
-	case 270:
-		indicator_signal_emit(data,
-			"change,home,pad,1", "elm.rect.*");
-		break;
-	default:
-		indicator_signal_emit(data,
-			"change,home,pad,2", "elm.rect.*");
-		break;
-	}
-}
 
 static void _change_nonfixed_icon_padding(void *data, Eina_Bool status)
 {
-	struct appdata *ad = (struct appdata *)data;
-
 	retif(data == NULL, , "Invalid parameter!");
 
 	if (status == EINA_TRUE)
@@ -343,7 +321,6 @@ static void _indicator_window_delete_cb(void *data, Evas_Object * obj,
 static void _indicator_notify_pm_state_cb(keynode_t * node, void *data)
 {
 
-	struct appdata *ad = (struct appdata *)data;
 	int val = -1;
 
 	if (data == NULL) {
@@ -358,13 +335,104 @@ static void _indicator_notify_pm_state_cb(keynode_t * node, void *data)
 
 	DBG("PM state Notification!!(%d)",val);
 
-	indicator_util_update_display(data);
+	switch(val)
+	{
+		case VCONFKEY_PM_STATE_LCDOFF:
+		case VCONFKEY_PM_STATE_SLEEP:
+			indicator_util_set_update_flag(0);
+			break;
+		case VCONFKEY_PM_STATE_NORMAL:
+			indicator_util_set_update_flag(1);
+			indicator_wake_up_modules(data);
+			break;
+		case VCONFKEY_PM_STATE_LCDDIM:
+		default:
+			break;
+	}
+
+}
+
+static void _indicator_notify_apptray_state_cb(keynode_t * node, void *data)
+{
+
+	struct appdata *ad = (struct appdata *)data;
+	int val = -1;
+
+	if (data == NULL) {
+		ERR("lockd is NULL");
+		return;
+	}
+
+	if (vconf_get_bool(VCONFKEY_APPTRAY_STATE, &val) < 0) {
+		ERR("Cannot get VCONFKEY_APPTRAY_STATE");
+		return;
+	}
+
+	DBG("_indicator_notify_apptray_state_cb!!(%d)",val);
+
+	switch(val)
+	{
+		case 0:
+			is_apptray_opened = 0;
+			indicator_util_show_hide_icons(&(ad->win[INDICATOR_WIN_LAND]),0,0);
+			if (hide_timer != NULL) {
+				ecore_timer_del(hide_timer);
+				hide_timer = NULL;
+			}
+			break;
+		case 1:
+			is_apptray_opened = 1;
+			indicator_util_show_hide_icons(&(ad->win[INDICATOR_WIN_LAND]),1,0);
+			if (hide_timer != NULL) {
+				ecore_timer_del(hide_timer);
+				hide_timer = NULL;
+			}
+			break;
+		default:
+			break;
+	}
 
 }
 
 static void _rotate_window(void *data, int new_angle)
 {
+	retif(data == NULL, , "Invalid parameter!");
 
+	struct appdata *ad = (struct appdata *)data;
+
+	DBG("_rotate_window = %d",new_angle);
+
+	current_angle = new_angle;
+
+	switch (new_angle)
+	{
+		case 0:
+		case 180:
+			{
+				int mode = 1;
+				int bRepeat = 0;
+				Ecore_Evas *ee_port;
+				ee_port = ecore_evas_ecore_evas_get(evas_object_evas_get(ad->win[INDICATOR_WIN_PORT].win_main));
+				ecore_evas_msg_send(ee_port, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_REPEAT_EVENT, &bRepeat, sizeof(int));
+				ecore_evas_msg_send(ee_port, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_TYPE, &mode, sizeof(int));
+
+			}
+			break;
+		case 90:
+		case 270:
+			if(is_quickpanel_opened == 0&&is_apptray_opened==0)
+			{
+				DBG("hide indicator = %d %d",is_quickpanel_opened,is_apptray_opened);
+				indicator_util_show_hide_icons(&(ad->win[INDICATOR_WIN_LAND]),0,0);
+				if (hide_timer != NULL) {
+					ecore_timer_del(hide_timer);
+					hide_timer = NULL;
+				}
+			}
+			break;
+		default:
+			break;
+	}
 }
 
 #ifdef INDICATOR_SUPPORT_OPACITY_MODE
@@ -403,65 +471,89 @@ static void _change_opacity(void *data, enum indicator_opacity_mode mode)
 	DBG("send signal [%s] to indicator layout", signal);
 }
 
-static void _notification_panel_changed(void *data, int is_open)
+static void _indicator_quickpanel_changed(void *data, int is_open)
 {
 	struct appdata *ad = NULL;
+
 	retif(data == NULL, , "Invalid parameter!");
+
+	DBG("_indicator_quickpanel_changed %d %d\n", is_open, current_angle);
 
 	ad = data;
 
-	if (is_open) {
-		indicator_signal_emit(data,"bg.notification", "indicator.prog");
+	if (is_open)
+	{
+		if(is_quickpanel_opened==0)
+		{
+			is_quickpanel_opened = 1;
 
-		DBG("send signal [%s] to indicator layout", "bg.notification");
+			if( current_angle==0 || current_angle == 180)
+			{
+				if(indicator_icon_backup_state[INDICATOR_WIN_PORT]==0)
+				{
+					indicator_util_show_hide_icons(&(ad->win[INDICATOR_WIN_PORT]),1,1);
+				}
+				else
+				{
+					indicator_util_show_hide_icons(&(ad->win[INDICATOR_WIN_PORT]),1,0);
+				}
+				indicator_util_show_hide_icons(&(ad->win[INDICATOR_WIN_LAND]),1,0);
+			}
+			else
+			{
+				indicator_util_show_hide_icons(&(ad->win[INDICATOR_WIN_LAND]),1,0);
+			}
+
+			vconf_set_int(VCONFKEY_BATTERY_DISP_STATE,2);
+
+			if (hide_timer != NULL) {
+				ecore_timer_del(hide_timer);
+				hide_timer = NULL;
+			}
+		}
 	}
 	else
-		_change_opacity(data, ad->opacity_mode);
-}
+	{
+		if(is_quickpanel_opened==1)
+		{
+			is_quickpanel_opened = 0;
 
+			if( current_angle==0 || current_angle == 180)
+			{
+				if(indicator_icon_backup_state[INDICATOR_WIN_PORT]==0)
+					indicator_util_show_hide_icons(&(ad->win[INDICATOR_WIN_PORT]),0,1);
+				else
+					indicator_util_show_hide_icons(&(ad->win[INDICATOR_WIN_PORT]),1,0);
+
+				indicator_util_show_hide_icons(&(ad->win[INDICATOR_WIN_LAND]),0,0);
+			}
+			else
+			{
+				indicator_util_show_hide_icons(&(ad->win[INDICATOR_WIN_LAND]),0,1);
+			}
+
+		}
+	}
+}
 #endif
 
 static Eina_Bool _indicator_client_message_cb(void *data, int type, void *event)
 {
 	Ecore_X_Event_Client_Message *ev =
 	    (Ecore_X_Event_Client_Message *) event;
-	int new_angle;
 
 	retif(data == NULL
 	      || event == NULL, ECORE_CALLBACK_RENEW, "Invalid parameter!");
 
-#ifdef INDICATOR_SUPPORT_OPACITY_MODE
-	if (ev->message_type == ECORE_X_ATOM_E_ILLUME_INDICATOR_OPACITY_MODE) {
-		int trans_mode;
-
-		if (ev->data.l[0]
-			== ECORE_X_ATOM_E_ILLUME_INDICATOR_TRANSLUCENT)
-			trans_mode = INDICATOR_OPACITY_TRANSLUCENT;
-		else if (ev->data.l[0]
-			== ECORE_X_ATOM_E_ILLUME_INDICATOR_TRANSPARENT)
-			trans_mode = INDICATOR_OPACITY_TRANSPARENT;
-		else
-			trans_mode = INDICATOR_OPACITY_OPAQUE;
-
-		_change_opacity(data, trans_mode);
-	}
-#endif
 
 	if (ev->message_type == ECORE_X_ATOM_E_ILLUME_QUICKPANEL_STATE) {
-#ifdef INDICATOR_SUPPORT_OPACITY_MODE
 		if (ev->data.l[0] == ECORE_X_ATOM_E_ILLUME_QUICKPANEL_ON)
-			_notification_panel_changed(data, 1);
+			_indicator_quickpanel_changed(data, 1);
 		else if (ev->data.l[0] == ECORE_X_ATOM_E_ILLUME_QUICKPANEL_OFF)
-			_notification_panel_changed(data, 0);
+			_indicator_quickpanel_changed(data, 0);
 
-#else
-		if (ev->data.l[0] == ECORE_X_ATOM_E_ILLUME_QUICKPANEL_OFF)
-			_change_view(ecore_x_window_root_first_get(), data);
-#endif
 	}
 
-	if (ev->message_type == ECORE_X_ATOM_E_ILLUME_ROTATE_WINDOW_ANGLE) {
-	}
 	return ECORE_CALLBACK_RENEW;
 }
 
@@ -487,10 +579,73 @@ static void _mctrl_monitor_cb(minicontrol_action_e action,
 
 	indicator_minictrl_control_modules(action,name,data);
 }
+static void
+_indicator_ecore_evas_msg_parent_handle(Ecore_Evas *ee, int msg_domain, int msg_id, void *data, int size)
+{
+	DBG("Receive msg from clien msg_domain=%x msg_id=%x size=%d\n", msg_domain, msg_id, size);
+	retif(!data, , "data is NULL");
+
+	if (msg_domain == MSG_DOMAIN_CONTROL_INDICATOR)
+	{
+		struct appdata *ad = (struct appdata *)ecore_evas_data_get(ee,"indicator_app_data");
+
+		if ((msg_id == MSG_ID_INDICATOR_ROTATION) && (size == sizeof(int)))
+		{
+			int *rot = data;
+			DBG("Receive msg is portrait rotation . rot=%d \n", *rot);
+			_rotate_window(ad,*rot);
+		}
+		if ((msg_id == MSG_ID_INDICATOR_OPACITY) && (size == sizeof(Elm_Win_Indicator_Opacity_Mode)))
+		{
+			Elm_Win_Indicator_Opacity_Mode *omod;
+			int trans_mode;
+			omod = data;
+			DBG("Receive msg is opacity . opacity=%d \n", *omod);
+			switch(*omod)
+			{
+				case ELM_WIN_INDICATOR_OPAQUE:
+					trans_mode = INDICATOR_OPACITY_OPAQUE;
+					break;
+				case ELM_WIN_INDICATOR_TRANSLUCENT:
+					trans_mode = INDICATOR_OPACITY_TRANSLUCENT;
+					break;
+				case ELM_WIN_INDICATOR_TRANSPARENT:
+					trans_mode = INDICATOR_OPACITY_TRANSPARENT;
+					break;
+				default:
+					trans_mode = INDICATOR_OPACITY_OPAQUE;
+					break;
+			}
+		}
+	}
+
+}
+
+static void
+_indicator_port_ecore_evas_msg_parent_handle(Ecore_Evas *ee, int msg_domain, int msg_id, void *data, int size)
+{
+	DBG("PORT : Receive msg from clien msg_domain=%x msg_id=%x size=%d\n", msg_domain, msg_id, size);
+	retif(!data, , "data is NULL");
+
+	_indicator_ecore_evas_msg_parent_handle(ee,msg_domain,msg_id,data,size);
+}
+
+static void
+_indicator_land_ecore_evas_msg_parent_handle(Ecore_Evas *ee, int msg_domain, int msg_id, void *data, int size)
+{
+	DBG("LAND : Receive msg from clien msg_domain=%x msg_id=%x size=%d\n", msg_domain, msg_id, size);
+	retif(!data, , "data is NULL");
+
+	_indicator_ecore_evas_msg_parent_handle(ee,msg_domain,msg_id,data,size);
+}
 
 static void _register_event_handler_both(win_info *win, void *data)
 {
+	Ecore_Evas *ee;
+
 	retif(win == NULL, , "Invalid parameter!");
+
+	ee = ecore_evas_ecore_evas_get(evas_object_evas_get(win->win_main));
 
 	evas_object_smart_callback_add(win->win_main,
 					       "delete,request",
@@ -506,6 +661,15 @@ static void _register_event_handler_both(win_info *win, void *data)
 	evas_object_event_callback_add(win->layout_main,
 				       EVAS_CALLBACK_MOUSE_UP,
 				       _indicator_mouse_up_cb, win);
+	if(win->type == INDICATOR_WIN_PORT)
+	{
+		ecore_evas_callback_msg_parent_handle_set(ee, _indicator_port_ecore_evas_msg_parent_handle);
+	}
+	else
+	{
+		ecore_evas_callback_msg_parent_handle_set(ee, _indicator_land_ecore_evas_msg_parent_handle);
+	}
+	ecore_evas_data_set(ee,"indicator_app_data",data);
 
 }
 
@@ -548,6 +712,14 @@ static void register_event_handler(void *data)
 	if (vconf_notify_key_changed
 	    (VCONFKEY_PM_STATE, _indicator_notify_pm_state_cb, (void *)ad) != 0) {
 		ERR("Fail vconf_notify_key_changed : VCONFKEY_PM_STATE");
+	}
+
+	ret = vconf_notify_key_changed(VCONFKEY_APPTRAY_STATE,
+		       _indicator_notify_apptray_state_cb, (void *)ad);
+
+	if (ret == -1) {
+		ERR("VCONFKEY_APPTRAY_STATE is failed\n");
+		return;
 	}
 
 	heynoti_subscribe(ad->notifd, HIBERNATION_ENTER_NOTI,
@@ -605,6 +777,12 @@ static int unregister_event_handler(void *data)
 	vconf_ignore_key_changed(VCONFKEY_SETAPPL_BATTERY_PERCENTAGE_BOOL,
 				_indicator_check_battery_percent_on_cb);
 
+	vconf_ignore_key_changed(VCONFKEY_PM_STATE,
+				_indicator_notify_pm_state_cb);
+
+	vconf_ignore_key_changed(VCONFKEY_APPTRAY_STATE,
+				_indicator_notify_apptray_state_cb);
+
 	heynoti_unsubscribe(ad->notifd, HIBERNATION_ENTER_NOTI,
 			    _indicator_hibernation_enter_cb);
 	heynoti_unsubscribe(ad->notifd, HIBERNATION_LEAVE_NOTI,
@@ -649,7 +827,6 @@ static Evas_Object *load_edj(Evas_Object * parent, const char *file,
 
 static void create_win(void* data,int type)
 {
-	Evas_Object *win_port;
 	char *indi_name = NULL;
 
 	struct appdata *ad = data;
@@ -660,18 +837,33 @@ static void create_win(void* data,int type)
 	int root_h;
 	Ecore_X_Window root;
 
-	if(type == INDICATOR_WIN_PORT)
+	root = ecore_x_window_root_first_get();
+	ecore_x_window_size_get(root, &root_w, &root_h);
+	INFO("xwin_size = %d %d", root_w, root_h);
+
+	ad->scale = elm_config_scale_get();
+	INFO("scale = %f", ad->scale);
+
+
+	switch(type)
 	{
+	case INDICATOR_WIN_PORT:
 		ad->win[type].win_main = elm_win_add(NULL, "portrait_indicator", ELM_WIN_SOCKET_IMAGE);
 		indi_name = "elm_indicator_portrait";
-	}
-	else
-	{
+		elm_win_title_set(ad->win[type].win_main, "win sock test:port");
+		ad->win[type].w = root_w;
+		break;
+	case INDICATOR_WIN_LAND:
 		ad->win[type].win_main = elm_win_add(NULL, "win_socket_test:land", ELM_WIN_SOCKET_IMAGE);
 		indi_name = "elm_indicator_landscape";
+		elm_win_title_set(ad->win[type].win_main, "win sock test:land");
+		ad->win[type].w = root_h;
+		break;
+	default :
+		break;
 	}
 
-	retif(ad->win[type].win_main == NULL, FAIL, "elm_win_add failed!");
+	retif(ad->win[type].win_main == NULL, , "elm_win_add failed!");
 
 	if (!elm_win_socket_listen(ad->win[type].win_main , indi_name, 0, EINA_FALSE))
 	{
@@ -680,15 +872,6 @@ static void create_win(void* data,int type)
 		return;
 	}
 	elm_win_alpha_set(ad->win[type].win_main , EINA_TRUE);
-
-	if(type == INDICATOR_WIN_PORT)
-	{
-		elm_win_title_set(ad->win[type].win_main, "win sock test:port");
-	}
-	else
-	{
-		elm_win_title_set(ad->win[type].win_main, "win sock test:land");
-	}
 
 	elm_win_borderless_set(ad->win[type].win_main , EINA_TRUE);
 
@@ -702,30 +885,24 @@ static void create_win(void* data,int type)
 	states[1] = ECORE_X_WINDOW_STATE_SKIP_PAGER;
 	ecore_x_netwm_window_state_set(xwin, states, 2);
 
-	ecore_x_icccm_name_class_set(xwin, "INDICATOR", "INDICATOR");
-
 	zone = ecore_x_e_illume_zone_get(xwin);
 	ecore_x_event_mask_set(zone, ECORE_X_EVENT_MASK_WINDOW_CONFIGURE);
 
 	ad->win[type].evas = evas_object_evas_get(ad->win[type].win_main );
 
-	ad->win[type].layout_main = load_edj(ad->win[type].win_main , EDJ_FILE, GRP_MAIN);
-	retif(ad->win[type].layout_main == NULL, FAIL, "Failed to get layout main!");
-	root = ecore_x_window_root_first_get();
-	ecore_x_window_size_get(root, &root_w, &root_h);
-	INFO("xwin_size = %d %d", root_w, root_h);
-
-	ad->scale = elm_config_scale_get();
-	INFO("scale = %f", ad->scale);
-
-	if(type == INDICATOR_WIN_PORT)
+	switch(type)
 	{
-		ad->win[type].w = root_w;
+	case INDICATOR_WIN_PORT:
+		ad->win[type].layout_main = load_edj(ad->win[type].win_main , EDJ_FILE0, GRP_MAIN);
+		break;
+	case INDICATOR_WIN_LAND:
+		ad->win[type].layout_main = load_edj(ad->win[type].win_main , EDJ_FILE1, GRP_MAIN);
+		break;
+	default :
+		break;
 	}
-	else
-	{
-		ad->win[type].w = root_h;
-	}
+
+	retif(ad->win[type].layout_main == NULL, , "Failed to get layout main!");
 
 	ad->win[type].h = (int)(INDICATOR_HEIGHT * ad->scale);
 	evas_object_resize(ad->win[type].win_main , ad->win[type].w, ad->win[type].h);
@@ -745,13 +922,6 @@ static void create_win(void* data,int type)
 
 	indicator_util_layout_add(&(ad->win[type]));
 
-	if(type == INDICATOR_WIN_LAND)
-	{
-		Evas_Object *edje;
-		edje = elm_layout_edje_get(ad->win[type].layout_main);
-		edje_object_signal_emit(edje, "change,home,pad,1", "elm.rect.*");
-	}
-
 	ad->win[type].data = data;
 
 	evas_object_show(ad->win[type].layout_main);
@@ -759,16 +929,82 @@ static void create_win(void* data,int type)
 	return ;
 }
 
+static void create_overlay_win(void* data)
+{
+
+	struct appdata *ad = data;
+	Evas_Object *conform = NULL;
+
+	Evas_Object *eo;
+	int w, h;
+	int indi_h;
+	Ecore_X_Window xwin;
+	Ecore_X_Window zone;
+	Ecore_X_Window_State states[2];
+	Ecore_X_Atom ATOM_MV_INDICATOR_GEOMETRY = 0;
+
+	indi_h = (int)(INDICATOR_HEIGHT * ad->scale);
+
+	eo = elm_win_add(NULL, "INDICATOR", ELM_WIN_BASIC);
+	elm_win_title_set(eo, "INDICATOR");
+	elm_win_borderless_set(eo, EINA_TRUE);
+	ecore_x_window_size_get(ecore_x_window_root_first_get(), &w, &h);
+	evas_object_resize(eo, w, (int)(INDICATOR_HEIGHT * ad->scale));
+	evas_object_move(eo , 0, 0);
+	elm_win_alpha_set(eo, EINA_TRUE);
+
+	elm_win_indicator_mode_set(eo, ELM_WIN_INDICATOR_SHOW);
+	elm_win_indicator_opacity_set(eo, ELM_WIN_INDICATOR_OPAQUE);
+
+	conform = elm_conformant_add(eo);
+
+	evas_object_size_hint_weight_set(conform, EVAS_HINT_EXPAND,EVAS_HINT_EXPAND);
+	elm_win_resize_object_add(eo, conform);
+	evas_object_show(conform);
+
+	xwin = elm_win_xwindow_get(eo);
+	ecore_x_icccm_hints_set(xwin, 0, 0, 0, 0, 0, 0, 0);
+	states[0] = ECORE_X_WINDOW_STATE_SKIP_TASKBAR;
+	states[1] = ECORE_X_WINDOW_STATE_SKIP_PAGER;
+	ecore_x_netwm_window_state_set(xwin, states, 2);
+
+	ecore_x_icccm_name_class_set(xwin, "INDICATOR", "INDICATOR");
+
+	ecore_x_netwm_window_type_set(xwin, ECORE_X_WINDOW_TYPE_DOCK);
+
+	unsigned int   ind_gio_val[16] = { 0, 0, w, indi_h,
+                              0, 0, indi_h, h,
+                              0, h-indi_h, w, indi_h,
+                              w-indi_h, 0, indi_h, h };
+
+	ATOM_MV_INDICATOR_GEOMETRY = ecore_x_atom_get(STR_ATOM_MV_INDICATOR_GEOMETRY);
+
+	ecore_x_window_prop_card32_set(xwin,
+					  ATOM_MV_INDICATOR_GEOMETRY,
+					  ind_gio_val,
+					  16);
+
+	zone = ecore_x_e_illume_zone_get(xwin);
+	ecore_x_event_mask_set(zone, ECORE_X_EVENT_MASK_WINDOW_CONFIGURE);
+	evas_object_show(eo);
+
+	ad->win_overlay = eo;
+
+	return ;
+}
+
 static void _indicator_init_wininfo(void * data)
 {
 	int i = 0;
 	struct appdata *ad = data;
-	retif(data == NULL, FAIL, "Invalid parameter!");
+	retif(data == NULL, , "Invalid parameter!");
 
 	for(i=0;i<INDICATOR_WIN_MAX;i++)
 	{
 		memset(&(ad->win[i]),0x00,sizeof(win_info));
 	}
+
+	ad->win_overlay = NULL;
 }
 
 static int indicator_window_new(void *data)
@@ -783,9 +1019,10 @@ static int indicator_window_new(void *data)
 	for(i=0;i<INDICATOR_WIN_MAX;i++)
 	{
 		create_win(data,i);
+		indicator_util_show_hide_icons(&(ad->win[i]),0,0);
 	}
-	indicator_util_show_hide_icons(data,0);
 
+	create_overlay_win(data);
 	register_event_handler(ad);
 
 	return OK;
@@ -810,6 +1047,9 @@ static int indicator_window_del(void *data)
 		evas_object_del(ad->win[i].win_main);
 		ad->win[i].win_main = NULL;
 	}
+
+	evas_object_del(ad->win_overlay);
+	ad->win_overlay = NULL;
 
 	if (ad)
 		free(ad);
@@ -911,6 +1151,63 @@ static Eina_Bool _indicator_hw_home_key_release_cancel(void *data)
 
 #endif
 
+static void __indicator_launch_apptray(void* data)
+{
+	int lock_state = VCONFKEY_IDLE_UNLOCK;
+	int lock_ret = -1;
+	service_h service;
+	int ret = SERVICE_ERROR_NONE;
+
+	lock_ret = vconf_get_int(VCONFKEY_IDLE_LOCK_STATE,
+			&lock_state);
+	DBG("Check Lock State : %d %d", lock_ret, lock_state);
+
+	if (lock_ret == 0 && lock_state == VCONFKEY_IDLE_LOCK)
+	{
+		goto __CATCH;
+	}
+
+	INFO("[Home Button Released]");
+
+	if (check_system_status() == FAIL)
+	{
+		INFO("check_system_status failed");
+		goto __CATCH;
+	}
+
+	service_create(&service);
+
+	service_set_operation(service, SERVICE_OPERATION_DEFAULT);
+
+	service_set_app_id(service, APP_TRAY_PKG_NAME);
+
+	service_add_extra_data(service, "LONG_PRESS", "0");
+
+	ret = service_send_launch_request(service, NULL, NULL);
+
+	if(ret != SERVICE_ERROR_NONE)
+	{
+		ERR("Cannot launch app");
+	}
+
+	service_destroy(service);
+
+__CATCH:
+	_indicator_home_icon_action(data, 0);
+	home_button_pressed = EINA_FALSE;
+}
+
+static void __indicator_hide_icon_timer_cb(void* data)
+{
+	if (hide_timer != NULL) {
+		ecore_timer_del(hide_timer);
+		hide_timer = NULL;
+	}
+
+	indicator_util_show_hide_icons(data,0,1);
+
+}
+
 static void _indicator_mouse_down_cb(void *data, Evas * e, Evas_Object * obj,
 				     void *event)
 {
@@ -928,8 +1225,65 @@ static void _indicator_mouse_down_cb(void *data, Evas * e, Evas_Object * obj,
 #ifdef HOME_KEY_EMULATION
 	if(indicator_util_check_indicator_area(win, ev->canvas.x, ev->canvas.y))
 	{
-			show_hide_pressed = EINA_TRUE;
+		if (indicator_util_check_home_icon_area(win, ev->canvas.x, ev->canvas.y))
+		{
+
+			int lock_state = VCONFKEY_IDLE_UNLOCK;
+			int ret = -1;
+			char *menuscreen = NULL;
+
+			ret = vconf_get_int(VCONFKEY_IDLE_LOCK_STATE,&lock_state);
+			DBG("Check Lock State : %d %d", ret, lock_state);
+
+			if (ret != 0 || lock_state == VCONFKEY_IDLE_LOCK)
+			{
+				goto __CATCH;
+			}
+
+			if (check_system_status() == FAIL)
+			{
+				INFO("check_system_status failed");
+				goto __CATCH;
+			}
+			menuscreen = vconf_get_str("db/setting/menuscreen/package_name");
+
+			if(menuscreen!=NULL&&!strncmp(menuscreen,MENUSCREEN_PKG_NAME,strlen(MENUSCREEN_PKG_NAME)))
+			{
+				DBG("package_name: %s", menuscreen);
+				goto __CATCH;
+			}
+
+			if(win->type==INDICATOR_WIN_LAND)
+			{
+				if(indicator_icon_show_state[win->type]==0)
+				{
+					DBG("SKIP APPTRAY: %d", win->type);
+					show_hide_pressed[win->type] = EINA_TRUE;
+					goto __CATCH;
+				}
+			}
+
+			_indicator_home_icon_action(win, 1);
+			home_button_pressed = EINA_TRUE;
+
+
+		}
+		else
+		{
+			if( is_quickpanel_opened == 0 )
+			{
+				show_hide_pressed[win->type] = EINA_TRUE;
+			}
+			else
+			{
+				show_hide_pressed[win->type] = EINA_FALSE;
+				DBG("quick panel is opened : %d", is_quickpanel_opened);
+			}
+		}
+		indicator_press_coord.x = ev->canvas.x;
+		indicator_press_coord.y = ev->canvas.y;
 	}
+
 __CATCH :
 	return;
 #else
@@ -970,12 +1324,53 @@ static void _indicator_mouse_move_cb(void *data, Evas * e, Evas_Object * obj,
 	retif(data == NULL || event == NULL, , "Invalid parameter!");
 
 	ev = event;
-
-	if (show_hide_pressed) {
-		if (!indicator_util_check_indicator_area(win,ev->cur.canvas.x,ev->cur.canvas.y))
+	if (home_button_pressed) {
+		if (!indicator_util_check_home_icon_area(win,ev->cur.canvas.x,ev->cur.canvas.y))
 		{
-			show_hide_pressed = FALSE;
-			DBG("cancel show/hide key");
+			DBG("_indicator_mouse_move_cb : %d %d canceled", ev->cur.canvas.x, ev->cur.canvas.y);
+			_indicator_home_icon_action(data, 0);
+			home_button_pressed = FALSE;
+		}
+		if(ev->cur.canvas.y - indicator_press_coord.y >= INDICATOR_HIDE_TRIGER_H*elm_config_scale_get())
+		{
+			DBG("_indicator_mouse_move_cb : %d %d launch apptray", ev->cur.canvas.x, ev->cur.canvas.y);
+			__indicator_launch_apptray(win->data);
+			home_button_pressed = FALSE;
+		}
+	}
+	if(win->type == INDICATOR_WIN_PORT)
+	{
+		if (show_hide_pressed[win->type]) {
+			if (!indicator_util_check_indicator_area(win,ev->cur.canvas.x,ev->cur.canvas.y)
+			|| indicator_util_check_home_icon_area(win,ev->cur.canvas.x,ev->cur.canvas.y))
+			{
+				show_hide_pressed[win->type] = FALSE;
+				DBG("cancel show/hide key");
+			}
+		}
+	}
+	else
+	{
+		if(ev->cur.canvas.y - indicator_press_coord.y >= INDICATOR_HIDE_TRIGER_H*elm_config_scale_get())
+		{
+			DBG("ev->cur.canvas.x(%d) ev->cur.canvas.y(%d)",ev->cur.canvas.x,ev->cur.canvas.y);
+			DBG("indicator_press_coord.x(%d) indicator_press_coord.y(%d)",indicator_press_coord.x,indicator_press_coord.y);
+
+			if(show_hide_pressed[win->type] == EINA_TRUE)
+			{
+				if(indicator_icon_show_state[win->type] == 0)
+				{
+					indicator_util_show_hide_icons(win,1,1);
+					if (hide_timer != NULL) {
+						ecore_timer_del(hide_timer);
+						hide_timer = NULL;
+					}
+
+					hide_timer =  ecore_timer_add(3, (void *)__indicator_hide_icon_timer_cb,data);
+
+					show_hide_pressed[win->type] = EINA_FALSE;
+				}
+			}
 		}
 	}
 }
@@ -997,28 +1392,43 @@ static void _indicator_mouse_up_cb(void *data, Evas * e, Evas_Object * obj,
 	if(indicator_util_check_indicator_area(win, ev->canvas.x, ev->canvas.y))
 	{
 
+		if (indicator_util_check_home_icon_area(win,ev->canvas.x,ev->canvas.y))
 		{
-			if(show_hide_pressed == EINA_TRUE)
+			if(home_button_pressed == EINA_TRUE)
 			{
-				if(indicator_icon_show_state == 0)
-				{
-					indicator_util_show_hide_icons(win->data,1);
-					indicator_icon_show_state = 1;
-				}
-				else
-				{
-					indicator_util_show_hide_icons(win->data,0);
-					indicator_icon_show_state = 0;
-				}
-
+				__indicator_launch_apptray(win->data);
 				feedback_play_type(FEEDBACK_TYPE_SOUND, FEEDBACK_PATTERN_TAP);
 			}
+
 		}
+		else
+		{
+			if(win->type == INDICATOR_WIN_PORT)
+			{
+				if(show_hide_pressed[win->type] == EINA_TRUE)
+				{
+					if(indicator_icon_show_state[win->type] == 0)
+					{
+						indicator_icon_backup_state[win->type] = 1;
+						indicator_util_show_hide_icons(win,1,1);
+					}
+					else
+					{
+						indicator_icon_backup_state[win->type] = 0;
+						indicator_util_show_hide_icons(win,0,1);
+					}
+
+					vconf_set_int(VCONFKEY_BATTERY_DISP_STATE,win->type);
+					feedback_play_type(FEEDBACK_TYPE_SOUND, FEEDBACK_PATTERN_TAP);
+				}
+			}
+		}
+
 	}
 __CATCH:
 	_indicator_home_icon_action(data, 0);
 	home_button_pressed = EINA_FALSE;
-	show_hide_pressed = EINA_FALSE;
+	show_hide_pressed[win->type] = EINA_FALSE;
 #else
 	int mouse_up_prio = -1;
 	int mouse_down_prio = -1;
@@ -1205,7 +1615,7 @@ static void app_service(service_h service, void *data)
 
 	INFO("[INDICATOR IS STARTED]");
 	ret = indicator_window_new(data);
-	retif(ret != OK, FAIL, "Failed to create a new window!");
+	retif(ret != OK, , "Failed to create a new window!");
 
 	_change_view(ecore_x_window_root_first_get(), data);
 

@@ -24,7 +24,7 @@
 #include "modules.h"
 #include "indicator_icon_util.h"
 
-#define ICON_PRIORITY	INDICATOR_PRIORITY_SYSTEM_4
+#define ICON_PRIORITY	INDICATOR_PRIORITY_SYSTEM_5
 #define MODULE_NAME		"call_divert"
 
 static int register_call_divert_module(void *data);

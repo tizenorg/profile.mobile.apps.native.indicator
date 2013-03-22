@@ -116,7 +116,6 @@ static void indicator_silent_change_cb(keynode_t *node, void *data)
 	int sound_status = 0;
 	int vib_status = 0;
 	int ret;
-	const char *selected_image = NULL;
 
 	retif(data == NULL, , "Invalid parameter!");
 

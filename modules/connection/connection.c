@@ -30,8 +30,7 @@
 
 static int register_conn_module(void *data);
 static int unregister_conn_module(void);
-extern void show_trnsfr_icon(void *data);
-extern void hide_trnsfr_icon(void);
+static int wake_up_cb(void *data);
 
 Indicator_Icon_Object conn[INDICATOR_WIN_MAX] = {
 {
@@ -46,7 +45,8 @@ Indicator_Icon_Object conn[INDICATOR_WIN_MAX] = {
 	.img_obj = {0,},
 	.obj_exist = EINA_FALSE,
 	.init = register_conn_module,
-	.fini = unregister_conn_module
+	.fini = unregister_conn_module,
+	.wake_up = wake_up_cb
 },
 {
 	.win_type = INDICATOR_WIN_LAND,
@@ -60,7 +60,8 @@ Indicator_Icon_Object conn[INDICATOR_WIN_MAX] = {
 	.img_obj = {0,},
 	.obj_exist = EINA_FALSE,
 	.init = register_conn_module,
-	.fini = unregister_conn_module
+	.fini = unregister_conn_module,
+	.wake_up = wake_up_cb
 }
 };
 
@@ -97,6 +98,8 @@ static const char *icon_path[LEVEL_MAX] = {
 };
 
 static Eina_Bool dnet_transferring = EINA_FALSE;
+static int updated_while_lcd_off = 0;
+
 
 static void set_app_state(void* data)
 {
@@ -134,15 +137,22 @@ static void indicator_conn_change_cb(keynode_t *node, void *data)
 	int ret = 0;
 	int ps_type = VCONFKEY_TELEPHONY_PSTYPE_NONE;
 
+	if(indicator_util_get_update_flag()==0)
+	{
+		updated_while_lcd_off = 1;
+		DBG("need to update %d",updated_while_lcd_off);
+		return;
+	}
+	updated_while_lcd_off = 0;
+
 	retif(data == NULL, , "Invalid parameter!");
 
 	ret = vconf_get_int(VCONFKEY_WIFI_STATE, &status);
 	if (ret == OK) {
 		INFO("CONNECTION WiFi Status: %d", status);
 		if ((status == VCONFKEY_WIFI_CONNECTED)) {
-			indicator_util_icon_hide(&conn);
+			hide_image_icon();
 			if (dnet_transferring == EINA_TRUE) {
-				hide_trnsfr_icon();
 				dnet_transferring = EINA_FALSE;
 			}
 			return;
@@ -154,12 +164,10 @@ static void indicator_conn_change_cb(keynode_t *node, void *data)
 		INFO("CONNECTION DNET Status: %d", status);
 		if (status == VCONFKEY_DNET_TRANSFER) {
 			if (dnet_transferring == EINA_FALSE) {
-				show_trnsfr_icon(data);
 				dnet_transferring = EINA_TRUE;
 			}
 		} else {
 			if (dnet_transferring == EINA_TRUE) {
-				hide_trnsfr_icon();
 				dnet_transferring = EINA_FALSE;
 			}
 		}
@@ -216,6 +224,17 @@ static void indicator_conn_change_cb(keynode_t *node, void *data)
 	return;
 }
 
+static int wake_up_cb(void *data)
+{
+	if(updated_while_lcd_off==0)
+	{
+		DBG("ICON WAS NOT UPDATED");
+		return OK;
+	}
+	indicator_conn_change_cb(NULL, data);
+	return OK;
+}
+
 static int register_conn_module(void *data)
 {
 	int r = 0, ret = -1;
@@ -265,7 +284,6 @@ static int unregister_conn_module(void)
 		ERR("Failed to unregister callback!");
 
 	if (dnet_transferring == EINA_TRUE) {
-		hide_trnsfr_icon();
 		dnet_transferring = EINA_FALSE;
 	}
 

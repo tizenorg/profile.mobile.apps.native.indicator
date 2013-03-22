@@ -27,6 +27,9 @@
 #ifndef VCONFKEY_INDICATOR_STARTED
 #define VCONFKEY_INDICATOR_STARTED "memory/private/"PACKAGE_NAME"/started"
 #endif
+#define VCONFKEY_APPTRAY_STATE "file/private/com.samsung.app-tray/is_top"
+
+#define VCONFKEY_BATTERY_DISP_STATE "memory/private/"PACKAGE_NAME"/battery_disp"
 
 #define _FIXED_COUNT	5
 
@@ -49,7 +52,8 @@ enum {
 	INDICATOR_PRIORITY_FIXED_MAX = INDICATOR_PRIORITY_FIXED6,
 	INDICATOR_PRIORITY_SYSTEM_MIN,
 
-	INDICATOR_PRIORITY_SYSTEM_6 = INDICATOR_PRIORITY_SYSTEM_MIN,
+	INDICATOR_PRIORITY_SYSTEM_7 = INDICATOR_PRIORITY_SYSTEM_MIN,
+	INDICATOR_PRIORITY_SYSTEM_6,
 	INDICATOR_PRIORITY_SYSTEM_5,
 	INDICATOR_PRIORITY_SYSTEM_4,
 	INDICATOR_PRIORITY_SYSTEM_3,
@@ -137,8 +141,8 @@ typedef struct Indicator_Icon {
 	int (*lang_changed) (void *);
 	int (*region_changed) (void *);
 	int (*minictrl_control) (int, const char *, void *);
+	int (*wake_up) (void *);
 
-	char data[1024];
 	void *ad;
 	Eina_Bool obj_exist;
 	Text_Icon_Info txt_obj;

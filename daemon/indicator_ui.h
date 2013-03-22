@@ -38,7 +38,8 @@
 #  define ICONDIR "/usr/apps/com.samsung.indicator/res/icons"
 #endif
 
-#define EDJ_FILE EDJDIR"/"PACKAGE".edj"
+#define EDJ_FILE0 EDJDIR"/"PACKAGE"_port.edj"
+#define EDJ_FILE1 EDJDIR"/"PACKAGE"_land.edj"
 #define ICON_THEME_FILE EDJDIR"/"PACKAGE"_icon_theme.edj"
 #define ICON_NONFIXED_THEME_FILE EDJDIR"/"PACKAGE"_icon_nonfixed_theme.edj"
 
@@ -51,6 +52,12 @@
 #define QUICKPANEL_NAME			"E Popup"
 #define CALL_NAME			"com.samsung.call"
 #define VTCALL_NAME			"com.samsung.vtmain"
+
+#define MSG_DOMAIN_CONTROL_INDICATOR 0x10001
+#define MSG_ID_INDICATOR_REPEAT_EVENT 0x10002
+#define MSG_ID_INDICATOR_ROTATION 0x10003
+#define MSG_ID_INDICATOR_OPACITY 0X1004
+#define MSG_ID_INDICATOR_TYPE 0X1005
 
 enum _win_type {
 	TOP_WIN_NORMAL = 0,
@@ -70,6 +77,7 @@ enum indicator_opacity_mode{
 struct appdata {
 
 	win_info win[INDICATOR_WIN_MAX];
+	Evas_Object* win_overlay;
 
 	double xscale;
 	double yscale;

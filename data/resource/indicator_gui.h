@@ -56,14 +56,16 @@
 #define HOME_PADDING_LANDSCAPE 78
 #define DEFAULT_NON_FIXED_PADDING 0
 
-#define INDI_DEFAULT_BG_COLOR 0 0 0 0
-#define INDI_DEFAULT_BG_TRANSLUCENT 0 0 0 50
+#define INDI_DEFAULT_BG_COLOR 52 52 50 255
+#define INDI_DEFAULT_BG_TRANSLUCENT 0 0 0 125
 #define INDI_DEFAULT_BG_TRANSPARENT 0 0 0 0
 
 #define ICON_FONT_NAME		"Tizen"
 #define ICON_FONT_STYLE		"Medium"
 #define ICON_FONT_SIZE		20
 #define FONT_COLOR		255, 255, 255, 255
+
+#define INDICATOR_HIDE_TRIGER_H 30
 
 #define DEFAULT_LABEL_STRING	"<font_size=%d><color=#%02x%02x%02x%02x>%s</color></font_size>"
 #define CUSTOM_LABEL_STRING		"<font=%s><style=%s><font_size=%d>%s</font_size></style></font>"

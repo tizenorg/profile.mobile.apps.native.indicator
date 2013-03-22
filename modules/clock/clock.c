@@ -22,12 +22,14 @@
 #include <Ecore_X.h>
 #include <unicode/udat.h>
 #include <unicode/udatpg.h>
+#include <unicode/ustring.h>
 
 #include "common.h"
 #include "indicator.h"
 #include "indicator_ui.h"
 #include "indicator_gui.h"
 #include "indicator_icon_util.h"
+#include "indicator_util.h"
 #include "modules.h"
 
 #define SYSTEM_RESUME				"system_wakeup"
@@ -41,6 +43,9 @@
 #define AMPM_FONT_COLOR		243, 243, 243, 255
 #define LABEL_STRING		"<font_size=%d>%s" \
 				"</font_size></font>"
+
+#define BATTERY_TIMER_INTERVAL		3
+#define BATTERY_TIMER_INTERVAL_CHARGING	30
 
 #define CLOCK_STR_LEN 256
 
@@ -56,6 +61,9 @@ static int apm_length = 0;
 static int apm_position = 0;
 static Ecore_Timer *timer = NULL;
 static Ecore_Timer *battery_timer = NULL;
+static Ecore_Timer *battery_charging_timer = NULL;
+static int battery_charging = 0;
+static int battery_charging_first = 0;
 
 static int register_clock_module(void *data);
 static int unregister_clock_module(void);
@@ -63,12 +71,14 @@ static int hib_enter_clock_module(void);
 static int hib_leave_clock_module(void *data);
 static int language_changed_cb(void *data);
 static int region_changed_cb(void *data);
+static int wake_up_cb(void *data);
 
 #define ICON_PRIORITY	INDICATOR_PRIORITY_FIXED6
 #define MODULE_NAME		"clock"
 
 static void indicator_get_time_by_region(char* output, void* data);
 static void ICU_set_timezone(const char *timezone);
+static void indicator_clock_display_battery_percentage(void *data,int win_type );
 
 Indicator_Icon_Object sysclock[INDICATOR_WIN_MAX] = {
 {
@@ -87,7 +97,8 @@ Indicator_Icon_Object sysclock[INDICATOR_WIN_MAX] = {
 	.hib_leave = hib_leave_clock_module,
 	.lang_changed = NULL,
 	.region_changed = region_changed_cb,
-	.lang_changed = language_changed_cb
+	.lang_changed = language_changed_cb,
+	.wake_up = wake_up_cb
 },
 {
 	.win_type = INDICATOR_WIN_LAND,
@@ -105,7 +116,8 @@ Indicator_Icon_Object sysclock[INDICATOR_WIN_MAX] = {
 	.hib_leave = hib_leave_clock_module,
 	.lang_changed = NULL,
 	.region_changed = region_changed_cb,
-	.lang_changed = language_changed_cb
+	.lang_changed = language_changed_cb,
+	.wake_up = wake_up_cb
 }
 };
 
@@ -121,12 +133,11 @@ static void set_app_state(void* data)
 
 static void indicator_clock_changed_cb(void *data)
 {
-	struct appdata *ad = (struct appdata *)data;
 	char time_str[32];
 	char time_buf[128], ampm_buf[128];
 	char buf[CLOCK_STR_LEN];
 	char icu_apm[CLOCK_STR_LEN] = {0,};
-	char apm_result[CLOCK_STR_LEN] ={0,};
+
 	struct tm *ts = NULL;
 	time_t ctime;
 	int len;
@@ -134,7 +145,13 @@ static void indicator_clock_changed_cb(void *data)
 
 	retif(data == NULL, , "Invalid parameter!");
 
-	if (battery_timer != NULL)
+	if(indicator_util_get_update_flag()==0)
+	{
+		DBG("need to update");
+		return;
+	}
+
+	if (battery_timer != NULL || battery_charging_timer != NULL)
 	{
 		DBG("battery is displaying. ignore clock callback");
 		return;
@@ -242,35 +259,182 @@ static void indicator_clock_format_changed_cb(keynode_t *node, void *data)
 	free(timezone);
 }
 
-static void indicator_clock_battery_changed_cb(keynode_t *node, void *data)
+static void indicator_clock_pm_state_change_cb(keynode_t *node, void *data)
 {
-	indicator_clock_display_battery_percentage(data);
+	int status = 0;
+
+	retif(data == NULL, , "Invalid parameter!");
+
+	vconf_get_int(VCONFKEY_PM_STATE, &status);
+
+	switch(status)
+	{
+		case VCONFKEY_PM_STATE_LCDOFF:
+			if (timer != NULL) {
+				ecore_timer_del(timer);
+				timer = NULL;
+			}
+
+			if (battery_timer != NULL) {
+				ecore_timer_del(battery_timer);
+				battery_timer = NULL;
+			}
+
+			if (battery_charging_timer != NULL) {
+				ecore_timer_del(battery_charging_timer);
+				battery_charging_timer = NULL;
+			}
+			break;
+		default:
+			break;
+	}
+
+}
+
+static void indicator_clock_battery_disp_changed_cb(keynode_t *node, void *data)
+{
+	int status = 0;
+
+	vconf_get_int(VCONFKEY_BATTERY_DISP_STATE,&status);
+
+	DBG("indicator_clock_battery_disp_changed_cb(%d)",status);
+
+	if(status==2)
+	{
+		indicator_clock_display_battery_percentage(data,0);
+		indicator_clock_display_battery_percentage(data,1);
+	}
+	else
+	{
+		indicator_clock_display_battery_percentage(data,status);
+	}
+}
+
+static void indicator_clock_charging_now_cb(keynode_t *node, void *data)
+{
+	int status = 0;
+	int lock_state = 0;
+
+	retif(data == NULL, , "Invalid parameter!");
+
+	vconf_get_int(VCONFKEY_IDLE_LOCK_STATE, &lock_state);
+
+	vconf_get_int(VCONFKEY_SYSMAN_BATTERY_CHARGE_NOW, &status);
+
+	battery_charging = status;
+
+	DBG("indicator_clock_charging_now_cb(%d)",status);
+
+	if(lock_state==VCONFKEY_IDLE_LOCK)
+	{
+		DBG("indicator_clock_charging_now_cb:lock_state(%d)",lock_state);
+		return;
+	}
+
+	if(battery_charging_first == 1&&status==1)
+	{
+		DBG("indicator_clock_charging_now_cb : ignore(%d)",status);
+	}
+
+	if(status==1)
+	{
+		battery_charging_first = 1;
+		indicator_clock_display_battery_percentage(data,0);
+	}
+}
+
+static void indicator_clock_battery_capacity_cb(keynode_t *node, void *data)
+{
+	retif(data == NULL, , "Invalid parameter!");
+
+	if(battery_charging==1&&battery_charging_timer!=NULL)
+	{
+		DBG("indicator_clock_battery_capacity_cb:battery_charging(%d)",battery_charging);
+		indicator_clock_display_battery_percentage(data,0);
+	}
+}
+
+
+static void indicator_clock_usb_cb(keynode_t *node, void *data)
+{
+	int status = 0;
+
+	retif(data == NULL, , "Invalid parameter!");
+
+	vconf_get_int(VCONFKEY_SYSMAN_USB_STATUS, &status);
+
+	DBG("indicator_clock_usb_cb(%d)",status);
+
+	if(status==VCONFKEY_SYSMAN_USB_DISCONNECTED)
+	{
+		battery_charging_first = 0;
+		if (battery_charging_timer != NULL)
+		{
+			ecore_timer_del(battery_charging_timer);
+			battery_charging_timer = NULL;
+		}
+		indicator_clock_changed_cb(data);
+	}
 }
 
 static void indicator_clock_battery_display_cb(void *data)
 {
-	int ret = 0;
+	INFO("indicator_clock_battery_charging_stop_cb");
 
 	if (battery_timer != NULL) {
 		ecore_timer_del(battery_timer);
 		battery_timer = NULL;
 	}
 
-	ret = vconf_ignore_key_changed(VCONFKEY_SYSMAN_BATTERY_CAPACITY,
-					       indicator_clock_battery_changed_cb);
-	if (ret != OK)
-		ERR("Fail: unregister VCONFKEY_REGIONFORMAT_TIME1224");
+	indicator_clock_changed_cb(data);
+}
+
+static void indicator_clock_battery_charging_stop_cb(void *data)
+{
+
+	INFO("indicator_clock_battery_charging_stop_cb");
+
+	if (battery_charging_timer != NULL) {
+		ecore_timer_del(battery_charging_timer);
+		battery_charging_timer = NULL;
+	}
 
 	indicator_clock_changed_cb(data);
 }
 
-void indicator_clock_display_battery_percentage(void *data)
+static void indicator_clock_lock_state_cb(keynode_t *node, void *data)
+{
+	int status = 0;
+
+	retif(data == NULL, , "Invalid parameter!");
+
+	vconf_get_int(VCONFKEY_IDLE_LOCK_STATE, &status);
+
+	DBG("indicator_clock_lock_state_cb(%d)",status);
+
+	if(status==VCONFKEY_IDLE_UNLOCK && battery_charging==1)
+	{
+		battery_charging_first = 1;
+		indicator_clock_display_battery_percentage(data,0);
+	}
+
+}
+
+static void indicator_clock_display_battery_percentage(void *data,int win_type )
 {
 	int ret = FAIL;
 	int status = 0;
 	int battery_capa = 0;
 	char buf[256] = {0,};
 	char temp[256] = {0,};
+	struct appdata *ad = (struct appdata *)data;
+
+
+	if(battery_charging_timer!=NULL)
+	{
+		INFO("30sec timer alive");
+		return;
+	}
 
 	ret = vconf_get_bool(VCONFKEY_SETAPPL_BATTERY_PERCENTAGE_BOOL, &status);
 	if (ret != OK)
@@ -302,16 +466,22 @@ void indicator_clock_display_battery_percentage(void *data)
 
 		INFO("indicator_clock_display_battery_percentage %s", buf);
 
-		indicator_part_text_emit(data,"elm.text.clock", buf);
+		indicator_part_text_emit_by_win(&(ad->win[win_type]),"elm.text.clock", buf);
 
-		ret = vconf_notify_key_changed(VCONFKEY_SYSMAN_BATTERY_CAPACITY,
-					       indicator_clock_battery_changed_cb, data);
-		if (ret != OK) {
-			ERR("Fail: register VCONFKEY_REGIONFORMAT_TIME1224");
-			return;
+		if(battery_charging == 1)
+		{
+
+			battery_charging_timer =  ecore_timer_add(BATTERY_TIMER_INTERVAL_CHARGING, (void *)indicator_clock_battery_charging_stop_cb,data);
 		}
+		else
+		{
+			if (battery_timer != NULL) {
+				ecore_timer_del(battery_timer);
+				battery_timer = NULL;
+			}
 
-		battery_timer =  ecore_timer_add(3, (void *)indicator_clock_battery_display_cb,data);
+			battery_timer =  ecore_timer_add(BATTERY_TIMER_INTERVAL, (void *)indicator_clock_battery_display_cb,data);
+		}
 	}
 
 }
@@ -328,6 +498,29 @@ static int region_changed_cb(void *data)
 {
 	DBG("region_changed_cb");
 	indicator_clock_format_changed_cb(NULL, data);
+	return OK;
+}
+
+static int wake_up_cb(void *data)
+{
+	int status = 0;
+
+	INFO("CLOCK wake_up_cb");
+
+	retif(data == NULL, FAIL, "Invalid parameter!");
+
+	vconf_get_int(VCONFKEY_IDLE_LOCK_STATE, &status);
+
+	DBG("wake_up_cb(%d)",status);
+
+	if(status==VCONFKEY_IDLE_UNLOCK && battery_charging==1)
+	{
+		indicator_clock_display_battery_percentage(data,0);
+	}
+	else
+	{
+		indicator_clock_changed_cb(data);
+	}
 	return OK;
 }
 
@@ -381,12 +574,49 @@ static int register_clock_module(void *data)
 		r = r | ret;
 	}
 
-	ret = vconf_notify_key_changed(VCONFKEY_PM_STATE, indicator_clock_format_changed_cb, (void *)data);
+	ret = vconf_notify_key_changed(VCONFKEY_PM_STATE, indicator_clock_pm_state_change_cb, (void *)data);
 
 	if (ret != OK) {
 		ERR("Fail: register VCONFKEY_PM_STATE");
 		r = r | ret;
 	}
+
+	ret = vconf_notify_key_changed(VCONFKEY_BATTERY_DISP_STATE,
+				       indicator_clock_battery_disp_changed_cb, data);
+	if (ret != OK) {
+		ERR("Fail: register VCONFKEY_SETAPPL_TIMEZONE_INT");
+		r = r | ret;
+	}
+
+	ret = vconf_notify_key_changed(VCONFKEY_SYSMAN_BATTERY_CAPACITY,
+				       indicator_clock_battery_capacity_cb, data);
+	if (ret != OK) {
+		ERR("Failed to register callback!");
+		r = r | ret;
+	}
+
+	ret = vconf_notify_key_changed(VCONFKEY_SYSMAN_BATTERY_CHARGE_NOW,
+				       indicator_clock_charging_now_cb, data);
+	if (ret != OK) {
+		ERR("Failed to register callback!");
+		r = r | ret;
+	}
+
+	ret = vconf_notify_key_changed(VCONFKEY_SYSMAN_USB_STATUS,
+				       indicator_clock_usb_cb, data);
+	if (ret != OK) {
+		ERR("Failed to register callback!");
+		r = r | ret;
+	}
+
+
+	ret = vconf_notify_key_changed(VCONFKEY_IDLE_LOCK_STATE,
+				       indicator_clock_lock_state_cb, data);
+	if (ret != OK) {
+		ERR("Failed to register callback!");
+		r = r | ret;
+	}
+
 
 	indicator_clock_format_changed_cb(NULL, data);
 
@@ -418,9 +648,35 @@ static int unregister_clock_module(void)
 		ERR("Fail: unregister VCONFKEY_SETAPPL_TIMEZONE_INT");
 
 	ret = vconf_ignore_key_changed(VCONFKEY_PM_STATE,
-					       indicator_clock_format_changed_cb);
+					       indicator_clock_battery_disp_changed_cb);
 	if (ret != OK)
 		ERR("Fail: unregister VCONFKEY_PM_STATE");
+
+	ret = vconf_ignore_key_changed(VCONFKEY_BATTERY_DISP_STATE,
+					       indicator_clock_pm_state_change_cb);
+	if (ret != OK)
+		ERR("Fail: unregister VCONFKEY_BATTERY_DISP_STATE");
+
+	ret = vconf_ignore_key_changed(VCONFKEY_SYSMAN_BATTERY_CAPACITY,
+					       indicator_clock_battery_capacity_cb);
+	if (ret != OK)
+		ERR("Fail: unregister VCONFKEY_SYSMAN_BATTERY_CHARGE_NOW");
+
+	ret = vconf_ignore_key_changed(VCONFKEY_SYSMAN_BATTERY_CHARGE_NOW,
+					       indicator_clock_charging_now_cb);
+	if (ret != OK)
+		ERR("Fail: unregister VCONFKEY_SYSMAN_BATTERY_CHARGE_NOW");
+
+	ret = vconf_ignore_key_changed(VCONFKEY_SYSMAN_USB_STATUS,
+					       indicator_clock_usb_cb);
+	if (ret != OK)
+		ERR("Fail: unregister VCONFKEY_SYSMAN_BATTERY_CHARGE_NOW");
+
+
+	ret = vconf_ignore_key_changed(VCONFKEY_IDLE_LOCK_STATE,
+					       indicator_clock_lock_state_cb);
+	if (ret != OK)
+		ERR("Fail: unregister VCONFKEY_SYSMAN_BATTERY_CHARGE_NOW");
 
 	if (timer != NULL) {
 		ecore_timer_del(timer);
@@ -462,8 +718,8 @@ static int hib_leave_clock_module(void *data)
 
 void indicator_get_time_by_region(char* output,void *data)
 {
-	retif(data == NULL, NULL, "Data parameter is NULL");
-	retif(output == NULL, NULL, "output parameter is NULL");
+	retif(data == NULL, , "Data parameter is NULL");
+	retif(output == NULL, , "output parameter is NULL");
 
 
 	UChar customSkeleton[CLOCK_STR_LEN] = { 0, };
@@ -546,6 +802,12 @@ static UChar *uastrcpy(const char *chars)
 
 static void ICU_set_timezone(const char *timezone)
 {
+	if(timezone == NULL)
+	{
+		ERR("TIMEZONE is NULL");
+		return;
+	}
+
 	DBG("ICU_set_timezone = %s ", timezone);
 	UErrorCode ec = U_ZERO_ERROR;
 	UChar *str = uastrcpy(timezone);
