@@ -134,3 +134,15 @@ void indicator_part_text_emit_by_win(void* data, const char *part, const char *t
 	edje_object_part_text_set(edje, part, text);
 }
 
+void indicator_send_evas_ecore_message(void* data, int bRepeat, int bType)
+{
+	Ecore_Evas *ee_port;
+	win_info* win = (win_info*)data;
+	retif(data == NULL, , "Invalid parameter!");
+
+	DBG("win(%d),bRepeat(%d),bType(%d)");
+	ee_port = ecore_evas_ecore_evas_get(evas_object_evas_get(win->win_main));
+	ecore_evas_msg_send(ee_port, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_REPEAT_EVENT, &bRepeat, sizeof(int));
+	ecore_evas_msg_send(ee_port, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_TYPE, &bType, sizeof(int));
+
+}

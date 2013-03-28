@@ -771,7 +771,6 @@ static void indicator_util_icon_state(int win_type, int bShow)
 void indicator_util_show_hide_icons(void* data,int bShow, int bEffect)
 {
 	win_info *win = (win_info *)data;
-	Ecore_Evas *ee_port;
 	retif(data == NULL, , "Invalid parameter!");
 
 	if(bShow)
@@ -783,34 +782,22 @@ void indicator_util_show_hide_icons(void* data,int bShow, int bEffect)
 		indicator_util_icon_state(win->type,0);
 	}
 
-
-	ee_port = ecore_evas_ecore_evas_get(evas_object_evas_get(win->win_main));
-
 	if(win->type == INDICATOR_WIN_LAND)
 	{
 		DBG("land = %d",bShow);
 		if(bShow==FALSE)
 		{
-			int mode = 2;
-			int bRepeat = 1;
-			ecore_evas_msg_send(ee_port, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_REPEAT_EVENT, &bRepeat, sizeof(int));
-			ecore_evas_msg_send(ee_port, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_TYPE, &mode, sizeof(int));
+			indicator_send_evas_ecore_message(win,1,2);
 		}
 		else
 		{
-			int mode = 1;
-			int bRepeat = 0;
-			ecore_evas_msg_send(ee_port, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_REPEAT_EVENT, &bRepeat, sizeof(int));
-			ecore_evas_msg_send(ee_port, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_TYPE, &mode, sizeof(int));
+			indicator_send_evas_ecore_message(win,0,1);
 		}
 	}
 	else
 	{
 		DBG("port = %d",bShow);
-		int mode = 1;
-		int bRepeat = 0;
-		ecore_evas_msg_send(ee_port, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_REPEAT_EVENT, &bRepeat, sizeof(int));
-		ecore_evas_msg_send(ee_port, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_TYPE, &mode, sizeof(int));
+		indicator_send_evas_ecore_message(win,0,1);
 	}
 
 	if(bEffect)

@@ -604,9 +604,11 @@ static int register_battery_module(void *data)
 	ret = vconf_notify_key_changed(VCONFKEY_PM_STATE,
 					       indicator_battery_pm_state_change_cb, data);
 	if (ret != OK) {
-		ERR("Fail: register VCONFKEY_REGIONFORMAT_TIME1224");
+		ERR("Fail: register VCONFKEY_PM_STATE");
 		r = r | ret;
 	}
+
+	indicator_battery_update_display(data);
 
 	return r;
 }

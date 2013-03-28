@@ -27,8 +27,6 @@
 
 void indicator_init_modules(void *data);
 void indicator_fini_modules(void *data);
-void indicator_hib_enter_modules(void *data);
-void indicator_hib_leave_modules(void *data);
 void indicator_lang_changed_modules(void *data);
 void indicator_region_changed_modules(void *data);
 void indicator_minictrl_control_modules(int action, const char* name, void *data);

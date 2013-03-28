@@ -29,8 +29,6 @@
 
 static int register_nfc_module(void *data);
 static int unregister_nfc_module(void);
-static int hib_enter_nfc_module(void);
-static int hib_leave_nfc_module(void *data);
 static int wake_up_cb(void *data);
 
 
@@ -48,8 +46,6 @@ Indicator_Icon_Object nfc[INDICATOR_WIN_MAX] = {
 	.area = INDICATOR_ICON_AREA_SYSTEM,
 	.init = register_nfc_module,
 	.fini = unregister_nfc_module,
-	.hib_enter = hib_enter_nfc_module,
-	.hib_leave = hib_leave_nfc_module,
 	.wake_up = wake_up_cb
 },
 {
@@ -65,8 +61,6 @@ Indicator_Icon_Object nfc[INDICATOR_WIN_MAX] = {
 	.area = INDICATOR_ICON_AREA_SYSTEM,
 	.init = register_nfc_module,
 	.fini = unregister_nfc_module,
-	.hib_enter = hib_enter_nfc_module,
-	.hib_leave = hib_leave_nfc_module,
 	.wake_up = wake_up_cb
 }
 };
@@ -184,31 +178,5 @@ static int unregister_nfc_module(void)
 	if (ret != OK)
 		ERR("Failed to unregister callback!");
 
-	return OK;
-}
-
-static int hib_enter_nfc_module(void)
-{
-	int ret;
-
-	ret = vconf_ignore_key_changed(VCONFKEY_NFC_STATE,
-				       indicator_nfc_change_cb);
-	if (ret != OK)
-		ERR("Failed to unregister callback!");
-
-	return OK;
-}
-
-static int hib_leave_nfc_module(void *data)
-{
-	int ret;
-
-	retif(data == NULL, FAIL, "Invalid parameter!");
-
-	ret = vconf_notify_key_changed(VCONFKEY_NFC_STATE,
-				       indicator_nfc_change_cb, data);
-	retif(ret != OK, FAIL, "Failed to register callback!");
-
-	indicator_nfc_change_cb(NULL, data);
 	return OK;
 }

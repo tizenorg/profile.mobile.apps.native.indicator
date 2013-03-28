@@ -50,7 +50,6 @@ pkg_check_modules(pkgs REQUIRED
 	evas
 	eina
 	fontconfig
-	heynoti
 	libprivilege-control
 	notification
 	vconf

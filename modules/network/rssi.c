@@ -34,8 +34,6 @@
 
 static int register_rssi_module(void *data);
 static int unregister_rssi_module(void);
-static int hib_enter_rssi_module(void);
-static int hib_leave_rssi_module(void *data);
 static int language_changed_cb(void *data);
 static int wake_up_cb(void *data);
 
@@ -53,8 +51,6 @@ Indicator_Icon_Object rssi[INDICATOR_WIN_MAX] = {
 	.area = INDICATOR_ICON_AREA_FIXED,
 	.init = register_rssi_module,
 	.fini = unregister_rssi_module,
-	.hib_enter = hib_enter_rssi_module,
-	.hib_leave = hib_leave_rssi_module,
 	.lang_changed = language_changed_cb,
 	.wake_up = wake_up_cb
 },
@@ -71,8 +67,6 @@ Indicator_Icon_Object rssi[INDICATOR_WIN_MAX] = {
 	.area = INDICATOR_ICON_AREA_FIXED,
 	.init = register_rssi_module,
 	.fini = unregister_rssi_module,
-	.hib_enter = hib_enter_rssi_module,
-	.hib_leave = hib_leave_rssi_module,
 	.lang_changed = language_changed_cb,
 	.wake_up = wake_up_cb
 }
@@ -342,32 +336,5 @@ static int unregister_rssi_module(void)
 	if (ret != OK)
 		ERR("Failed to unregister callback!");
 
-	return OK;
-}
-
-static int hib_enter_rssi_module(void)
-{
-	int ret;
-
-	ret = vconf_ignore_key_changed(VCONFKEY_TELEPHONY_FLIGHT_MODE,
-				       indicator_rssi_change_cb);
-	if (ret != OK) {
-		ERR("Failed to unregister callback!");
-	}
-
-	return OK;
-}
-
-static int hib_leave_rssi_module(void *data)
-{
-	int ret;
-
-	retif(data == NULL, FAIL, "Invalid parameter!");
-
-	ret = vconf_notify_key_changed(VCONFKEY_TELEPHONY_FLIGHT_MODE,
-				       indicator_rssi_change_cb, data);
-	retif(ret != OK, FAIL, "Failed to register callback!");
-
-	indicator_rssi_change_cb(NULL, data);
 	return OK;
 }

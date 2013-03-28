@@ -18,7 +18,6 @@
 #include <app.h>
 #include <Ecore_X.h>
 #include <vconf.h>
-#include <heynoti.h>
 #include <unistd.h>
 #include <privilege-control.h>
 #include <app_manager.h>
@@ -39,9 +38,6 @@
 #define WIN_TITLE "Illume Indicator"
 
 #define VCONF_PHONE_STATUS "memory/startapps/sequence"
-
-#define HIBERNATION_ENTER_NOTI	"HIBERNATION_ENTER"
-#define HIBERNATION_LEAVE_NOTI	"HIBERNATION_LEAVE"
 
 #define UNLOCK_ENABLED	0
 #define TIMEOUT			5
@@ -90,8 +86,6 @@ static void _indicator_check_battery_percent_on_cb(keynode_t *node, void *data);
 static void _indicator_low_bat_cb(void *data);
 static void _indicator_lang_changed_cb(void *data);
 static void _indicator_region_changed_cb(void *data);
-static void _indicator_hibernation_enter_cb(void *data);
-static void _indicator_hibernation_leave_cb(void *data);
 static void _indicator_window_delete_cb(void *data, Evas_Object * obj,
 					void *event);
 static Eina_Bool _indicator_client_message_cb(void *data, int type,
@@ -299,16 +293,6 @@ static void _indicator_region_changed_cb(void *data)
 	indicator_region_changed_modules(data);
 }
 
-static void _indicator_hibernation_enter_cb(void *data)
-{
-	indicator_hib_enter_modules(data);
-}
-
-static void _indicator_hibernation_leave_cb(void *data)
-{
-	indicator_hib_leave_modules(data);
-}
-
 static void _indicator_window_delete_cb(void *data, Evas_Object * obj,
 					void *event)
 {
@@ -374,7 +358,7 @@ static void _indicator_notify_apptray_state_cb(keynode_t * node, void *data)
 	{
 		case 0:
 			is_apptray_opened = 0;
-			indicator_util_show_hide_icons(&(ad->win[INDICATOR_WIN_LAND]),0,0);
+			indicator_util_show_hide_icons(&(ad->win[INDICATOR_WIN_LAND]),0,1);
 			if (hide_timer != NULL) {
 				ecore_timer_del(hide_timer);
 				hide_timer = NULL;
@@ -387,6 +371,37 @@ static void _indicator_notify_apptray_state_cb(keynode_t * node, void *data)
 				ecore_timer_del(hide_timer);
 				hide_timer = NULL;
 			}
+			break;
+		default:
+			break;
+	}
+
+}
+
+static void _indicator_power_off_status_cb(keynode_t * node, void *data)
+{
+
+	struct appdata *ad = (struct appdata *)data;
+	int val = -1;
+
+	if (data == NULL) {
+		ERR("data is NULL");
+		return;
+	}
+
+	if (vconf_get_int(VCONFKEY_SYSMAN_POWER_OFF_STATUS, &val) < 0) {
+		ERR("Cannot get VCONFKEY_SYSMAN_POWER_OFF_STATUS");
+		return;
+	}
+
+	DBG("_indicator_power_off_status_cb!!(%d)",val);
+
+	switch(val)
+	{
+		case VCONFKEY_SYSMAN_POWER_OFF_DIRECT:
+		case VCONFKEY_SYSMAN_POWER_OFF_RESTART:
+			DBG("_indicator_power_off_status_cb : Terminated...");
+			app_efl_exit();
 			break;
 		default:
 			break;
@@ -409,13 +424,13 @@ static void _rotate_window(void *data, int new_angle)
 		case 0:
 		case 180:
 			{
-				int mode = 1;
-				int bRepeat = 0;
-				Ecore_Evas *ee_port;
-				ee_port = ecore_evas_ecore_evas_get(evas_object_evas_get(ad->win[INDICATOR_WIN_PORT].win_main));
-				ecore_evas_msg_send(ee_port, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_REPEAT_EVENT, &bRepeat, sizeof(int));
-				ecore_evas_msg_send(ee_port, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_TYPE, &mode, sizeof(int));
-
+				if (hide_timer != NULL)
+				{
+					ecore_timer_del(hide_timer);
+					hide_timer = NULL;
+				}
+				indicator_util_show_hide_icons(&(ad->win[INDICATOR_WIN_LAND]),0,0);
+				indicator_send_evas_ecore_message(&(ad->win[INDICATOR_WIN_LAND]),0,1);
 			}
 			break;
 		case 90:
@@ -424,10 +439,15 @@ static void _rotate_window(void *data, int new_angle)
 			{
 				DBG("hide indicator = %d %d",is_quickpanel_opened,is_apptray_opened);
 				indicator_util_show_hide_icons(&(ad->win[INDICATOR_WIN_LAND]),0,0);
-				if (hide_timer != NULL) {
+				if (hide_timer != NULL)
+				{
 					ecore_timer_del(hide_timer);
 					hide_timer = NULL;
 				}
+			}
+			else
+			{
+				indicator_util_show_hide_icons(&(ad->win[INDICATOR_WIN_LAND]),1,0);
 			}
 			break;
 		default:
@@ -579,6 +599,7 @@ static void _mctrl_monitor_cb(minicontrol_action_e action,
 
 	indicator_minictrl_control_modules(action,name,data);
 }
+
 static void
 _indicator_ecore_evas_msg_parent_handle(Ecore_Evas *ee, int msg_domain, int msg_id, void *data, int size)
 {
@@ -695,12 +716,6 @@ static void register_event_handler(void *data)
 	retif(hdl == NULL, , "Failed to register ecore_event_handler!");
 	ad->evt_handlers = eina_list_append(ad->evt_handlers, hdl);
 
-	ad->notifd = heynoti_init();
-	if (ad->notifd == -1) {
-		ERR("noti init is failed");
-		return;
-	}
-
 	ret = vconf_notify_key_changed(VCONFKEY_SETAPPL_BATTERY_PERCENTAGE_BOOL,
 		       _indicator_check_battery_percent_on_cb, (void *)ad);
 
@@ -722,16 +737,14 @@ static void register_event_handler(void *data)
 		return;
 	}
 
-	heynoti_subscribe(ad->notifd, HIBERNATION_ENTER_NOTI,
-			  _indicator_hibernation_enter_cb, (void *)ad);
-	heynoti_subscribe(ad->notifd, HIBERNATION_LEAVE_NOTI,
-			  _indicator_hibernation_leave_cb, (void *)ad);
+	ret = vconf_notify_key_changed(VCONFKEY_SYSMAN_POWER_OFF_STATUS,
+		       _indicator_power_off_status_cb, (void *)ad);
 
-	ret = heynoti_attach_handler(ad->notifd);
 	if (ret == -1) {
-		ERR("noti start is failed\n");
+		ERR("VCONFKEY_SYSMAN_POWER_OFF_STATUS is failed\n");
 		return;
 	}
+
 	ret = minicontrol_monitor_start(_mctrl_monitor_cb, data);
 	if (ret != MINICONTROL_ERROR_NONE) {
 		ERR("fail to minicontrol_monitor_start()- %d", ret);
@@ -783,13 +796,8 @@ static int unregister_event_handler(void *data)
 	vconf_ignore_key_changed(VCONFKEY_APPTRAY_STATE,
 				_indicator_notify_apptray_state_cb);
 
-	heynoti_unsubscribe(ad->notifd, HIBERNATION_ENTER_NOTI,
-			    _indicator_hibernation_enter_cb);
-	heynoti_unsubscribe(ad->notifd, HIBERNATION_LEAVE_NOTI,
-			    _indicator_hibernation_leave_cb);
-
-	heynoti_close(ad->notifd);
-	ad->notifd = 0;
+	vconf_ignore_key_changed(VCONFKEY_SYSMAN_POWER_OFF_STATUS,
+				_indicator_power_off_status_cb);
 
 	Ecore_Event_Handler *hdl = NULL;
 	EINA_LIST_FREE(ad->evt_handlers, hdl) {
@@ -1425,7 +1433,7 @@ static void _indicator_mouse_up_cb(void *data, Evas * e, Evas_Object * obj,
 		}
 
 	}
-__CATCH:
+
 	_indicator_home_icon_action(data, 0);
 	home_button_pressed = EINA_FALSE;
 	show_hide_pressed[win->type] = EINA_FALSE;
@@ -1537,11 +1545,6 @@ static void _signal_handler(int signum, siginfo_t *info, void *unused)
     DBG("_signal_handler : Terminated...");
     app_efl_exit();
 }
-static void _heynoti_event_power_off(void *data)
-{
-    DBG("_heynoti_event_power_off : Terminated...");
-    app_efl_exit();
-}
 
 static bool app_create(void *data)
 {
@@ -1639,28 +1642,13 @@ int main(int argc, char *argv[])
 
 	app_event_callback_s event_callback;
 
-	int heyfd = heynoti_init();
-	if (heyfd < 0) {
-		ERR("Failed to heynoti_init[%d]", heyfd);
-	}
+	int ret = 0;
 
-	int ret = heynoti_subscribe(heyfd, "power_off_start", _heynoti_event_power_off, NULL);
-	if (ret < 0) {
-		ERR("Failed to heynoti_subscribe[%d]", ret);
-	}
-
-	if(heyfd >= 0)
-	{
-		ret = heynoti_attach_handler(heyfd);
-		if (ret < 0) {
-			ERR("Failed to heynoti_attach_handler[%d]", ret);
-		}
-	}
+	DBG("Start indicator");
 
 	ret = control_privilege();
 	if (ret != 0) {
-		fprintf(stderr, "[INDICATOR] Failed to control privilege!");
-		return false;
+		ERR("[INDICATOR] Failed to control privilege!");
 	}
 
 	event_callback.create = app_create;

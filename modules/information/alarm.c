@@ -29,8 +29,6 @@
 
 static int register_alarm_module(void *data);
 static int unregister_alarm_module(void);
-static int hib_enter_alarm_module(void);
-static int hib_leave_alarm_module(void *data);
 
 Indicator_Icon_Object useralarm[INDICATOR_WIN_MAX] = {
 {
@@ -46,8 +44,6 @@ Indicator_Icon_Object useralarm[INDICATOR_WIN_MAX] = {
 	.area = INDICATOR_ICON_AREA_SYSTEM,
 	.init = register_alarm_module,
 	.fini = unregister_alarm_module,
-	.hib_enter = hib_enter_alarm_module,
-	.hib_leave = hib_leave_alarm_module
 },
 {
 	.win_type = INDICATOR_WIN_LAND,
@@ -62,8 +58,6 @@ Indicator_Icon_Object useralarm[INDICATOR_WIN_MAX] = {
 	.area = INDICATOR_ICON_AREA_SYSTEM,
 	.init = register_alarm_module,
 	.fini = unregister_alarm_module,
-	.hib_enter = hib_enter_alarm_module,
-	.hib_leave = hib_leave_alarm_module
 }
 
 };
@@ -152,31 +146,5 @@ static int unregister_alarm_module(void)
 	if (ret != OK)
 		ERR("Failed to unregister callback!");
 
-	return OK;
-}
-
-static int hib_enter_alarm_module(void)
-{
-	int ret;
-
-	ret = vconf_ignore_key_changed(VCONFKEY_ALARM_STATE,
-				       indicator_alarm_change_cb);
-	if (ret != OK)
-		ERR("Failed to unregister callback!");
-
-	return OK;
-}
-
-static int hib_leave_alarm_module(void *data)
-{
-	int ret;
-
-	retif(data == NULL, FAIL, "Invalid parameter!");
-
-	ret = vconf_notify_key_changed(VCONFKEY_ALARM_STATE,
-				       indicator_alarm_change_cb, data);
-	retif(ret != OK, FAIL, "Failed to register callback!");
-
-	indicator_alarm_change_cb(NULL, data);
 	return OK;
 }

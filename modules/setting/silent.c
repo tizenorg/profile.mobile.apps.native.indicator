@@ -29,8 +29,6 @@
 
 static int register_silent_module(void *data);
 static int unregister_silent_module(void);
-static int hib_enter_silent_module(void);
-static int hib_leave_silent_module(void *data);
 
 Indicator_Icon_Object silent[INDICATOR_WIN_MAX] = {
 {
@@ -45,9 +43,7 @@ Indicator_Icon_Object silent[INDICATOR_WIN_MAX] = {
 	.obj_exist = EINA_FALSE,
 	.area = INDICATOR_ICON_AREA_SYSTEM,
 	.init = register_silent_module,
-	.fini = unregister_silent_module,
-	.hib_enter = hib_enter_silent_module,
-	.hib_leave = hib_leave_silent_module
+	.fini = unregister_silent_module
 },
 {
 	.win_type = INDICATOR_WIN_LAND,
@@ -61,9 +57,7 @@ Indicator_Icon_Object silent[INDICATOR_WIN_MAX] = {
 	.obj_exist = EINA_FALSE,
 	.area = INDICATOR_ICON_AREA_SYSTEM,
 	.init = register_silent_module,
-	.fini = unregister_silent_module,
-	.hib_enter = hib_enter_silent_module,
-	.hib_leave = hib_leave_silent_module
+	.fini = unregister_silent_module
 }
 };
 
@@ -191,43 +185,5 @@ static int unregister_silent_module(void)
 				       indicator_silent_change_cb);
 	if (ret != OK)
 		ERR("Fail: ignore VCONFKEY_SETAPPL_VIBRATION_STATUS_BOOL");
-	return OK;
-}
-
-static int hib_enter_silent_module(void)
-{
-	int ret;
-
-	ret = vconf_ignore_key_changed(VCONFKEY_SETAPPL_SOUND_STATUS_BOOL,
-				       indicator_silent_change_cb);
-	if (ret != OK)
-		ERR("H_Fail: ignore VCONFKEY_SETAPPL_SOUND_STATUS_BOOL");
-
-	ret = vconf_ignore_key_changed(VCONFKEY_SETAPPL_VIBRATION_STATUS_BOOL,
-				       indicator_silent_change_cb);
-	if (ret != OK)
-		ERR("H_Fail: ignore VCONFKEY_SETAPPL_VIBRATION_STATUS_BOOL");
-
-	return OK;
-}
-
-static int hib_leave_silent_module(void *data)
-{
-	int ret;
-
-	retif(data == NULL, FAIL, "Invalid parameter!");
-
-	ret = vconf_notify_key_changed(VCONFKEY_SETAPPL_SOUND_STATUS_BOOL,
-				       indicator_silent_change_cb, data);
-	if (ret != OK)
-		ERR("H_Fail: register VCONFKEY_SETAPPL_SOUND_STATUS_BOOL");
-
-	ret = vconf_notify_key_changed(VCONFKEY_SETAPPL_VIBRATION_STATUS_BOOL,
-				       indicator_silent_change_cb, data);
-	if (ret != OK)
-		ERR("H_Fail: register VCONFKEY_SETAPPL_VIBRATION_STATUS_BOOL");
-
-	indicator_silent_change_cb(NULL, data);
-
 	return OK;
 }

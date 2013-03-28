@@ -127,34 +127,6 @@ void indicator_fini_modules(void *data)
 	indicator_icon_all_list_free();
 }
 
-void indicator_hib_enter_modules(void *data)
-{
-	int i;
-	int j = 0;
-
-	for(j=0;j<INDICATOR_WIN_MAX;j++)
-	{
-		for (i = 0; modules[j][i]; i++) {
-			if (modules[j][i]->hib_enter)
-				modules[j][i]->hib_enter();
-		}
-	}
-}
-
-void indicator_hib_leave_modules(void *data)
-{
-	int i;
-	int j = 0;
-
-	for(j=0;j<INDICATOR_WIN_MAX;j++)
-	{
-		for (i = 0; modules[j][i]; i++) {
-			if (modules[j][i]->hib_leave)
-				modules[j][i]->hib_leave(data);
-		}
-	}
-}
-
 void indicator_lang_changed_modules(void *data)
 {
 	int i;

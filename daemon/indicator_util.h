@@ -23,5 +23,6 @@ void indicator_signal_emit(void* data, const char *emission, const char *source)
 void indicator_part_text_emit(void* data, const char *part, const char *text);
 void indicator_signal_emit_by_win(void* data, const char *emission, const char *source);
 void indicator_part_text_emit_by_win(void* data, const char *part, const char *text);
+void indicator_send_evas_ecore_message(void* data, int bRepeat, int bType);
 
 #endif

@@ -30,8 +30,6 @@
 
 static int register_gps_module(void *data);
 static int unregister_gps_module(void);
-static int hib_enter_gps_module(void);
-static int hib_leave_gps_module(void *data);
 static int wake_up_cb(void *data);
 
 Indicator_Icon_Object gps[INDICATOR_WIN_MAX] = {
@@ -48,8 +46,6 @@ Indicator_Icon_Object gps[INDICATOR_WIN_MAX] = {
 	.area = INDICATOR_ICON_AREA_NOTI,
 	.init = register_gps_module,
 	.fini = unregister_gps_module,
-	.hib_enter = hib_enter_gps_module,
-	.hib_leave = hib_leave_gps_module,
 	.wake_up = wake_up_cb
 },
 {
@@ -65,8 +61,6 @@ Indicator_Icon_Object gps[INDICATOR_WIN_MAX] = {
 	.area = INDICATOR_ICON_AREA_NOTI,
 	.init = register_gps_module,
 	.fini = unregister_gps_module,
-	.hib_enter = hib_enter_gps_module,
-	.hib_leave = hib_leave_gps_module,
 	.wake_up = wake_up_cb
 }
 };
@@ -285,31 +279,3 @@ static int unregister_gps_module(void)
 
 	return OK;
 }
-
-static int hib_enter_gps_module(void)
-{
-	int ret;
-
-	ret = vconf_ignore_key_changed(VCONFKEY_LOCATION_GPS_STATE,
-				       indicator_gps_change_cb);
-	if (ret != OK)
-		ERR("Failed to unregister callback!");
-
-	return OK;
-}
-
-static int hib_leave_gps_module(void *data)
-{
-	int ret;
-
-	retif(data == NULL, FAIL, "Invalid parameter!");
-
-	ret = vconf_notify_key_changed(VCONFKEY_LOCATION_GPS_STATE,
-				       indicator_gps_change_cb, data);
-	retif(ret != OK, FAIL, "Failed to register callback!");
-
-	indicator_gps_state_icon_set(indicator_gps_state_get(), data);
-
-	return OK;
-}
-

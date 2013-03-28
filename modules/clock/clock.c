@@ -17,7 +17,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <vconf.h>
-#include <heynoti.h>
 #include <runtime_info.h>
 #include <Ecore_X.h>
 #include <unicode/udat.h>
@@ -67,8 +66,6 @@ static int battery_charging_first = 0;
 
 static int register_clock_module(void *data);
 static int unregister_clock_module(void);
-static int hib_enter_clock_module(void);
-static int hib_leave_clock_module(void *data);
 static int language_changed_cb(void *data);
 static int region_changed_cb(void *data);
 static int wake_up_cb(void *data);
@@ -93,8 +90,6 @@ Indicator_Icon_Object sysclock[INDICATOR_WIN_MAX] = {
 	.exist_in_view = EINA_FALSE,
 	.init = register_clock_module,
 	.fini = unregister_clock_module,
-	.hib_enter = hib_enter_clock_module,
-	.hib_leave = hib_leave_clock_module,
 	.lang_changed = NULL,
 	.region_changed = region_changed_cb,
 	.lang_changed = language_changed_cb,
@@ -112,8 +107,6 @@ Indicator_Icon_Object sysclock[INDICATOR_WIN_MAX] = {
 	.exist_in_view = EINA_FALSE,
 	.init = register_clock_module,
 	.fini = unregister_clock_module,
-	.hib_enter = hib_enter_clock_module,
-	.hib_leave = hib_leave_clock_module,
 	.lang_changed = NULL,
 	.region_changed = region_changed_cb,
 	.lang_changed = language_changed_cb,
@@ -419,6 +412,32 @@ static void indicator_clock_lock_state_cb(keynode_t *node, void *data)
 	}
 
 }
+static void indicator_clock_battery_precentage_setting_cb(keynode_t *node, void *data)
+{
+	int ret = 0;
+	int status = 0;
+
+	retif(data == NULL, , "Invalid parameter!");
+
+	ret = vconf_get_bool(VCONFKEY_SETAPPL_BATTERY_PERCENTAGE_BOOL, &status);
+	if (ret != OK)
+	{
+		ERR("Fail to get [%s: %d]",VCONFKEY_SETAPPL_BATTERY_PERCENTAGE_BOOL, ret);
+		return;
+	}
+	if(status==0)
+	{
+		if (battery_charging_timer != NULL) {
+			ecore_timer_del(battery_charging_timer);
+			battery_charging_timer = NULL;
+		}
+		if (battery_timer != NULL) {
+			ecore_timer_del(battery_timer);
+			battery_timer = NULL;
+		}
+		indicator_clock_changed_cb(data);
+	}
+}
 
 static void indicator_clock_display_battery_percentage(void *data,int win_type )
 {
@@ -532,27 +551,6 @@ static int register_clock_module(void *data)
 
 	set_app_state(data);
 
-	notifd = heynoti_init();
-
-	if (notifd < 0) {
-		ERR("heynoti_init is failed");
-		return r;
-	}
-
-	ret =
-	    heynoti_subscribe(notifd, SYSTEM_RESUME, indicator_clock_changed_cb,
-			      data);
-	if (ret != OK) {
-		ERR("Fail: register SYSTEM_RESUME");
-		r = r | ret;
-	}
-
-	ret = heynoti_attach_handler(notifd);
-	if (ret != OK) {
-		ERR("Failed to attach heynoti handler!");
-		r = r | ret;
-	}
-
 	ret = vconf_notify_key_changed(VCONFKEY_SYSTEM_TIME_CHANGED,
 				       indicator_clock_format_changed_cb, data);
 	if (ret != OK) {
@@ -617,6 +615,12 @@ static int register_clock_module(void *data)
 		r = r | ret;
 	}
 
+	ret = vconf_notify_key_changed(VCONFKEY_SETAPPL_BATTERY_PERCENTAGE_BOOL,
+					indicator_clock_battery_precentage_setting_cb, data);
+	if (ret != OK) {
+		ERR("Failed to register callback!");
+		r = r | ret;
+	}
 
 	indicator_clock_format_changed_cb(NULL, data);
 
@@ -626,11 +630,6 @@ static int register_clock_module(void *data)
 static int unregister_clock_module(void)
 {
 	int ret;
-
-	heynoti_unsubscribe(notifd, SYSTEM_RESUME, indicator_clock_changed_cb);
-
-	heynoti_close(notifd);
-	notifd = 0;
 
 	ret = vconf_ignore_key_changed(VCONFKEY_SYSTEM_TIME_CHANGED,
 					       indicator_clock_format_changed_cb);
@@ -678,41 +677,26 @@ static int unregister_clock_module(void)
 	if (ret != OK)
 		ERR("Fail: unregister VCONFKEY_SYSMAN_BATTERY_CHARGE_NOW");
 
-	if (timer != NULL) {
-		ecore_timer_del(timer);
-		timer = NULL;
-	}
-	return OK;
-}
-
-static int hib_enter_clock_module(void)
-{
-	int ret;
-
-	ret = vconf_ignore_key_changed(VCONFKEY_REGIONFORMAT_TIME1224,
-				       indicator_clock_format_changed_cb);
+	ret = vconf_ignore_key_changed(VCONFKEY_SETAPPL_BATTERY_PERCENTAGE_BOOL,
+					       indicator_clock_battery_precentage_setting_cb);
 	if (ret != OK)
-		ERR("Fail: unregister VCONFKEY_REGIONFORMAT_TIME1224");
+		ERR("Fail: unregister VCONFKEY_SYSMAN_BATTERY_CHARGE_NOW");
 
 	if (timer != NULL) {
 		ecore_timer_del(timer);
 		timer = NULL;
 	}
 
-	return OK;
-}
+	if (battery_timer != NULL) {
+		ecore_timer_del(battery_timer);
+		battery_timer = NULL;
+	}
 
-static int hib_leave_clock_module(void *data)
-{
-	int ret;
+	if (battery_charging_timer != NULL) {
+		ecore_timer_del(battery_charging_timer);
+		battery_charging_timer = NULL;
+	}
 
-	retif(data == NULL, FAIL, "Invalid parameter!");
-
-	ret = vconf_notify_key_changed(VCONFKEY_REGIONFORMAT_TIME1224,
-				       indicator_clock_format_changed_cb, data);
-	retif(ret != OK, FAIL, "Failed to register callback!");
-
-	indicator_clock_format_changed_cb(NULL, data);
 	return OK;
 }
 

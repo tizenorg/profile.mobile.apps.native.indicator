@@ -31,8 +31,6 @@
 
 static int register_active_sync_module(void *data);
 static int unregister_active_sync_module(void);
-static int hib_enter_active_sync_module(void);
-static int hib_leave_active_sync_module(void *data);
 static int wake_up_cb(void *data);
 
 Indicator_Icon_Object active_sync[INDICATOR_WIN_MAX] = {
@@ -49,8 +47,6 @@ Indicator_Icon_Object active_sync[INDICATOR_WIN_MAX] = {
 	.area = INDICATOR_ICON_AREA_NOTI,
 	.init = register_active_sync_module,
 	.fini = unregister_active_sync_module,
-	.hib_enter = hib_enter_active_sync_module,
-	.hib_leave = hib_leave_active_sync_module,
 	.wake_up = wake_up_cb
 },
 {
@@ -66,8 +62,6 @@ Indicator_Icon_Object active_sync[INDICATOR_WIN_MAX] = {
 	.area = INDICATOR_ICON_AREA_NOTI,
 	.init = register_active_sync_module,
 	.fini = unregister_active_sync_module,
-	.hib_enter = hib_enter_active_sync_module,
-	.hib_leave = hib_leave_active_sync_module,
 	.wake_up = wake_up_cb
 }
 };
@@ -200,22 +194,6 @@ static int register_active_sync_module(void *data)
 static int unregister_active_sync_module(void)
 {
 	int ret = 0;
-
-	return OK;
-}
-
-static int hib_enter_active_sync_module(void)
-{
-	int ret = 0;
-
-	return OK;
-}
-
-static int hib_leave_active_sync_module(void *data)
-{
-	int ret = 0;
-
-	retif(data == NULL, FAIL, "Invalid parameter!");
 
 	return OK;
 }

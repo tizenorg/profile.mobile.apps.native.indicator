@@ -30,8 +30,6 @@
 
 static int register_bluetooth_module(void *data);
 static int unregister_bluetooth_module(void);
-static int hib_enter_bluetooth_module(void);
-static int hib_leave_bluetooth_module(void *data);
 static int wake_up_cb(void *data);
 
 Indicator_Icon_Object bluetooth[INDICATOR_WIN_MAX] = {
@@ -48,8 +46,6 @@ Indicator_Icon_Object bluetooth[INDICATOR_WIN_MAX] = {
 	.area = INDICATOR_ICON_AREA_SYSTEM,
 	.init = register_bluetooth_module,
 	.fini = unregister_bluetooth_module,
-	.hib_enter = hib_enter_bluetooth_module,
-	.hib_leave = hib_leave_bluetooth_module,
 	.wake_up = wake_up_cb
 },
 {
@@ -65,8 +61,6 @@ Indicator_Icon_Object bluetooth[INDICATOR_WIN_MAX] = {
 	.area = INDICATOR_ICON_AREA_SYSTEM,
 	.init = register_bluetooth_module,
 	.fini = unregister_bluetooth_module,
-	.hib_enter = hib_enter_bluetooth_module,
-	.hib_leave = hib_leave_bluetooth_module,
 	.wake_up = wake_up_cb
 }
 
@@ -331,31 +325,5 @@ static int unregister_bluetooth_module(void)
 		bt_transferring = EINA_FALSE;
 	}
 
-	return OK;
-}
-
-static int hib_enter_bluetooth_module(void)
-{
-	int ret;
-
-	ret = vconf_ignore_key_changed(VCONFKEY_BT_STATUS,
-				       indicator_bluetooth_change_cb);
-	if (ret != OK)
-		ERR("Failed to unregister callback!");
-
-	return OK;
-}
-
-static int hib_leave_bluetooth_module(void *data)
-{
-	int ret;
-
-	retif(data == NULL, FAIL, "Invalid parameter!");
-
-	ret = vconf_notify_key_changed(VCONFKEY_BT_STATUS,
-				       indicator_bluetooth_change_cb, data);
-	retif(ret != OK, FAIL, "Failed to register callback!");
-
-	indicator_bluetooth_change_cb(NULL, data);
 	return OK;
 }

@@ -4,7 +4,7 @@
 
 Name:       org.tizen.indicator
 Summary:    indicator window
-Version:    0.1.69
+Version:    0.1.71
 Release:    1
 Group:      utils
 License:    Flora Software License
@@ -22,7 +22,6 @@ BuildRequires:  pkgconfig(ecore-evas)
 BuildRequires:  pkgconfig(edje)
 BuildRequires:  pkgconfig(evas)
 BuildRequires:  pkgconfig(eina)
-BuildRequires:  pkgconfig(heynoti)
 BuildRequires:  pkgconfig(vconf)
 BuildRequires:  pkgconfig(libprivilege-control)
 BuildRequires:  pkgconfig(notification)

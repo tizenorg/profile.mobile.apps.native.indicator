@@ -30,8 +30,6 @@
 
 static int register_noti_module(void *data);
 static int unregister_noti_module(void);
-static int hib_enter_noti_module(void);
-static int hib_leave_noti_module(void *data);
 
 Indicator_Icon_Object noti[INDICATOR_WIN_MAX] = {
 {
@@ -46,9 +44,7 @@ Indicator_Icon_Object noti[INDICATOR_WIN_MAX] = {
 	.area = INDICATOR_ICON_AREA_NOTI,
 	.exist_in_view = EINA_FALSE,
 	.init = register_noti_module,
-	.fini = unregister_noti_module,
-	.hib_enter = hib_enter_noti_module,
-	.hib_leave = hib_leave_noti_module
+	.fini = unregister_noti_module
 },
 {
 	.win_type = INDICATOR_WIN_LAND,
@@ -62,9 +58,7 @@ Indicator_Icon_Object noti[INDICATOR_WIN_MAX] = {
 	.area = INDICATOR_ICON_AREA_NOTI,
 	.exist_in_view = EINA_FALSE,
 	.init = register_noti_module,
-	.fini = unregister_noti_module,
-	.hib_enter = hib_enter_noti_module,
-	.hib_leave = hib_leave_noti_module
+	.fini = unregister_noti_module
 }
 };
 
@@ -442,16 +436,3 @@ static int unregister_noti_module(void)
 	eina_list_free(status_list);
 	return OK;
 }
-
-static int hib_enter_noti_module(void)
-{
-	return OK;
-}
-
-static int hib_leave_noti_module(void *data)
-{
-	retif(data == NULL, FAIL, "Invalid parameter!");
-	update_noti_module_new(data, NOTIFICATION_TYPE_NOTI);
-	return OK;
-}
-

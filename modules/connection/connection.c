@@ -162,22 +162,20 @@ static void indicator_conn_change_cb(keynode_t *node, void *data)
 	ret = vconf_get_int(VCONFKEY_DNET_STATE, &status);
 	if (ret == OK) {
 		INFO("CONNECTION DNET Status: %d", status);
-		if (status == VCONFKEY_DNET_TRANSFER) {
-			if (dnet_transferring == EINA_FALSE) {
-				dnet_transferring = EINA_TRUE;
-			}
-		} else {
-			if (dnet_transferring == EINA_TRUE) {
-				dnet_transferring = EINA_FALSE;
-			}
+		if (status == VCONFKEY_DNET_OFF)
+		{
+			hide_image_icon();
+			return;
 		}
 	}
 
 	ret = vconf_get_int(VCONFKEY_TELEPHONY_PSTYPE, &ps_type);
-	if (ret == OK) {
+	if (ret == OK)
+	{
 		INFO("Telephony packet service type: %d", ps_type);
 
-		switch (ps_type) {
+		switch (ps_type)
+		{
 		case VCONFKEY_TELEPHONY_PSTYPE_HSDPA:
 		case VCONFKEY_TELEPHONY_PSTYPE_HSUPA:
 		case VCONFKEY_TELEPHONY_PSTYPE_HSPA:
@@ -203,9 +201,6 @@ static void indicator_conn_change_cb(keynode_t *node, void *data)
 			break;
 		case VCONFKEY_TELEPHONY_SVCTYPE_3G:
 			show_image_icon(LEVEL_3G);
-			break;
-		case VCONFKEY_TELEPHONY_SVCTYPE_HSDPA:
-			show_image_icon(LEVEL_HS);
 			break;
 		case VCONFKEY_TELEPHONY_SVCTYPE_LTE:
 			show_image_icon(LEVEL_LTE);

@@ -88,7 +88,6 @@ struct appdata {
 	Eina_Bool menu;
 	Eina_Bool quickpanel;
 
-	int notifd;
 	Eina_List *evt_handlers;
 
 	enum indicator_opacity_mode opacity_mode;

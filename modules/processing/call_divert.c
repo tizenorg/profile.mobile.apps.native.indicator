@@ -29,8 +29,6 @@
 
 static int register_call_divert_module(void *data);
 static int unregister_call_divert_module(void);
-static int hib_enter_call_divert_module(void);
-static int hib_leave_call_divert_module(void *data);
 
 Indicator_Icon_Object call_divert[INDICATOR_WIN_MAX] = {
 {
@@ -46,8 +44,6 @@ Indicator_Icon_Object call_divert[INDICATOR_WIN_MAX] = {
 	.init = register_call_divert_module,
 	.fini = unregister_call_divert_module,
 	.area = INDICATOR_ICON_AREA_SYSTEM,
-	.hib_enter = hib_enter_call_divert_module,
-	.hib_leave = hib_leave_call_divert_module
 },
 {
 	.win_type = INDICATOR_WIN_LAND,
@@ -62,8 +58,6 @@ Indicator_Icon_Object call_divert[INDICATOR_WIN_MAX] = {
 	.init = register_call_divert_module,
 	.fini = unregister_call_divert_module,
 	.area = INDICATOR_ICON_AREA_SYSTEM,
-	.hib_enter = hib_enter_call_divert_module,
-	.hib_leave = hib_leave_call_divert_module
 }
 
 };
@@ -151,31 +145,5 @@ static int unregister_call_divert_module(void)
 	if (ret != OK)
 		ERR("Failed to unregister callback!");
 
-	return OK;
-}
-
-static int hib_enter_call_divert_module(void)
-{
-	int ret;
-
-	ret = vconf_ignore_key_changed(VCONFKEY_TELEPHONY_CALL_FORWARD_STATE,
-				       indicator_call_divert_change_cb);
-	if (ret != OK)
-		ERR("Failed to unregister callback!");
-
-	return OK;
-}
-
-static int hib_leave_call_divert_module(void *data)
-{
-	int ret;
-
-	retif(data == NULL, FAIL, "Invalid parameter!");
-
-	ret = vconf_notify_key_changed(VCONFKEY_TELEPHONY_CALL_FORWARD_STATE,
-				       indicator_call_divert_change_cb, data);
-	retif(ret != OK, FAIL, "Failed to register callback!");
-
-	indicator_call_divert_change_cb(NULL, data);
 	return OK;
 }
