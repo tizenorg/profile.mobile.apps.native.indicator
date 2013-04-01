@@ -4,7 +4,7 @@
 
 Name:       org.tizen.indicator
 Summary:    indicator window
-Version:    0.1.71
+Version:    0.1.72
 Release:    1
 Group:      utils
 License:    Flora Software License

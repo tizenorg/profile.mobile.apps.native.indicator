@@ -782,24 +782,6 @@ void indicator_util_show_hide_icons(void* data,int bShow, int bEffect)
 		indicator_util_icon_state(win->type,0);
 	}
 
-	if(win->type == INDICATOR_WIN_LAND)
-	{
-		DBG("land = %d",bShow);
-		if(bShow==FALSE)
-		{
-			indicator_send_evas_ecore_message(win,1,2);
-		}
-		else
-		{
-			indicator_send_evas_ecore_message(win,0,1);
-		}
-	}
-	else
-	{
-		DBG("port = %d",bShow);
-		indicator_send_evas_ecore_message(win,0,1);
-	}
-
 	if(bEffect)
 	{
 		if(bShow)

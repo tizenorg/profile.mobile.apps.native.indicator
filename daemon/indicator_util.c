@@ -140,7 +140,7 @@ void indicator_send_evas_ecore_message(void* data, int bRepeat, int bType)
 	win_info* win = (win_info*)data;
 	retif(data == NULL, , "Invalid parameter!");
 
-	DBG("win(%d),bRepeat(%d),bType(%d)");
+	DBG("win(%d),bRepeat(%d),bType(%d)",win->type, bRepeat, bType);
 	ee_port = ecore_evas_ecore_evas_get(evas_object_evas_get(win->win_main));
 	ecore_evas_msg_send(ee_port, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_REPEAT_EVENT, &bRepeat, sizeof(int));
 	ecore_evas_msg_send(ee_port, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_TYPE, &bType, sizeof(int));

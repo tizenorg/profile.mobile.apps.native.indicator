@@ -430,7 +430,13 @@ static void _rotate_window(void *data, int new_angle)
 					hide_timer = NULL;
 				}
 				indicator_util_show_hide_icons(&(ad->win[INDICATOR_WIN_LAND]),0,0);
-				indicator_send_evas_ecore_message(&(ad->win[INDICATOR_WIN_LAND]),0,1);
+
+				if(is_quickpanel_opened == 1)
+				{
+					indicator_util_show_hide_icons(&(ad->win[INDICATOR_WIN_PORT]),1,0);
+				}
+
+				indicator_send_evas_ecore_message(&(ad->win[INDICATOR_WIN_PORT]),0,1);
 			}
 			break;
 		case 90:
@@ -439,6 +445,7 @@ static void _rotate_window(void *data, int new_angle)
 			{
 				DBG("hide indicator = %d %d",is_quickpanel_opened,is_apptray_opened);
 				indicator_util_show_hide_icons(&(ad->win[INDICATOR_WIN_LAND]),0,0);
+				indicator_send_evas_ecore_message(&(ad->win[INDICATOR_WIN_LAND]),1,2);
 				if (hide_timer != NULL)
 				{
 					ecore_timer_del(hide_timer);
@@ -448,6 +455,7 @@ static void _rotate_window(void *data, int new_angle)
 			else
 			{
 				indicator_util_show_hide_icons(&(ad->win[INDICATOR_WIN_LAND]),1,0);
+				indicator_send_evas_ecore_message(&(ad->win[INDICATOR_WIN_LAND]),0,1);
 			}
 			break;
 		default:
@@ -517,7 +525,6 @@ static void _indicator_quickpanel_changed(void *data, int is_open)
 				{
 					indicator_util_show_hide_icons(&(ad->win[INDICATOR_WIN_PORT]),1,0);
 				}
-				indicator_util_show_hide_icons(&(ad->win[INDICATOR_WIN_LAND]),1,0);
 			}
 			else
 			{
@@ -540,18 +547,18 @@ static void _indicator_quickpanel_changed(void *data, int is_open)
 
 			if( current_angle==0 || current_angle == 180)
 			{
+				indicator_util_show_hide_icons(&(ad->win[INDICATOR_WIN_LAND]),0,0);
+
 				if(indicator_icon_backup_state[INDICATOR_WIN_PORT]==0)
 					indicator_util_show_hide_icons(&(ad->win[INDICATOR_WIN_PORT]),0,1);
 				else
 					indicator_util_show_hide_icons(&(ad->win[INDICATOR_WIN_PORT]),1,0);
-
-				indicator_util_show_hide_icons(&(ad->win[INDICATOR_WIN_LAND]),0,0);
 			}
 			else
 			{
 				indicator_util_show_hide_icons(&(ad->win[INDICATOR_WIN_LAND]),0,1);
+				indicator_send_evas_ecore_message(&(ad->win[INDICATOR_WIN_LAND]),1,2);
 			}
-
 		}
 	}
 }
@@ -1213,6 +1220,7 @@ static void __indicator_hide_icon_timer_cb(void* data)
 	}
 
 	indicator_util_show_hide_icons(data,0,1);
+	indicator_send_evas_ecore_message(data,1,2);
 
 }
 
@@ -1369,6 +1377,7 @@ static void _indicator_mouse_move_cb(void *data, Evas * e, Evas_Object * obj,
 				if(indicator_icon_show_state[win->type] == 0)
 				{
 					indicator_util_show_hide_icons(win,1,1);
+					indicator_send_evas_ecore_message(win,0,1);
 					if (hide_timer != NULL) {
 						ecore_timer_del(hide_timer);
 						hide_timer = NULL;
