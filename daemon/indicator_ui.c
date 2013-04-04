@@ -1241,60 +1241,14 @@ static void _indicator_mouse_down_cb(void *data, Evas * e, Evas_Object * obj,
 #ifdef HOME_KEY_EMULATION
 	if(indicator_util_check_indicator_area(win, ev->canvas.x, ev->canvas.y))
 	{
-		if (indicator_util_check_home_icon_area(win, ev->canvas.x, ev->canvas.y))
+		if( is_quickpanel_opened == 0 )
 		{
-
-			int lock_state = VCONFKEY_IDLE_UNLOCK;
-			int ret = -1;
-			char *menuscreen = NULL;
-
-			ret = vconf_get_int(VCONFKEY_IDLE_LOCK_STATE,&lock_state);
-			DBG("Check Lock State : %d %d", ret, lock_state);
-
-			if (ret != 0 || lock_state == VCONFKEY_IDLE_LOCK)
-			{
-				goto __CATCH;
-			}
-
-			if (check_system_status() == FAIL)
-			{
-				INFO("check_system_status failed");
-				goto __CATCH;
-			}
-			menuscreen = vconf_get_str("db/setting/menuscreen/package_name");
-
-			if(menuscreen!=NULL&&!strncmp(menuscreen,MENUSCREEN_PKG_NAME,strlen(MENUSCREEN_PKG_NAME)))
-			{
-				DBG("package_name: %s", menuscreen);
-				goto __CATCH;
-			}
-
-			if(win->type==INDICATOR_WIN_LAND)
-			{
-				if(indicator_icon_show_state[win->type]==0)
-				{
-					DBG("SKIP APPTRAY: %d", win->type);
-					show_hide_pressed[win->type] = EINA_TRUE;
-					goto __CATCH;
-				}
-			}
-
-			_indicator_home_icon_action(win, 1);
-			home_button_pressed = EINA_TRUE;
-
-
+			show_hide_pressed[win->type] = EINA_TRUE;
 		}
 		else
 		{
-			if( is_quickpanel_opened == 0 )
-			{
-				show_hide_pressed[win->type] = EINA_TRUE;
-			}
-			else
-			{
-				show_hide_pressed[win->type] = EINA_FALSE;
-				DBG("quick panel is opened : %d", is_quickpanel_opened);
-			}
+			show_hide_pressed[win->type] = EINA_FALSE;
+			DBG("quick panel is opened : %d", is_quickpanel_opened);
 		}
 		indicator_press_coord.x = ev->canvas.x;
 		indicator_press_coord.y = ev->canvas.y;
@@ -1340,20 +1294,7 @@ static void _indicator_mouse_move_cb(void *data, Evas * e, Evas_Object * obj,
 	retif(data == NULL || event == NULL, , "Invalid parameter!");
 
 	ev = event;
-	if (home_button_pressed) {
-		if (!indicator_util_check_home_icon_area(win,ev->cur.canvas.x,ev->cur.canvas.y))
-		{
-			DBG("_indicator_mouse_move_cb : %d %d canceled", ev->cur.canvas.x, ev->cur.canvas.y);
-			_indicator_home_icon_action(data, 0);
-			home_button_pressed = FALSE;
-		}
-		if(ev->cur.canvas.y - indicator_press_coord.y >= INDICATOR_HIDE_TRIGER_H*elm_config_scale_get())
-		{
-			DBG("_indicator_mouse_move_cb : %d %d launch apptray", ev->cur.canvas.x, ev->cur.canvas.y);
-			__indicator_launch_apptray(win->data);
-			home_button_pressed = FALSE;
-		}
-	}
+
 	if(win->type == INDICATOR_WIN_PORT)
 	{
 		if (show_hide_pressed[win->type]) {
@@ -1409,41 +1350,28 @@ static void _indicator_mouse_up_cb(void *data, Evas * e, Evas_Object * obj,
 	if(indicator_util_check_indicator_area(win, ev->canvas.x, ev->canvas.y))
 	{
 
-		if (indicator_util_check_home_icon_area(win,ev->canvas.x,ev->canvas.y))
+		if(win->type == INDICATOR_WIN_PORT)
 		{
-			if(home_button_pressed == EINA_TRUE)
+			if(show_hide_pressed[win->type] == EINA_TRUE)
 			{
-				__indicator_launch_apptray(win->data);
-				feedback_play_type(FEEDBACK_TYPE_SOUND, FEEDBACK_PATTERN_TAP);
-			}
-
-		}
-		else
-		{
-			if(win->type == INDICATOR_WIN_PORT)
-			{
-				if(show_hide_pressed[win->type] == EINA_TRUE)
+				if(indicator_icon_show_state[win->type] == 0)
 				{
-					if(indicator_icon_show_state[win->type] == 0)
-					{
-						indicator_icon_backup_state[win->type] = 1;
-						indicator_util_show_hide_icons(win,1,1);
-					}
-					else
-					{
-						indicator_icon_backup_state[win->type] = 0;
-						indicator_util_show_hide_icons(win,0,1);
-					}
-
-					vconf_set_int(VCONFKEY_BATTERY_DISP_STATE,win->type);
-					feedback_play_type(FEEDBACK_TYPE_SOUND, FEEDBACK_PATTERN_TAP);
+					indicator_icon_backup_state[win->type] = 1;
+					indicator_util_show_hide_icons(win,1,1);
 				}
+				else
+				{
+					indicator_icon_backup_state[win->type] = 0;
+					indicator_util_show_hide_icons(win,0,1);
+				}
+
+				vconf_set_int(VCONFKEY_BATTERY_DISP_STATE,win->type);
+				feedback_play_type(FEEDBACK_TYPE_SOUND, FEEDBACK_PATTERN_TAP);
 			}
 		}
 
 	}
 
-	_indicator_home_icon_action(data, 0);
 	home_button_pressed = EINA_FALSE;
 	show_hide_pressed[win->type] = EINA_FALSE;
 #else
