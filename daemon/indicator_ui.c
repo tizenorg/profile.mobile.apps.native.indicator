@@ -1088,7 +1088,6 @@ static inline int _indicator_home_icon_action(void *data, int press)
 	else
 		signal = "home.released";
 
-	ret = vconf_set_int(VCONF_INDICATOR_HOME_PRESSED, !(!press));
 	if (!ret)
 		elm_object_signal_emit(win->layout_main,
 				signal, "indicator.prog");

@@ -96,17 +96,6 @@ static void change_home_icon_cb(keynode_t *node, void *data)
 
 	retif(data == NULL, , "Invalid parameter!");
 
-	ret = vconf_get_int(VCONF_INDICATOR_HOME_PRESSED, &status);
-
-	if (ret == 0) {
-		if (status == 1) {
-			INFO("change_home_icon_cb : Home Button Pressed!");
-			show_image_icon(1);
-		} else {
-			INFO("change_home_icon_cb : Home Button Released!");
-			show_image_icon(0);
-		}
-	}
 }
 static int register_home_module(void *data)
 {
@@ -116,25 +105,12 @@ static int register_home_module(void *data)
 
 	set_app_state(data);
 
-	ret = vconf_notify_key_changed(VCONF_INDICATOR_HOME_PRESSED,
-				       change_home_icon_cb, data);
-	if (ret != 0) {
-		ERR("Failed to register callback!");
-		r = ret;
-	}
-
 	show_image_icon(0);
 	return 0;
 }
 
 static int unregister_home_module(void)
 {
-	int ret = -1;
-
-	ret = vconf_ignore_key_changed(VCONF_INDICATOR_HOME_PRESSED,
-				       change_home_icon_cb);
-	if (ret != 0)
-		ERR("Failed to unregister callback!");
 
 	return 0;
 }

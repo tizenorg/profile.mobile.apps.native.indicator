@@ -72,7 +72,6 @@ rm -rf %{buildroot}
 %post
 vconftool set -t int memory/radio/state 0 -i -g 6518 -f
 vconftool set -t int memory/music/state 0 -i -g 6518 -f
-vconftool set -t int memory/private/%{name}/home_pressed 0 -i -g 6518 -f
 vconftool set -t bool memory/private/%{name}/started 0 -i -u 5000 -f
 vconftool set -t int memory/private/%{name}/battery_disp 0 -i -u 5000 -f
 

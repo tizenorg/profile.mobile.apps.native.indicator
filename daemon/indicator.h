@@ -22,8 +22,6 @@
 #include <Ecore_X.h>
 #include <Eina.h>
 
-#define VCONF_INDICATOR_HOME_PRESSED "memory/private/"PACKAGE_NAME"/home_pressed"
-
 #ifndef VCONFKEY_INDICATOR_STARTED
 #define VCONFKEY_INDICATOR_STARTED "memory/private/"PACKAGE_NAME"/started"
 #endif
