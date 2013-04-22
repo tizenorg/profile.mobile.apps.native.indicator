@@ -1075,24 +1075,7 @@ static int indicator_window_del(void *data)
 
 static inline int _indicator_home_icon_action(void *data, int press)
 {
-	win_info *win = NULL;
-	int ret = -1;
-	const char *signal = NULL;
-
-	retif(!data, ret, "data is NULL");
-	win = (win_info*)data;
-	retif(!win->layout_main, ret, "ad->layout_main is NULL");
-
-	if (press)
-		signal = "home.pressed";
-	else
-		signal = "home.released";
-
-	if (!ret)
-		elm_object_signal_emit(win->layout_main,
-				signal, "indicator.prog");
-
-	return ret;
+	return OK;
 }
 
 #ifdef HOME_KEY_EMULATION
