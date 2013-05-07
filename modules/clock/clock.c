@@ -62,6 +62,7 @@ static Ecore_Timer *timer = NULL;
 static Ecore_Timer *battery_timer = NULL;
 static Ecore_Timer *battery_charging_timer = NULL;
 static int battery_charging = 0;
+static int battery_charging_first = 0;
 
 static int register_clock_module(void *data);
 static int unregister_clock_module(void);
@@ -362,17 +363,22 @@ static void indicator_clock_charging_now_cb(keynode_t *node, void *data)
 
 	if(status==1)
 	{
-		if (battery_charging_timer != NULL)
+		if(battery_charging_first == 0)
 		{
-			ecore_timer_del(battery_charging_timer);
-			battery_charging_timer = NULL;
-		}
-		battery_charging_timer =  ecore_timer_add(BATTERY_TIMER_INTERVAL_CHARGING, (void *)indicator_clock_battery_charging_stop_cb,data);
+			battery_charging_first = 1;
+			if (battery_charging_timer != NULL)
+			{
+				ecore_timer_del(battery_charging_timer);
+				battery_charging_timer = NULL;
+			}
+			battery_charging_timer =  ecore_timer_add(BATTERY_TIMER_INTERVAL_CHARGING, (void *)indicator_clock_battery_charging_stop_cb,data);
 
-		indicator_clock_display_battery_percentage(data,0);
+			indicator_clock_display_battery_percentage(data,0);
+		}
 	}
 	else
 	{
+		battery_charging_first = 0;
 		indicator_clock_battery_charging_stop_cb(data);
 	}
 
@@ -423,6 +429,13 @@ static void indicator_clock_lock_state_cb(keynode_t *node, void *data)
 
 	if(status==VCONFKEY_IDLE_UNLOCK && battery_charging==1)
 	{
+		if (battery_charging_timer != NULL)
+		{
+			ecore_timer_del(battery_charging_timer);
+			battery_charging_timer = NULL;
+		}
+		battery_charging_timer =  ecore_timer_add(BATTERY_TIMER_INTERVAL_CHARGING, (void *)indicator_clock_battery_charging_stop_cb,data);
+
 		indicator_clock_display_battery_percentage(data,0);
 	}
 
