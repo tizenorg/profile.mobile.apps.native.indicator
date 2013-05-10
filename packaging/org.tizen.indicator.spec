@@ -91,4 +91,4 @@ vconftool set -t int memory/private/%{name}/battery_disp 0 -i -u 5000 -f
 %{_libdir}/systemd/user/core-efl.target.wants/indicator.service
 %{_libdir}/systemd/user/indicator.service
 /usr/share/license/%{name}
-
+/etc/smack/accesses.d/%{name}.rule
