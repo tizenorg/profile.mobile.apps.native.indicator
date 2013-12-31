@@ -1,0 +1,22 @@
+* Tue Dec 31 2013 Maciej Wereski <m.wereski@partner.samsung.com> accepted/tizen/20130530.164813@f5fb9b0
+- Remove initscripts, label systemd service file
+- smack merge
+- fix battery percentage bug while unlock
+- fix battery percentage display error
+- change notice file
+- Merge "change license version/file" into tizen_2.1
+- change license version/file
+- Merge "fix prevent issue" into tizen_2.1
+- fix prevent issue
+- change license file
+- change license file
+- remove unused vconf
+- remove unused vconf
+- fix indicator touch error
+- fix quickpanel open problem
+- sync with private
+- sync with master
+- merge with master
+- Tizen 2.1 base
+- Initial empty repository
+

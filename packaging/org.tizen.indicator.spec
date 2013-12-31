@@ -3,13 +3,14 @@
 %define PREFIXRW  /opt/apps/%{name}
 
 Name:       org.tizen.indicator
-Summary:    indicator window
+Summary:    Indicator Window
 Version:    0.1.72
 Release:    1
-Group:      utils
-License:    Flora Software License
+Group:      Application Framework/Utilities
+License:    Flora
 Source0:    %{name}-%{version}.tar.gz
 Source101:  indicator.service
+Source102:  org.tizen.indicator.manifest
 
 BuildRequires:  pkgconfig(capi-appfw-application)
 BuildRequires:  pkgconfig(capi-appfw-app-manager)
@@ -40,6 +41,7 @@ indicator window.
 
 %prep
 %setup -q
+cp %{SOURCE102} .
 
 %build
 LDFLAGS+="-Wl,--rpath=%{PREFIX}/lib -Wl,--as-needed";export LDFLAGS
@@ -54,14 +56,6 @@ make %{?jobs:-j%jobs}
 rm -rf %{buildroot}
 %make_install
 
-mkdir -p %{buildroot}/usr/share/license
-cp -f LICENSE.Flora %{buildroot}/usr/share/license/%{name}
-
-mkdir -p %{buildroot}/%{_sysconfdir}/rc.d/rc5.d/
-mkdir -p %{buildroot}/%{_sysconfdir}/rc.d/rc3.d/
-ln -s ../../init.d/indicator %{buildroot}/%{_sysconfdir}/rc.d/rc5.d/S01indicator
-ln -s ../../init.d/indicator %{buildroot}/%{_sysconfdir}/rc.d/rc3.d/S44indicator
-
 install -d %{buildroot}%{_libdir}/systemd/user/core-efl.target.wants
 install -m0644 %{SOURCE101} %{buildroot}%{_libdir}/systemd/user/
 ln -sf ../indicator.service %{buildroot}%{_libdir}/systemd/user/core-efl.target.wants/indicator.service
@@ -74,21 +68,15 @@ vconftool set -t int memory/music/state 0 -i -g 6518 -f
 vconftool set -t bool memory/private/%{name}/started 0 -i -u 5000 -f
 vconftool set -t int memory/private/%{name}/battery_disp 0 -i -u 5000 -f
 
-%postun -p /sbin/ldconfig
-
 %files
 %manifest org.tizen.indicator.manifest
 %defattr(-,root,root,-)
+%license LICENSE.Flora NOTICE
 %{PREFIX}/bin/*
 %{RESDIR}/locale/*
 %{RESDIR}/icons/*
 %{RESDIR}/edje/*
 /usr/share/packages/%{name}.xml
 %attr(775,app,app) %{PREFIXRW}/data
-%attr(755,-,-) %{_sysconfdir}/init.d/indicator
-%{_sysconfdir}/rc.d/rc5.d/S01indicator
-%{_sysconfdir}/rc.d/rc3.d/S44indicator
 %{_libdir}/systemd/user/core-efl.target.wants/indicator.service
 %{_libdir}/systemd/user/indicator.service
-/usr/share/license/%{name}
-/etc/smack/accesses.d/%{name}.rule
