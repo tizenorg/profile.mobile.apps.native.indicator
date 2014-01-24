@@ -1,7 +1,0 @@
-@PREFIX@/bin/*
-@PREFIX@/res/locale/*
-@PREFIX@/res/icons/*
-@PREFIX@/res/edje/*
-@PREFIX@/data
-/usr/share/applications/*
-/etc/init.d/*
