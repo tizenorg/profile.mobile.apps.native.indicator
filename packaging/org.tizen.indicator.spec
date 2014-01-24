@@ -29,7 +29,6 @@ BuildRequires:  pkgconfig(utilX)
 BuildRequires:  pkgconfig(minicontrol-monitor)
 BuildRequires:  pkgconfig(icu-io)
 BuildRequires:  pkgconfig(feedback)
-BuildRequires:  pkgconfig(libtzplatform-config)
 
 BuildRequires: cmake
 BuildRequires: edje-tools
@@ -72,8 +71,8 @@ rm -rf %{buildroot}
 
 %post
 vconftool set -t int memory/music/state 0 -i -g 6518 -f
-vconftool set -t bool memory/private/%{name}/started 0 -i -u %{TZ_USER_NAME} -f
-vconftool set -t int memory/private/%{name}/battery_disp 0 -i -u %{TZ_USER_NAME} -f
+vconftool set -t bool memory/private/%{name}/started 0 -i -u 5000 -f
+vconftool set -t int memory/private/%{name}/battery_disp 0 -i -u 5000 -f
 
 %postun -p /sbin/ldconfig
 
@@ -85,7 +84,7 @@ vconftool set -t int memory/private/%{name}/battery_disp 0 -i -u %{TZ_USER_NAME}
 %{RESDIR}/icons/*
 %{RESDIR}/edje/*
 /usr/share/packages/%{name}.xml
-%attr(775,%{TZ_USER_NAME},%{TZ_SYS_USER_GROUP}) %{PREFIXRW}/data
+%attr(775,app,app) %{PREFIXRW}/data
 %attr(755,-,-) %{_sysconfdir}/init.d/indicator
 %{_sysconfdir}/rc.d/rc5.d/S01indicator
 %{_sysconfdir}/rc.d/rc3.d/S44indicator
