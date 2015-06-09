@@ -1,9 +1,7 @@
 /*
- *  indicator
+ *  Indicator
  *
- * Copyright (c) 2000 - 2011 Samsung Electronics Co., Ltd. All rights reserved.
- *
- * Contact: Junghyun Kim <jh1114.kim@samsung.com> Kangwon Lee <newton.lee@samsung.com>
+ * Copyright (c) 2000 - 2015 Samsung Electronics Co., Ltd. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,91 +18,80 @@
  */
 
 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <vconf.h>
+#include <notification.h>
 #include "common.h"
 #include "indicator.h"
-#include "indicator_ui.h"
+#include "main.h"
 #include "modules.h"
-#include "indicator_icon_util.h"
+#include "icon.h"
 
 #define ICON_PRIORITY	INDICATOR_PRIORITY_NOTI_2
 #define MODULE_NAME		"earphone"
 #define TIMER_INTERVAL	0.3
 
+//#define _(str) gettext(str)
+
 static int register_earphone_module(void *data);
 static int unregister_earphone_module(void);
 static int wake_up_cb(void *data);
 
-Indicator_Icon_Object earphone[INDICATOR_WIN_MAX] = {
-{
-	.win_type = INDICATOR_WIN_PORT,
+icon_s earphone = {
 	.name = MODULE_NAME,
 	.priority = ICON_PRIORITY,
 	.always_top = EINA_FALSE,
 	.exist_in_view = EINA_FALSE,
-	.txt_obj = {0,},
 	.img_obj = {0,},
 	.obj_exist = EINA_FALSE,
 	.area = INDICATOR_ICON_AREA_NOTI,
 	.init = register_earphone_module,
 	.fini = unregister_earphone_module,
 	.wake_up = wake_up_cb
-},
-{
-	.win_type = INDICATOR_WIN_LAND,
-	.name = MODULE_NAME,
-	.priority = ICON_PRIORITY,
-	.always_top = EINA_FALSE,
-	.exist_in_view = EINA_FALSE,
-	.txt_obj = {0,},
-	.img_obj = {0,},
-	.obj_exist = EINA_FALSE,
-	.area = INDICATOR_ICON_AREA_NOTI,
-	.init = register_earphone_module,
-	.fini = unregister_earphone_module,
-	.wake_up = wake_up_cb
-}
-
 };
 
 static const char *icon_path[] = {
-	"Earphone/B03_Earphone.png",
+	"Earphone/B03_BT_Headset.png",
 	NULL
 };
 static int updated_while_lcd_off = 0;
+static int bShown = 0;
+
 
 
 static void set_app_state(void* data)
 {
-	int i = 0;
-
-	for (i=0 ; i<INDICATOR_WIN_MAX ; i++)
-	{
-		earphone[i].ad = data;
-	}
+	earphone.ad = data;
 }
+
+
 
 static void show_image_icon(void)
 {
-	int i = 0;
 
-	for (i=0 ; i<INDICATOR_WIN_MAX ; i++)
+	if(bShown == 1)
 	{
-		earphone[i].img_obj.data = icon_path[0];
-		indicator_util_icon_show(&earphone[i]);
+		return;
 	}
+
+	earphone.img_obj.data = icon_path[0];
+	icon_show(&earphone);
+
+	bShown = 1;
 }
+
+
 
 static void hide_image_icon(void)
 {
-	int i = 0;
-	for (i=0 ; i<INDICATOR_WIN_MAX ; i++)
-	{
-		indicator_util_icon_hide(&earphone[i]);
-	}
+	icon_hide(&earphone);
+
+	bShown = 0;
 }
+
+
 
 static void indicator_earphone_change_cb(keynode_t *node, void *data)
 {
@@ -113,17 +100,15 @@ static void indicator_earphone_change_cb(keynode_t *node, void *data)
 
 	retif(data == NULL, , "Invalid parameter!");
 
-	if(indicator_util_get_update_flag()==0)
+	if(icon_get_update_flag()==0)
 	{
 		updated_while_lcd_off = 1;
-		DBG("need to update %d",updated_while_lcd_off);
 		return;
 	}
 	updated_while_lcd_off = 0;
 
 	ret = vconf_get_int(VCONFKEY_SYSMAN_EARJACK, &status);
 	if (ret == FAIL) {
-		ERR("Failed to get VCONFKEY_MMC_STATE!");
 		return;
 	}
 
@@ -131,7 +116,7 @@ static void indicator_earphone_change_cb(keynode_t *node, void *data)
 	case VCONFKEY_SYSMAN_EARJACK_3WIRE:
 	case VCONFKEY_SYSMAN_EARJACK_4WIRE:
 	case VCONFKEY_SYSMAN_EARJACK_TVOUT:
-		INFO("Earphone connected");
+		DBG("Earphone connected");
 		show_image_icon();
 		break;
 
@@ -141,17 +126,20 @@ static void indicator_earphone_change_cb(keynode_t *node, void *data)
 	}
 }
 
+
+
 static int wake_up_cb(void *data)
 {
 	if(updated_while_lcd_off==0)
 	{
-		DBG("ICON WAS NOT UPDATED");
 		return OK;
 	}
 
 	indicator_earphone_change_cb(NULL, data);
 	return OK;
 }
+
+
 
 static int register_earphone_module(void *data)
 {
@@ -163,13 +151,13 @@ static int register_earphone_module(void *data)
 
 	ret = vconf_notify_key_changed(VCONFKEY_SYSMAN_EARJACK,
 				       indicator_earphone_change_cb, data);
-	if (ret != OK)
-		ERR("Failed to register earphoneback!");
 
 	indicator_earphone_change_cb(NULL, data);
 
 	return ret;
 }
+
+
 
 static int unregister_earphone_module(void)
 {
@@ -177,8 +165,6 @@ static int unregister_earphone_module(void)
 
 	ret = vconf_ignore_key_changed(VCONFKEY_SYSMAN_EARJACK,
 				       indicator_earphone_change_cb);
-	if (ret != OK)
-		ERR("Failed to unregister earphoneback!");
 
-	return OK;
+	return ret;
 }

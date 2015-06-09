@@ -1,11 +1,12 @@
 [Unit]
 Description=Start the indicator
-Before=core-efl.target
-After=xorg.target starter.service e17.service
+After=starter.service wm_ready.service smack-default-labeling.service
+Requires=starter.service
 
 [Service]
 ExecStart=/usr/apps/org.tizen.indicator/bin/indicator
+KillSignal=SIGKILL
 
 [Install]
-WantedBy=core-efl.target
+WantedBy=multi-user.target
 

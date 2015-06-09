@@ -1,114 +1,143 @@
 /*
- * Copyright 2012  Samsung Electronics Co., Ltd
+ *  Indicator
  *
- * Licensed under the Flora License, Version 1.1 (the "License");
+ * Copyright (c) 2000 - 2015 Samsung Electronics Co., Ltd. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *  http://floralicense.org/license/
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
 
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <vconf.h>
-#include <Ecore_X.h>
+//#include <Ecore_X.h>
 #include <minicontrol-monitor.h>
+#include <bluetooth.h>
+//#include <bluetooth_extention.h>
+
 #include "common.h"
 #include "indicator.h"
-#include "indicator_ui.h"
+#include "main.h"
 #include "modules.h"
-#include "indicator_icon_util.h"
+#include "icon.h"
+#include "util.h"
+#include "log.h"
 
-#define ICON_PRIORITY	INDICATOR_PRIORITY_NOTI_1
+#define ICON_PRIORITY	INDICATOR_PRIORITY_MINICTRL3
 #define MODULE_NAME		"call"
 #define MINICONTROL_VOICE_NAME	"[voicecall-quickpanel]"
 #define MINICONTROL_VIDEO_NAME	"[videocall-quickpanel]"
 
 static int register_call_module(void *data);
 static int unregister_call_module(void);
-static int mctrl_monitor_cb(int action, const char *name, void *data);
+static void show_call_icon( void *data);
 
-Indicator_Icon_Object call[INDICATOR_WIN_MAX] = {
-{
-	.win_type = INDICATOR_WIN_PORT,
-	.type = INDICATOR_IMG_ICON,
-	.name = MODULE_NAME,
-	.priority = ICON_PRIORITY,
-	.always_top = EINA_TRUE,
-	.exist_in_view = EINA_FALSE,
-	.txt_obj = {0,},
-	.img_obj = {0,},
-	.obj_exist = EINA_FALSE,
-	.area = INDICATOR_ICON_AREA_NOTI,
-	.init = register_call_module,
-	.fini = unregister_call_module,
-	.minictrl_control = mctrl_monitor_cb
-},
-{
-	.win_type = INDICATOR_WIN_LAND,
-	.type = INDICATOR_IMG_ICON,
-	.name = MODULE_NAME,
-	.priority = ICON_PRIORITY,
-	.always_top = EINA_TRUE,
-	.exist_in_view = EINA_FALSE,
-	.txt_obj = {0,},
-	.img_obj = {0,},
-	.obj_exist = EINA_FALSE,
-	.area = INDICATOR_ICON_AREA_NOTI,
-	.init = register_call_module,
-	.fini = unregister_call_module,
-	.minictrl_control = mctrl_monitor_cb
-}
+enum {
+	CALL_UI_STATUS_NONE = 0,
+	CALL_UI_STATUS_INCOM,
+	CALL_UI_STATUS_OUTGOING,
+	CALL_UI_STATUS_ACTIVE,
+	CALL_UI_STATUS_HOLD,
+	CALL_UI_STATUS_END,
 };
+
+icon_s call = {
+	.type = INDICATOR_IMG_ICON,
+	.name = MODULE_NAME,
+	.priority = ICON_PRIORITY,
+	.always_top = EINA_TRUE,
+	.exist_in_view = EINA_FALSE,
+	.img_obj = {0,},
+	.obj_exist = EINA_FALSE,
+	.area = INDICATOR_ICON_AREA_MINICTRL,
+	.init = register_call_module,
+	.fini = unregister_call_module,
+	.minictrl_control = NULL //mctrl_monitor_cb
+};
+
+static int bt_state = 0;
 
 static const char *icon_path[] = {
 	"Call/B03_Call_Duringcall.png",
+	"Call/B03_Call_bluetooth.png",
 	NULL
 };
 
 static void set_app_state(void* data)
 {
-	int i = 0;
-
-	for (i=0 ; i<INDICATOR_WIN_MAX ; i++)
-	{
-		call[i].ad = data;
-	}
+	call.ad = data;
 }
 
 static void show_image_icon(void *data)
 {
-	int i = 0;
-	for (i=0 ; i<INDICATOR_WIN_MAX ; i++)
-	{
-		call[i].img_obj.data = icon_path[0];
-		indicator_util_icon_show(&call[i]);
+	if (bt_state == 1) {
+		call.img_obj.data = icon_path[1];
+	} else {
+		call.img_obj.data = icon_path[0];
 	}
+	icon_show(&call);
 }
 
 static void hide_image_icon(void)
 {
-	int i = 0;
-	for (i=0 ; i<INDICATOR_WIN_MAX ; i++)
-	{
-		indicator_util_icon_hide(&call[i]);
-	}
+	icon_hide(&call);
 }
 
 static void icon_animation_set(enum indicator_icon_ani type)
 {
-	int i = 0;
-	for (i=0 ; i<INDICATOR_WIN_MAX ; i++)
-	{
-		indicator_util_icon_animation_set(&call[i], type);
-	}
+	icon_ani_set(&call, type);
+}
+
+static void __bt_ag_sco_state_changed_cb(int result, bool opened, void *user_data)
+{
+	int status = 0;
+
+	if (opened) bt_state=1;
+	else bt_state=0;
+
+	vconf_get_int(VCONFKEY_CALL_STATE, &status);
+
+	if (status != VCONFKEY_CALL_OFF) show_call_icon(user_data);
+}
+
+static void register_bt_state( void *data)
+{
+	int error = -1;
+
+	error = bt_initialize();
+	if (error != BT_ERROR_NONE) _E("bt_initialize return [%d]", error);
+
+	error = bt_audio_initialize();
+	if (error != BT_ERROR_NONE) _E("bt_audio_initialize return [%d]", error);
+
+	error = bt_ag_set_sco_state_changed_cb(__bt_ag_sco_state_changed_cb, data);   // callback µî·Ï
+	if (error != BT_ERROR_NONE) _E("bt_ag_set_sco_state_changed_cb return [%d]", error);
+
+}
+
+static void unregister_bt_state( void )
+{
+	int error = -1;
+
+	error = bt_ag_unset_sco_state_changed_cb();
+	if (error != BT_ERROR_NONE) _E("bt_ag_unset_sco_state_changed_cb return [%d]", error);
+
+	error = bt_audio_deinitialize();
+	if (error != BT_ERROR_NONE) _E("bt_audio_deinitialize return [%d]", error);
+
+	error = bt_deinitialize();
+	if (error != BT_ERROR_NONE) _E("bt_audio_deinitialize return [%d]", error);
 }
 
 static void show_call_icon( void *data)
@@ -116,15 +145,14 @@ static void show_call_icon( void *data)
 	int status = 0;
 	int ret = 0;
 
-	retif(data == NULL, , "Invalid parameter!");
+	ret_if(!data);
 
 	ret = vconf_get_int(VCONFKEY_CALL_STATE, &status);
-	if (ret == FAIL) {
-		ERR("Failed to get VCONFKEY_CALL_STATE!");
+	if (ret != OK) {
+		_E("Failed to get VCONFKEY_CALL_STATE!");
 		return;
 	}
 
-	INFO("Call state = %d", status);
 	switch (status) {
 	case VCONFKEY_CALL_VOICE_CONNECTING:
 	case VCONFKEY_CALL_VIDEO_CONNECTING:
@@ -137,11 +165,10 @@ static void show_call_icon( void *data)
 		icon_animation_set(ICON_ANI_NONE);
 		break;
 	case VCONFKEY_CALL_OFF:
-		INFO("Call off");
 		hide_image_icon();
 		break;
 	default:
-		ERR("Invalid value %d", status);
+		_E("Invalid value %d", status);
 		break;
 	}
 }
@@ -150,14 +177,23 @@ static void indicator_call_change_cb(keynode_t *node, void *data)
 {
 	int status = 0;
 	int ret = 0;
+	int error = 0;
+	bool bt_opened = 0;
 
-	retif(data == NULL, , "Invalid parameter!");
+	ret_if(!data);
 
 	ret = vconf_get_int(VCONFKEY_CALL_STATE, &status);
-	if (ret == FAIL) {
-		ERR("Failed to get VCONFKEY_CALL_STATE!");
+	if (ret != OK) {
+		_E("Failed to get VCONFKEY_CALL_STATE!");
 		return;
 	}
+
+	error = bt_ag_is_sco_opened(&bt_opened);	 // ÇöÀç SCO status checkÇÔ¼ö.
+	if (error != BT_ERROR_NONE) _E("bt_ag_is_sco_opened return [%d]", error);
+
+	if (bt_opened == 1) bt_state=1;
+	else bt_state=0;
+
 	switch (status) {
 	case VCONFKEY_CALL_VOICE_CONNECTING:
 	case VCONFKEY_CALL_VIDEO_CONNECTING:
@@ -166,83 +202,31 @@ static void indicator_call_change_cb(keynode_t *node, void *data)
 		break;
 	case VCONFKEY_CALL_VOICE_ACTIVE:
 	case VCONFKEY_CALL_VIDEO_ACTIVE:
-		hide_image_icon();
+		show_image_icon(data);
+		icon_animation_set(ICON_ANI_NONE);
 		break;
 	case VCONFKEY_CALL_OFF:
-		INFO("Call off");
 		hide_image_icon();
 		break;
 	default:
-		ERR("Invalid value %d", status);
+		_E("Invalid value %d", status);
 		break;
 	}
-
-}
-
-static int mctrl_monitor_cb(int action, const char *name, void *data)
-{
-	int ret = 0;
-	int status = 0;
-
-	retif(!data, FAIL, "data is NULL");
-	retif(!name, FAIL, "name is NULL");
-
-	if(strncmp(name,MINICONTROL_VOICE_NAME,strlen(MINICONTROL_VOICE_NAME))!=0
-		&&strncmp(name,MINICONTROL_VIDEO_NAME,strlen(MINICONTROL_VIDEO_NAME))!=0)
-	{
-		ERR("_mctrl_monitor_cb: no call%s",name);
-		return FAIL;
-	}
-
-	DBG("_mctrl_monitor_cb:%s %d",name,action);
-
-	switch (action) {
-	case MINICONTROL_ACTION_START:
-		show_call_icon(data);
-		break;
-	case MINICONTROL_ACTION_STOP:
-		ret = vconf_get_int(VCONFKEY_CALL_STATE, &status);
-		if (ret == FAIL) {
-			ERR("Failed to get VCONFKEY_CALL_STATE!");
-			return FAIL;
-		}
-		INFO("Call state = %d", status);
-		switch (status) {
-		case VCONFKEY_CALL_VOICE_CONNECTING:
-		case VCONFKEY_CALL_VIDEO_CONNECTING:
-			break;
-		case VCONFKEY_CALL_VOICE_ACTIVE:
-		case VCONFKEY_CALL_VIDEO_ACTIVE:
-		case VCONFKEY_CALL_OFF:
-			INFO("Call off");
-			icon_animation_set(ICON_ANI_NONE);
-			hide_image_icon();
-			break;
-		default:
-			ERR("Invalid value %d", status);
-			break;
-		}
-		break;
-	default:
-		break;
-	}
-	return OK;
 }
 
 static int register_call_module(void *data)
 {
 	int ret = 0;
 
-	retif(data == NULL, FAIL, "Invalid parameter!");
+	retv_if(!data, 0);
 
 	set_app_state(data);
 
 	ret = vconf_notify_key_changed(VCONFKEY_CALL_STATE, indicator_call_change_cb, data);
+	register_bt_state(data);
+	if (ret != OK) _E("Failed to register VCONFKEY_CALL_STATE callback!");
 
-	if (ret != OK)
-		ERR("Failed to register callback!");
-
-	return OK;
+	return ret;
 }
 
 static int unregister_call_module(void)
@@ -250,9 +234,9 @@ static int unregister_call_module(void)
 	int ret = 0;
 
 	ret = vconf_ignore_key_changed(VCONFKEY_CALL_STATE, indicator_call_change_cb);
+	unregister_bt_state();
+	if (ret != OK) _E("Failed to register VCONFKEY_CALL_STATE callback!");
 
-	if (ret != OK)
-		ERR("Failed to register callback!");
-
-	return OK;
+	return ret;
 }
+/* End of file */

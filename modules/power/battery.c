@@ -1,17 +1,20 @@
 /*
- * Copyright 2012  Samsung Electronics Co., Ltd
+ *  Indicator
  *
- * Licensed under the Flora License, Version 1.1 (the "License");
+ * Copyright (c) 2000 - 2015 Samsung Electronics Co., Ltd. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *  http://floralicense.org/license/
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
 
 
@@ -21,54 +24,66 @@
 #include <runtime_info.h>
 #include "common.h"
 #include "indicator.h"
-#include "indicator_ui.h"
+#include "main.h"
 #include "modules.h"
-#include "indicator_icon_util.h"
+#include "icon.h"
 #include "indicator_gui.h"
+#include "util.h"
+#include "box.h"
+#include "log.h"
 
-#define ICON_PRIORITY	INDICATOR_PRIORITY_FIXED4
+#define ICON_PRIORITY	INDICATOR_PRIORITY_FIXED9
 #define MODULE_NAME		"battery"
+#define MODULE_NAME_DIGIT	"battery"
+#define MODULE_NAME_DIGIT2	"battery"
 #define TIMER_INTERVAL	0.7
-#define BATTERY_TEXTWIDTH	62
-#define BATTERY_VALUE_FONT_SIZE	20
-#define BATTERY_PERCENT_FONT_SIZE	20
-#define BATTERY_PERCENT_FONT_STYLE "Bold"
+
 
 static int register_battery_module(void *data);
 static int unregister_battery_module(void);
 static int wake_up_cb(void *data);
+static void _resize_battery_digits_icons_box(void);
 
-Indicator_Icon_Object battery[INDICATOR_WIN_MAX] = {
-{
-	.win_type = INDICATOR_WIN_PORT,
+
+icon_s battery = {
 	.type = INDICATOR_IMG_ICON,
 	.name = MODULE_NAME,
 	.priority = ICON_PRIORITY,
 	.area = INDICATOR_ICON_AREA_FIXED,
 	.always_top = EINA_FALSE,
 	.exist_in_view = EINA_FALSE,
-	.txt_obj = {0,},
 	.img_obj = {0,0,BATTERY_ICON_WIDTH,BATTERY_ICON_HEIGHT},
 	.obj_exist = EINA_FALSE,
 	.init = register_battery_module,
 	.fini = unregister_battery_module,
-	.wake_up = wake_up_cb
-},
-{
-	.win_type = INDICATOR_WIN_LAND,
-	.type = INDICATOR_IMG_ICON,
+	.wake_up = wake_up_cb,
+	.digit_area = -1
+};
+
+icon_s digit = {
+	.type = INDICATOR_DIGIT_ICON,
+	.name = MODULE_NAME_DIGIT,
+	.priority = ICON_PRIORITY,
+	.area = INDICATOR_ICON_AREA_FIXED,
+	.always_top = EINA_FALSE,
+	.exist_in_view = EINA_FALSE,
+	.img_obj = {0,0,7,10},
+	.obj_exist = EINA_FALSE,
+	.wake_up = wake_up_cb,
+	.digit_area = DIGIT_UNITY
+};
+
+icon_s digit_additional = {
+	.type = INDICATOR_DIGIT_ICON,
 	.name = MODULE_NAME,
 	.priority = ICON_PRIORITY,
 	.area = INDICATOR_ICON_AREA_FIXED,
 	.always_top = EINA_FALSE,
 	.exist_in_view = EINA_FALSE,
-	.txt_obj = {0,},
-	.img_obj = {0,0,BATTERY_ICON_WIDTH,BATTERY_ICON_HEIGHT},
+	.img_obj = {0,0,7,10},
 	.obj_exist = EINA_FALSE,
-	.init = register_battery_module,
-	.fini = unregister_battery_module,
-	.wake_up = wake_up_cb
-}
+	.wake_up = wake_up_cb,
+	.digit_area = DIGIT_DOZENS_UNITY
 };
 
 enum {
@@ -77,7 +92,6 @@ enum {
 	INDICATOR_CLOCK_MODE_MAX
 };
 
-static int clock_mode = INDICATOR_CLOCK_MODE_12H;
 
 enum {
 	BATTERY_ICON_WIDTH_12H,
@@ -86,41 +100,161 @@ enum {
 };
 
 enum {
-	BATTERY_LEVEL_6,
+	BATTERY_LEVEL_8,
 	BATTERY_LEVEL_20,
 };
 
 enum {
 	LEVEL_MIN = 0,
-	LEVEL_0 = LEVEL_MIN,
-	LEVEL_1,
-	LEVEL_2,
-	LEVEL_3,
-	LEVEL_4,
-	LEVEL_5,
-	LEVEL_6,
-	LEVEL_MAX = LEVEL_6,
+	LEVEL_0 = LEVEL_MIN,	/* 0% */
+	LEVEL_1,		/* 1  ~   5% */
+	LEVEL_2,		/* 6  ~  10% */
+	LEVEL_3,		/* 11 ~  15% */
+	LEVEL_4,		/* 16 ~  20% */
+	LEVEL_5,		/* 21 ~  25 % */
+	LEVEL_6,		/* 25 ~  30 % */
+	LEVEL_7,		/* 31 ~  35 % */
+	LEVEL_8,		/* 36 ~  40 % */
+	LEVEL_9,		/* 41 ~  45 % */
+	LEVEL_10,		/* 46 ~  50 % */
+	LEVEL_11,		/* 51 ~  55 % */
+	LEVEL_12,		/* 56 ~  60 % */
+	LEVEL_13,		/* 61 ~  65 % */
+	LEVEL_14,		/* 66 ~  70 % */
+	LEVEL_15,		/* 71 ~  75 % */
+	LEVEL_16,		/* 76 ~  80 % */
+	LEVEL_17,		/* 81 ~  85 % */
+	LEVEL_18,		/* 86 ~  90 % */
+	LEVEL_19,		/* 91 ~  95 % */
+	LEVEL_20,		/* 96 ~  100 % */
+	LEVEL_MAX = LEVEL_20,
 	LEVEL_NUM,
+	LEVEL_FULL
 };
 
+enum {
+	LEVEL_PERCENTAGE_MIN = 0,
+	LEVEL_PERCENTAGE_0 = LEVEL_PERCENTAGE_MIN,	/* 0% */
+	LEVEL_PERCENTAGE_1,		/* 1  ~  10% */
+	LEVEL_PERCENTAGE_2,		/* 11 ~  20% */
+	LEVEL_PERCENTAGE_3,		/* 21 ~  30% */
+	LEVEL_PERCENTAGE_4,		/* 31 ~  40% */
+	LEVEL_PERCENTAGE_5,		/* 41 ~  50 % */
+	LEVEL_PERCENTAGE_6,		/* 51 ~  60 % */
+	LEVEL_PERCENTAGE_7,		/* 61 ~  70 % */
+	LEVEL_PERCENTAGE_8,		/* 71 ~  80 % */
+	LEVEL_PERCENTAGE_9,		/* 81 ~  90 % */
+	LEVEL_PERCENTAGE_10,	/* 91 ~  100 % */
+	LEVEL_PERCENTAGE_MAX = LEVEL_PERCENTAGE_10,
+	LEVEL_PERCENTAGE_NUM
+};
+
+enum {
+	BATTERY_PERCENT_1_DIGIT = 0,
+	BATTERY_PERCENT_2_DIGITS,
+	BATTERY_PERCENT_DIGITS
+};
+
+enum {
+	BATTERY_ETC_STATE_FULL,
+	BATTERY_ETC_STATE_MAX,
+};
+
+static int batt_full = 0;
+
 static const char *icon_path[LEVEL_NUM] = {
-	[LEVEL_0] = "Power/battery_6/B03_Power_battery_00.png",
-	[LEVEL_1] = "Power/battery_6/B03_Power_battery_01.png",
-	[LEVEL_2] = "Power/battery_6/B03_Power_battery_02.png",
-	[LEVEL_3] = "Power/battery_6/B03_Power_battery_03.png",
-	[LEVEL_4] = "Power/battery_6/B03_Power_battery_04.png",
-	[LEVEL_5] = "Power/battery_6/B03_Power_battery_05.png",
-	[LEVEL_6] = "Power/battery_6/B03_Power_battery_06.png",
+	[LEVEL_0] = "Power/B03_stat_sys_battery_4.png",
+	[LEVEL_1] = "Power/B03_stat_sys_battery_5.png",
+	[LEVEL_2] = "Power/B03_stat_sys_battery_10.png",
+	[LEVEL_3] = "Power/B03_stat_sys_battery_15.png",
+	[LEVEL_4] = "Power/B03_stat_sys_battery_20.png",
+	[LEVEL_5] = "Power/B03_stat_sys_battery_25.png",
+	[LEVEL_6] = "Power/B03_stat_sys_battery_30.png",
+	[LEVEL_7] = "Power/B03_stat_sys_battery_35.png",
+	[LEVEL_8] = "Power/B03_stat_sys_battery_40.png",
+	[LEVEL_9] = "Power/B03_stat_sys_battery_45.png",
+	[LEVEL_10] = "Power/B03_stat_sys_battery_50.png",
+	[LEVEL_11] = "Power/B03_stat_sys_battery_55.png",
+	[LEVEL_12] = "Power/B03_stat_sys_battery_60.png",
+	[LEVEL_13] = "Power/B03_stat_sys_battery_65.png",
+	[LEVEL_14] = "Power/B03_stat_sys_battery_70.png",
+	[LEVEL_15] = "Power/B03_stat_sys_battery_75.png",
+	[LEVEL_16] = "Power/B03_stat_sys_battery_80.png",
+	[LEVEL_17] = "Power/B03_stat_sys_battery_85.png",
+	[LEVEL_18] = "Power/B03_stat_sys_battery_90.png",
+	[LEVEL_19] = "Power/B03_stat_sys_battery_95.png",
+	[LEVEL_20] = "Power/B03_stat_sys_battery_100.png"
 };
 
 static const char *charging_icon_path[LEVEL_NUM] = {
-	[LEVEL_0] = "Power/battery_6/B03_Power_connected_00.png",
-	[LEVEL_1] = "Power/battery_6/B03_Power_connected_01.png",
-	[LEVEL_2] = "Power/battery_6/B03_Power_connected_02.png",
-	[LEVEL_3] = "Power/battery_6/B03_Power_connected_03.png",
-	[LEVEL_4] = "Power/battery_6/B03_Power_connected_04.png",
-	[LEVEL_5] = "Power/battery_6/B03_Power_connected_05.png",
-	[LEVEL_6] = "Power/battery_6/B03_Power_connected_06.png",
+	[LEVEL_0] = "Power/B03_stat_sys_battery_charge_anim4.png",
+	[LEVEL_1] = "Power/B03_stat_sys_battery_charge_anim5.png",
+	[LEVEL_2] = "Power/B03_stat_sys_battery_charge_anim10.png",
+	[LEVEL_3] = "Power/B03_stat_sys_battery_charge_anim15.png",
+	[LEVEL_4] = "Power/B03_stat_sys_battery_charge_anim20.png",
+	[LEVEL_5] = "Power/B03_stat_sys_battery_charge_anim25.png",
+	[LEVEL_6] = "Power/B03_stat_sys_battery_charge_anim30.png",
+	[LEVEL_7] = "Power/B03_stat_sys_battery_charge_anim35.png",
+	[LEVEL_8] = "Power/B03_stat_sys_battery_charge_anim40.png",
+	[LEVEL_9] = "Power/B03_stat_sys_battery_charge_anim45.png",
+	[LEVEL_10] = "Power/B03_stat_sys_battery_charge_anim50.png",
+	[LEVEL_11] = "Power/B03_stat_sys_battery_charge_anim55.png",
+	[LEVEL_12] = "Power/B03_stat_sys_battery_charge_anim60.png",
+	[LEVEL_13] = "Power/B03_stat_sys_battery_charge_anim65.png",
+	[LEVEL_14] = "Power/B03_stat_sys_battery_charge_anim70.png",
+	[LEVEL_15] = "Power/B03_stat_sys_battery_charge_anim75.png",
+	[LEVEL_16] = "Power/B03_stat_sys_battery_charge_anim80.png",
+	[LEVEL_17] = "Power/B03_stat_sys_battery_charge_anim85.png",
+	[LEVEL_18] = "Power/B03_stat_sys_battery_charge_anim90.png",
+	[LEVEL_19] = "Power/B03_stat_sys_battery_charge_anim95.png",
+	[LEVEL_20] = "Power/B03_stat_sys_battery_charge_anim100.png"
+};
+#if 0
+static const char *percentage_bg_icon_path[BATTERY_PERCENT_DIGITS] = {
+	[BATTERY_PERCENT_1_DIGIT] = "Power/battery_text/B03_stat_sys_battery_bg_1.png",
+	[BATTERY_PERCENT_2_DIGITS] = "Power/battery_text/B03_stat_sys_battery_bg_2.png"
+};
+#endif
+static const char *percentage_battery_digit_icon_path[11] = {
+	[0]  = "Power/battery_text/B03_stat_sys_battery_num_0.png",
+	[1]  = "Power/battery_text/B03_stat_sys_battery_num_1.png",
+	[2]  = "Power/battery_text/B03_stat_sys_battery_num_2.png",
+	[3]  = "Power/battery_text/B03_stat_sys_battery_num_3.png",
+	[4]  = "Power/battery_text/B03_stat_sys_battery_num_4.png",
+	[5]  = "Power/battery_text/B03_stat_sys_battery_num_5.png",
+	[6]  = "Power/battery_text/B03_stat_sys_battery_num_6.png",
+	[7]  = "Power/battery_text/B03_stat_sys_battery_num_7.png",
+	[8]  = "Power/battery_text/B03_stat_sys_battery_num_8.png",
+	[9]  = "Power/battery_text/B03_stat_sys_battery_num_9.png",
+	[10] = "Power/battery_text/B03_stat_sys_battery_num_100.png"
+};
+
+static const char *percentage_battery_icon_path[LEVEL_PERCENTAGE_NUM] = {
+	[LEVEL_PERCENTAGE_0] = "Power/B03_stat_sys_battery_percent_0.png",
+	[LEVEL_PERCENTAGE_1] = "Power/B03_stat_sys_battery_percent_10.png",
+	[LEVEL_PERCENTAGE_2] = "Power/B03_stat_sys_battery_percent_20.png",
+	[LEVEL_PERCENTAGE_3] = "Power/B03_stat_sys_battery_percent_30.png",
+	[LEVEL_PERCENTAGE_4] = "Power/B03_stat_sys_battery_percent_40.png",
+	[LEVEL_PERCENTAGE_5] = "Power/B03_stat_sys_battery_percent_50.png",
+	[LEVEL_PERCENTAGE_6] = "Power/B03_stat_sys_battery_percent_60.png",
+	[LEVEL_PERCENTAGE_7] = "Power/B03_stat_sys_battery_percent_70.png",
+	[LEVEL_PERCENTAGE_8] = "Power/B03_stat_sys_battery_percent_80.png",
+	[LEVEL_PERCENTAGE_9] = "Power/B03_stat_sys_battery_percent_90.png",
+	[LEVEL_PERCENTAGE_10] = "Power/B03_stat_sys_battery_percent_100.png"
+};
+
+static const char *percentage_battery_charging_icon_path[LEVEL_PERCENTAGE_NUM] = {
+	[LEVEL_PERCENTAGE_0] = "Power/B03_stat_sys_battery_percent_charge_anim0.png",
+	[LEVEL_PERCENTAGE_1] = "Power/B03_stat_sys_battery_percent_charge_anim10.png",
+	[LEVEL_PERCENTAGE_2] = "Power/B03_stat_sys_battery_percent_charge_anim20.png",
+	[LEVEL_PERCENTAGE_3] = "Power/B03_stat_sys_battery_percent_charge_anim30.png",
+	[LEVEL_PERCENTAGE_4] = "Power/B03_stat_sys_battery_percent_charge_anim40.png",
+	[LEVEL_PERCENTAGE_5] = "Power/B03_stat_sys_battery_percent_charge_anim50.png",
+	[LEVEL_PERCENTAGE_6] = "Power/B03_stat_sys_battery_percent_charge_anim60.png",
+	[LEVEL_PERCENTAGE_7] = "Power/B03_stat_sys_battery_percent_charge_anim70.png",
+	[LEVEL_PERCENTAGE_8] = "Power/B03_stat_sys_battery_percent_charge_anim80.png",
+	[LEVEL_PERCENTAGE_9] = "Power/B03_stat_sys_battery_percent_charge_anim90.png",
+	[LEVEL_PERCENTAGE_10] = "Power/B03_stat_sys_battery_percent_charge_anim100.png"
 };
 
 enum {
@@ -150,51 +284,6 @@ enum {
 	FUEL_GAUGE_LV_NUM,
 };
 
-static const char *fuel_guage_icon_path[BATTERY_ICON_WIDTH_NUM][FUEL_GAUGE_LV_NUM] = {
-	[BATTERY_ICON_WIDTH_12H][FUEL_GAUGE_LV_0] = "Power/12H/B03_battery_animation_12h_00.png",
-	[BATTERY_ICON_WIDTH_12H][FUEL_GAUGE_LV_1] = "Power/12H/B03_battery_animation_12h_01.png",
-	[BATTERY_ICON_WIDTH_12H][FUEL_GAUGE_LV_2] = "Power/12H/B03_battery_animation_12h_02.png",
-	[BATTERY_ICON_WIDTH_12H][FUEL_GAUGE_LV_3] = "Power/12H/B03_battery_animation_12h_03.png",
-	[BATTERY_ICON_WIDTH_12H][FUEL_GAUGE_LV_4] = "Power/12H/B03_battery_animation_12h_04.png",
-	[BATTERY_ICON_WIDTH_12H][FUEL_GAUGE_LV_5] = "Power/12H/B03_battery_animation_12h_05.png",
-	[BATTERY_ICON_WIDTH_12H][FUEL_GAUGE_LV_6] = "Power/12H/B03_battery_animation_12h_06.png",
-	[BATTERY_ICON_WIDTH_12H][FUEL_GAUGE_LV_7] = "Power/12H/B03_battery_animation_12h_07.png",
-	[BATTERY_ICON_WIDTH_12H][FUEL_GAUGE_LV_8] = "Power/12H/B03_battery_animation_12h_08.png",
-	[BATTERY_ICON_WIDTH_12H][FUEL_GAUGE_LV_9] = "Power/12H/B03_battery_animation_12h_09.png",
-	[BATTERY_ICON_WIDTH_12H][FUEL_GAUGE_LV_10] = "Power/12H/B03_battery_animation_12h_10.png",
-	[BATTERY_ICON_WIDTH_12H][FUEL_GAUGE_LV_11] = "Power/12H/B03_battery_animation_12h_11.png",
-	[BATTERY_ICON_WIDTH_12H][FUEL_GAUGE_LV_12] = "Power/12H/B03_battery_animation_12h_12.png",
-	[BATTERY_ICON_WIDTH_12H][FUEL_GAUGE_LV_13] = "Power/12H/B03_battery_animation_12h_13.png",
-	[BATTERY_ICON_WIDTH_12H][FUEL_GAUGE_LV_14] = "Power/12H/B03_battery_animation_12h_14.png",
-	[BATTERY_ICON_WIDTH_12H][FUEL_GAUGE_LV_15] = "Power/12H/B03_battery_animation_12h_15.png",
-	[BATTERY_ICON_WIDTH_12H][FUEL_GAUGE_LV_16] = "Power/12H/B03_battery_animation_12h_16.png",
-	[BATTERY_ICON_WIDTH_12H][FUEL_GAUGE_LV_17] = "Power/12H/B03_battery_animation_12h_17.png",
-	[BATTERY_ICON_WIDTH_12H][FUEL_GAUGE_LV_18] = "Power/12H/B03_battery_animation_12h_18.png",
-	[BATTERY_ICON_WIDTH_12H][FUEL_GAUGE_LV_19] = "Power/12H/B03_battery_animation_12h_19.png",
-	[BATTERY_ICON_WIDTH_12H][FUEL_GAUGE_LV_20] = "Power/12H/B03_battery_animation_12h_20.png",
-	[BATTERY_ICON_WIDTH_24H][FUEL_GAUGE_LV_0] = "Power/24H/B03_battery_animation_24h_00.png",
-	[BATTERY_ICON_WIDTH_24H][FUEL_GAUGE_LV_1] = "Power/24H/B03_battery_animation_24h_01.png",
-	[BATTERY_ICON_WIDTH_24H][FUEL_GAUGE_LV_2] = "Power/24H/B03_battery_animation_24h_02.png",
-	[BATTERY_ICON_WIDTH_24H][FUEL_GAUGE_LV_3] = "Power/24H/B03_battery_animation_24h_03.png",
-	[BATTERY_ICON_WIDTH_24H][FUEL_GAUGE_LV_4] = "Power/24H/B03_battery_animation_24h_04.png",
-	[BATTERY_ICON_WIDTH_24H][FUEL_GAUGE_LV_5] = "Power/24H/B03_battery_animation_24h_05.png",
-	[BATTERY_ICON_WIDTH_24H][FUEL_GAUGE_LV_6] = "Power/24H/B03_battery_animation_24h_06.png",
-	[BATTERY_ICON_WIDTH_24H][FUEL_GAUGE_LV_7] = "Power/24H/B03_battery_animation_24h_07.png",
-	[BATTERY_ICON_WIDTH_24H][FUEL_GAUGE_LV_8] = "Power/24H/B03_battery_animation_24h_08.png",
-	[BATTERY_ICON_WIDTH_24H][FUEL_GAUGE_LV_9] = "Power/24H/B03_battery_animation_24h_09.png",
-	[BATTERY_ICON_WIDTH_24H][FUEL_GAUGE_LV_10] = "Power/24H/B03_battery_animation_24h_10.png",
-	[BATTERY_ICON_WIDTH_24H][FUEL_GAUGE_LV_11] = "Power/24H/B03_battery_animation_24h_11.png",
-	[BATTERY_ICON_WIDTH_24H][FUEL_GAUGE_LV_12] = "Power/24H/B03_battery_animation_24h_12.png",
-	[BATTERY_ICON_WIDTH_24H][FUEL_GAUGE_LV_13] = "Power/24H/B03_battery_animation_24h_13.png",
-	[BATTERY_ICON_WIDTH_24H][FUEL_GAUGE_LV_14] = "Power/24H/B03_battery_animation_24h_14.png",
-	[BATTERY_ICON_WIDTH_24H][FUEL_GAUGE_LV_15] = "Power/24H/B03_battery_animation_24h_15.png",
-	[BATTERY_ICON_WIDTH_24H][FUEL_GAUGE_LV_16] = "Power/24H/B03_battery_animation_24h_16.png",
-	[BATTERY_ICON_WIDTH_24H][FUEL_GAUGE_LV_17] = "Power/24H/B03_battery_animation_24h_17.png",
-	[BATTERY_ICON_WIDTH_24H][FUEL_GAUGE_LV_18] = "Power/24H/B03_battery_animation_24h_18.png",
-	[BATTERY_ICON_WIDTH_24H][FUEL_GAUGE_LV_19] = "Power/24H/B03_battery_animation_24h_19.png",
-	[BATTERY_ICON_WIDTH_24H][FUEL_GAUGE_LV_20] = "Power/24H/B03_battery_animation_24h_20.png",
-};
-
 struct battery_level_info {
 	int current_level;
 	int current_capa;
@@ -204,19 +293,20 @@ struct battery_level_info {
 
 static struct battery_level_info _level;
 static Ecore_Timer *timer;
-static int battery_level_type = BATTERY_LEVEL_20;
-static Eina_Bool battery_percentage_on = EINA_FALSE;
-static Eina_Bool battery_charging = EINA_FALSE;
+static int battery_level_type = BATTERY_LEVEL_8;
+static int battery_charging = EINA_FALSE;
 static int aniIndex = -1;
+static int prev_mode = -1;
+static int prev_level = -1;
+static int prev_full = -1;
+static int battery_percentage = -1;
+static Eina_Bool is_battery_percentage_shown = EINA_FALSE;
 
 static void set_app_state(void* data)
 {
-	int i = 0;
-
-	for (i=0 ; i<INDICATOR_WIN_MAX ; i++)
-	{
-		battery[i].ad = data;
-	}
+	battery.ad = data;
+	digit.ad = data;
+	digit_additional.ad = data;
 }
 
 static void delete_timer(void)
@@ -231,136 +321,193 @@ static int __battery_capa_to_level(int capacity)
 {
 	int level = 0;
 
-	if (battery_level_type == BATTERY_LEVEL_20) {
-		if (capacity >= 100)
-			level = FUEL_GAUGE_LV_MAX;
-		else if (capacity < 3)
-			level = FUEL_GAUGE_LV_0;
+	if(is_battery_percentage_shown)
+	{
+		if (battery_level_type == BATTERY_LEVEL_20) {
+			if (capacity >= 100)
+				level = FUEL_GAUGE_LV_MAX;
+			else if (capacity < 3)
+				level = FUEL_GAUGE_LV_0;
+			else
+				level = (int)((capacity + 2) / 5);
+		}
 		else
-			level = (int)((capacity + 2) / 5);
-	} else {
-		if (capacity > 100)
-			level = LEVEL_MAX;
-		else if (capacity >= 80)
-			level = LEVEL_6;
-		else if (capacity >= 60)
-			level = LEVEL_5;
-		else if (capacity >= 40)
-			level = LEVEL_4;
-		else if (capacity >= 25)
-			level = LEVEL_3;
-		else if (capacity >= 15)
-			level = LEVEL_2;
-		else if (capacity >= 5)
-			level = LEVEL_1;
-		else
-			level = LEVEL_0;
-	}
-
-	return level;
-}
-
-static void show_battery_icon(void)
-{
-	int i = 0;
-	for(i=0 ; i<INDICATOR_WIN_MAX ; i++)
-	{
-		indicator_util_icon_show(&battery[i]);
-	}
-}
-
-static void hide_battery_icon(void)
-{
-	int i = 0;
-	for(i=0 ; i<INDICATOR_WIN_MAX ; i++)
-	{
-		indicator_util_icon_hide(&battery[i]);
-	}
-}
-
-static void icon_animation_set(enum indicator_icon_ani type)
-{
-	int i = 0;
-	for(i=0 ; i<INDICATOR_WIN_MAX ; i++)
-	{
-		indicator_util_icon_animation_set(&battery[i],type);
-	}
-}
-
-static void indicator_battery_get_time_format( void)
-{
-	int r = -1;
-
-	bool is_24hour_enabled = false;
-
-	r = runtime_info_get_value_bool(
-			RUNTIME_INFO_KEY_24HOUR_CLOCK_FORMAT_ENABLED, &is_24hour_enabled);
-
-	if( r==RUNTIME_INFO_ERROR_NONE&&is_24hour_enabled==true)
-	{
-		clock_mode = INDICATOR_CLOCK_MODE_24H;
+		{
+			if (capacity >= 91)
+				level = LEVEL_PERCENTAGE_10;
+			else if (capacity >= 81)
+				level = LEVEL_PERCENTAGE_9;
+			else if (capacity >= 71)
+				level = LEVEL_PERCENTAGE_8;
+			else if (capacity >= 61)
+				level = LEVEL_PERCENTAGE_7;
+			else if (capacity >= 51)
+				level = LEVEL_PERCENTAGE_6;
+			else if (capacity >= 41)
+				level = LEVEL_PERCENTAGE_5;
+			else if (capacity >= 31)
+				level = LEVEL_PERCENTAGE_4;
+			else if (capacity >= 21)
+				level = LEVEL_PERCENTAGE_3;
+			else if (capacity >= 11)
+				level = LEVEL_PERCENTAGE_2;
+			else if (capacity >= 1)
+				level = LEVEL_PERCENTAGE_1;
+			else
+				level = LEVEL_PERCENTAGE_0;
+		}
 	}
 	else
 	{
-		clock_mode = INDICATOR_CLOCK_MODE_12H;
+		if (battery_level_type == BATTERY_LEVEL_20) {
+			if (capacity >= 100)
+				level = FUEL_GAUGE_LV_MAX;
+			else if (capacity < 3)
+				level = FUEL_GAUGE_LV_0;
+			else
+				level = (int)((capacity + 2) / 5);
+		} else {
+			if (capacity >= 96)
+				level = LEVEL_20;
+			else if (capacity >= 91)
+				level = LEVEL_19;
+			else if (capacity >= 86)
+				level = LEVEL_18;
+			else if (capacity >= 81)
+				level = LEVEL_17;
+			else if (capacity >= 76)
+				level = LEVEL_16;
+			else if (capacity >= 71)
+				level = LEVEL_15;
+			else if (capacity >= 66)
+				level = LEVEL_14;
+			else if (capacity >= 61)
+				level = LEVEL_13;
+			else if (capacity >= 56)
+				level = LEVEL_12;
+			else if (capacity >= 51)
+				level = LEVEL_11;
+			else if (capacity >= 46)
+				level = LEVEL_10;
+			else if (capacity >= 41)
+				level = LEVEL_9;
+			else if (capacity >= 36)
+				level = LEVEL_8;
+			else if (capacity >= 31)
+				level = LEVEL_7;
+			else if (capacity >= 26)
+				level = LEVEL_6;
+			else if (capacity >= 21)
+				level = LEVEL_5;
+			else if (capacity >= 16)
+				level = LEVEL_4;
+			else if (capacity >= 11)
+				level = LEVEL_3;
+			else if (capacity >= 6)
+				level = LEVEL_2;
+			else if (capacity >= 1)
+				level = LEVEL_1;
+			else
+				level = LEVEL_0;
+		}
+	}
+	return level;
+}
+
+
+#if 0
+static void icon_animation_set(enum indicator_icon_ani type)
+{
+	icon_ani_set(&battery, type);
+}
+#endif
+
+
+static void show_battery_icon(int mode, int level)
+{
+	if (is_battery_percentage_shown) {
+		if (batt_full == 1) {
+			battery.img_obj.data = percentage_battery_icon_path[LEVEL_PERCENTAGE_MAX];
+		} else if (battery_charging==EINA_TRUE) {
+			battery.img_obj.data = percentage_battery_charging_icon_path[level];
+		} else {
+			battery.img_obj.data = percentage_battery_icon_path[level];
+		}
+		icon_show(&battery);
+	} else {
+		if(batt_full == 1) {
+			battery.img_obj.data = icon_path[LEVEL_MAX];
+		} else if(battery_charging==EINA_TRUE) {
+			battery.img_obj.data = charging_icon_path[level];
+		} else {
+			battery.img_obj.data = icon_path[level];
+		}
+		icon_show(&battery);
 	}
 
+	prev_full = batt_full;
+	prev_mode = mode;
+	prev_level = level;
+}
+
+static void show_digits()
+{
+	DBG("Show digits: %d", battery_percentage);
+
+	if (battery_percentage < 10) {
+		digit.img_obj.data = percentage_battery_digit_icon_path[battery_percentage];
+		digit.digit_area = DIGIT_UNITY;
+		digit.img_obj.width = 7;
+		icon_show(&digit);
+		icon_hide(&digit_additional);
+
+	} else if (battery_percentage < 100) {
+		digit.img_obj.data = percentage_battery_digit_icon_path[battery_percentage/10];
+		digit.digit_area = DIGIT_DOZENS;
+		digit.img_obj.width = 7;
+		digit_additional.img_obj.data = percentage_battery_digit_icon_path[battery_percentage%10];
+		digit_additional.digit_area = DIGIT_DOZENS_UNITY;
+		digit_additional.img_obj.width = 7;
+		icon_show(&digit);
+		icon_show(&digit_additional);
+	} else {
+		digit.img_obj.data = percentage_battery_digit_icon_path[10];
+		digit.digit_area = DIGIT_HUNDREDS;
+		digit.img_obj.width = 17;
+		icon_show(&digit);
+		icon_hide(&digit_additional);
+	}
+}
+
+
+
+static void hide_digits()
+{
+	DBG("Hide digits");
+
+	icon_hide(&digit);
+	icon_hide(&digit_additional);
+}
+
+
+
+static void indicator_battery_get_time_format( void)
+{
 }
 
 static void indicator_battery_level_init(void)
 {
-	battery_level_type = BATTERY_LEVEL_20;
-	_level.min_level = FUEL_GAUGE_LV_MIN;
+	/* Currently, kernel not support level 6, So We use only level 20 */
+	battery_level_type = BATTERY_LEVEL_8;
+	_level.min_level = LEVEL_MIN;
 	_level.current_level = -1;
 	_level.current_capa = -1;
-	_level.max_level = FUEL_GAUGE_LV_MAX;
+	_level.max_level = LEVEL_MAX;
 	indicator_battery_get_time_format();
 }
 
-static void indicator_battery_text_set(void *data, int value, Indicator_Icon_Object *icon)
-{
-	Eina_Strbuf *temp_buf = NULL;
-	Eina_Strbuf *percent_buf = NULL;
-	char *temp_str = NULL;
 
-	retif(data == NULL, , "Invalid parameter!");
-
-	icon->type = INDICATOR_TXT_WITH_IMG_ICON;
-	temp_buf = eina_strbuf_new();
-	percent_buf = eina_strbuf_new();
-
-	eina_strbuf_append_printf(temp_buf, "%d", value);
-	temp_str = eina_strbuf_string_steal(temp_buf);
-	eina_strbuf_append_printf(percent_buf, "%s",
-				  indicator_util_icon_label_set
-				  (temp_str, NULL, NULL,
-				   BATTERY_VALUE_FONT_SIZE,
-				   data));
-	free(temp_str);
-
-	eina_strbuf_append_printf(temp_buf, "%%");
-	temp_str = eina_strbuf_string_steal(temp_buf);
-	eina_strbuf_append_printf(percent_buf, "%s",
-				  indicator_util_icon_label_set
-				  (temp_str, NULL,
-				   BATTERY_PERCENT_FONT_STYLE,
-				   BATTERY_PERCENT_FONT_SIZE,
-				   data));
-	free(temp_str);
-
-	if (icon->txt_obj.data != NULL)
-		free(icon->txt_obj.data);
-
-	icon->txt_obj.data = eina_strbuf_string_steal(percent_buf);
-
-	if (temp_buf != NULL)
-		eina_strbuf_free(temp_buf);
-
-	if (percent_buf != NULL)
-		eina_strbuf_free(percent_buf);
-
-}
-
+#if 0
 static Eina_Bool indicator_battery_charging_ani_cb(void *data)
 {
 
@@ -368,9 +515,7 @@ static Eina_Bool indicator_battery_charging_ani_cb(void *data)
 
 	if (_level.current_level == _level.max_level) {
 		aniIndex = _level.max_level;
-		battery[0].img_obj.data = fuel_guage_icon_path[clock_mode][aniIndex];
-		battery[1].img_obj.data = fuel_guage_icon_path[clock_mode][aniIndex];
-		show_battery_icon();
+		show_battery_icon(battery_charging,aniIndex);
 		timer = NULL;
 		return TIMER_STOP;
 	}
@@ -380,73 +525,64 @@ static Eina_Bool indicator_battery_charging_ani_cb(void *data)
 	else
 		aniIndex++;
 
-	battery[0].img_obj.data = fuel_guage_icon_path[clock_mode][aniIndex];
-	battery[1].img_obj.data = fuel_guage_icon_path[clock_mode][aniIndex];
-	show_battery_icon();
+	show_battery_icon(battery_charging,aniIndex);
 
 	return TIMER_CONTINUE;
 }
+#endif
+
 
 static int indicator_change_battery_image_level(void *data, int level)
 {
 	retif(data == NULL, FAIL, "Invalid parameter!");
 
-	if (battery_level_type == BATTERY_LEVEL_20) {
-		if (level < FUEL_GAUGE_LV_MIN)
-			level = FUEL_GAUGE_LV_MIN;
-		else if (level > FUEL_GAUGE_LV_MAX)
-			level = FUEL_GAUGE_LV_MAX;
-	} else {
-		if (level < LEVEL_MIN)
-			level = LEVEL_MIN;
-		else if (level > LEVEL_MAX)
-			level = LEVEL_MAX;
-	}
-
-	DBG("level = %d",level);
-	battery[0].img_obj.data = fuel_guage_icon_path[clock_mode][level];
-	battery[1].img_obj.data = fuel_guage_icon_path[clock_mode][level];
-	show_battery_icon();
-	return OK;
-}
-
-static void indicator_battery_check_percentage_option(void *data)
-{
-	int ret = FAIL;
-	int status = 0;
-
-	retif(data == NULL, , "Invalid parameter!");
-
-	ret = vconf_get_bool(VCONFKEY_SETAPPL_BATTERY_PERCENTAGE_BOOL, &status);
-	if (ret != OK)
-		ERR("Fail to get [%s: %d]",
-			VCONFKEY_SETAPPL_BATTERY_PERCENTAGE_BOOL, ret);
-
-	int i = 0;
-	for(i=0 ; i<INDICATOR_WIN_MAX ; i++)
+	if(is_battery_percentage_shown)
 	{
-		battery_percentage_on = EINA_FALSE;
-		battery[i].img_obj.width = BATTERY_ICON_WIDTH;
-		battery[i].type = INDICATOR_IMG_ICON;
+		if (battery_level_type == BATTERY_LEVEL_20) {
+			if (level < FUEL_GAUGE_LV_MIN)
+				level = FUEL_GAUGE_LV_MIN;
+			else if (level > FUEL_GAUGE_LV_MAX)
+				level = FUEL_GAUGE_LV_MAX;
+		}
+		else {
+			if (level < LEVEL_PERCENTAGE_MIN)
+				level = LEVEL_PERCENTAGE_MIN;
+		}
 	}
+	else
+	{
+		if (battery_level_type == BATTERY_LEVEL_20) {
+			if (level < FUEL_GAUGE_LV_MIN)
+				level = FUEL_GAUGE_LV_MIN;
+			else if (level > FUEL_GAUGE_LV_MAX)
+				level = FUEL_GAUGE_LV_MAX;
+		} else {
+			if (level < LEVEL_MIN)
+				level = LEVEL_MIN;
+		}
+	}
+
+	/* Set arg for display image only or text with image */
+	show_battery_icon(battery_charging,level);
+	return OK;
 }
 
 static void indicator_bttery_update_by_charging_state(void *data)
 {
-	if (battery_charging == EINA_TRUE) {
-		if (!timer) {
-			icon_animation_set(ICON_ANI_NONE);
-			timer = ecore_timer_add(TIMER_INTERVAL,
-					indicator_battery_charging_ani_cb,
-					data);
-		}
-	} else {
-		aniIndex = -1;
-		delete_timer();
-		icon_animation_set(ICON_ANI_NONE);
-		indicator_change_battery_image_level(data,
-				_level.current_level);
+	aniIndex = -1;
+	indicator_change_battery_image_level(data,
+						  _level.current_level);
+}
+
+static void indicator_battery_resize_percengate(void* data)
+{
+	if(!is_battery_percentage_shown)
+	{
+		hide_digits();
+		return;
 	}
+
+	show_digits();
 }
 
 static void indicator_battery_update_display(void *data)
@@ -457,40 +593,45 @@ static void indicator_battery_update_display(void *data)
 
 	retif(data == NULL, , "Invalid parameter!");
 
-	if(indicator_util_get_update_flag()==0)
+	if(icon_get_update_flag()==0)
 	{
-		DBG("need to update");
 		return;
 	}
 
 	ret = vconf_get_int(VCONFKEY_SYSMAN_BATTERY_CAPACITY, &battery_capa);
 	if (ret != OK)
 	{
-		ERR("Fail to get [VCONFKEY_SYSMAN_BATTERY_CAPACITY:%d]", ret);
 		return;
 	}
 
 	if (battery_capa < 0)
 	{
-		INFO("Invalid Battery Capacity: %d", battery_capa);
+		ERR("Invalid Battery Capacity: %d", battery_capa);
 		return;
 	}
 
-	INFO("Battery Capacity: %d", battery_capa);
+	DBG("Battery Capacity: %d", battery_capa);
 
 	if (battery_capa > 100)
 		battery_capa = 100;
 
+	battery_percentage = battery_capa;
+
+	_resize_battery_digits_icons_box();
+
 	_level.current_capa = battery_capa;
 
-	indicator_battery_check_percentage_option(data);
 
+	/* Check Battery Level */
 	level = __battery_capa_to_level(battery_capa);
 	if (level == _level.current_level)
-		DBG("battery level is not changed");
+	{
+	}
 	else {
 		_level.current_level = level;
 	}
+
+	indicator_battery_resize_percengate(data);
 	indicator_bttery_update_by_charging_state(data);
 
 }
@@ -498,14 +639,14 @@ static void indicator_battery_update_display(void *data)
 
 static void indicator_battery_check_charging(void *data)
 {
-	int ret = -1;
 	int status = 0;
 
-	ret = vconf_get_int(VCONFKEY_SYSMAN_BATTERY_CHARGE_NOW, &status);
-	if (ret != OK)
-		ERR("Fail to get [VCONFKEY_SYSMAN_BATTERY_CHARGE_NOW:%d]", ret);
-
-	INFO("Battery charge Status: %d", status);
+	if (vconf_get_int(VCONFKEY_SYSMAN_BATTERY_CHARGE_NOW, &status) < 0)
+	{
+		ERR("Fail to get VCONFKEY_SYSMAN_BATTERY_CHARGE_NOW");
+	} else {
+		DBG("Battery charge Status: %d", status);
+	}
 
 	battery_charging = status;
 
@@ -517,11 +658,6 @@ static void indicator_battery_charging_cb(keynode_t *node, void *data)
 	indicator_battery_check_charging(data);
 }
 
-static void indicator_battery_percentage_option_cb(keynode_t *node, void *data)
-{
-
-}
-
 static void indicator_battery_change_cb(keynode_t *node, void *data)
 {
 	indicator_battery_update_display(data);
@@ -530,8 +666,6 @@ static void indicator_battery_change_cb(keynode_t *node, void *data)
 static void indicator_battery_clock_format_changed_cb(keynode_t *node, void *data)
 {
 	retif(data == NULL, , "Invalid parameter!");
-
-	INFO("[Enter] indicator_battery_clock_format_changed_cb");
 
 	indicator_battery_get_time_format();
 
@@ -551,9 +685,57 @@ static void indicator_battery_pm_state_change_cb(keynode_t *node, void *data)
 	}
 }
 
+static void indicator_battery_batt_percentage_cb(keynode_t *node, void *data)
+{
+	struct appdata* ad = NULL;
+	int status = 0;
+
+	ret_if(!data);
+
+	ad = (struct appdata*)data;
+
+	vconf_get_bool(VCONFKEY_SETAPPL_BATTERY_PERCENTAGE_BOOL, &status);
+
+	if(status == 1)
+	{
+		is_battery_percentage_shown = EINA_TRUE;
+		_level.max_level = LEVEL_PERCENTAGE_MAX;
+		indicator_battery_update_display(data);
+		show_digits();
+		box_update_display(&(ad->win));
+	}
+	else
+	{
+		//remove battery percentage
+		is_battery_percentage_shown = EINA_FALSE;
+		_level.max_level = LEVEL_MAX;
+		indicator_battery_update_display(data);
+		hide_digits();
+		box_update_display(&(ad->win));
+	}
+}
+
+static void indicator_battery_batt_low_state_change_cb(keynode_t *node, void *data)
+{
+	int status = 0;
+	retif(data == NULL, , "Invalid parameter!");
+
+	vconf_get_int(VCONFKEY_SYSMAN_BATTERY_STATUS_LOW, &status);
+
+	if(status == VCONFKEY_SYSMAN_BAT_FULL)
+	{
+		DBG("batt full");
+		batt_full = 1;
+	}
+	else
+	{
+		batt_full = 0;
+	}
+	indicator_battery_update_display(data);
+}
+
 static int wake_up_cb(void *data)
 {
-	INFO("BATTERY wake_up_cb");
 	indicator_battery_clock_format_changed_cb(NULL, data);
 	return OK;
 }
@@ -564,51 +746,52 @@ static int register_battery_module(void *data)
 
 	retif(data == NULL, FAIL, "Invalid parameter!");
 
+	/* DO NOT change order of below fuctions */
 	set_app_state(data);
 	indicator_battery_level_init();
 
 	ret = vconf_notify_key_changed(VCONFKEY_SYSMAN_BATTERY_CAPACITY,
-				       indicator_battery_change_cb, data);
+					indicator_battery_change_cb, data);
 	if (ret != OK) {
-		ERR("Failed to register callback!");
 		r = ret;
 	}
 
 	ret = vconf_notify_key_changed(VCONFKEY_SYSMAN_BATTERY_STATUS_LOW,
-				       indicator_battery_change_cb, data);
+					indicator_battery_change_cb, data);
 	if (ret != OK) {
-		ERR("Failed to register callback!");
 		r = r | ret;
 	}
 
 	ret = vconf_notify_key_changed(VCONFKEY_SYSMAN_BATTERY_CHARGE_NOW,
-				       indicator_battery_charging_cb, data);
+					indicator_battery_charging_cb, data);
 	if (ret != OK) {
-		ERR("Failed to register callback!");
-		r = r | ret;
-	}
-
-	ret = vconf_notify_key_changed(VCONFKEY_SETAPPL_BATTERY_PERCENTAGE_BOOL,
-			       indicator_battery_percentage_option_cb, data);
-	if (ret != OK) {
-		ERR("Failed to register callback!");
 		r = r | ret;
 	}
 
 	ret = vconf_notify_key_changed(VCONFKEY_REGIONFORMAT_TIME1224,
-					       indicator_battery_clock_format_changed_cb, data);
+						indicator_battery_clock_format_changed_cb, data);
 	if (ret != OK) {
-		ERR("Fail: register VCONFKEY_REGIONFORMAT_TIME1224");
 		r = r | ret;
 	}
 	ret = vconf_notify_key_changed(VCONFKEY_PM_STATE,
-					       indicator_battery_pm_state_change_cb, data);
+						indicator_battery_pm_state_change_cb, data);
 	if (ret != OK) {
-		ERR("Fail: register VCONFKEY_PM_STATE");
+		r = r | ret;
+	}
+	ret = vconf_notify_key_changed(VCONFKEY_SETAPPL_BATTERY_PERCENTAGE_BOOL,
+						indicator_battery_batt_percentage_cb, data);
+	if (ret != OK) {
 		r = r | ret;
 	}
 
-	indicator_battery_update_display(data);
+	ret = vconf_notify_key_changed(VCONFKEY_SYSMAN_BATTERY_STATUS_LOW,
+						indicator_battery_batt_low_state_change_cb, data);
+	if (ret != OK) {
+		r = r | ret;
+	}
+
+	indicator_battery_batt_percentage_cb(NULL,data);
+	indicator_battery_check_charging(data);
 
 	return r;
 }
@@ -616,40 +799,38 @@ static int register_battery_module(void *data)
 static int unregister_battery_module(void)
 {
 	int ret;
-	int i = 0;
 
 	ret = vconf_ignore_key_changed(VCONFKEY_SYSMAN_BATTERY_CAPACITY,
-				       indicator_battery_change_cb);
-	if (ret != OK)
-		ERR("Failed to unregister callback!");
+					indicator_battery_change_cb);
 
-	ret = vconf_ignore_key_changed(VCONFKEY_SYSMAN_BATTERY_STATUS_LOW,
-				       indicator_battery_change_cb);
-	if (ret != OK)
-		ERR("Failed to unregister callback!");
+	ret = ret | vconf_ignore_key_changed(VCONFKEY_SYSMAN_BATTERY_STATUS_LOW,
+					indicator_battery_change_cb);
 
-	ret = vconf_ignore_key_changed(VCONFKEY_SYSMAN_BATTERY_CHARGE_NOW,
-				       indicator_battery_charging_cb);
-	if (ret != OK)
-		ERR("Failed to unregister callback!");
+	ret = ret | vconf_ignore_key_changed(VCONFKEY_SYSMAN_BATTERY_CHARGE_NOW,
+					indicator_battery_charging_cb);
 
-	ret = vconf_ignore_key_changed(VCONFKEY_SETAPPL_BATTERY_PERCENTAGE_BOOL,
-				       indicator_battery_percentage_option_cb);
-	if (ret != OK)
-		ERR("Failed to unregister callback!");
+	ret = ret | vconf_ignore_key_changed(VCONFKEY_PM_STATE,
+					indicator_battery_pm_state_change_cb);
 
-	ret = vconf_ignore_key_changed(VCONFKEY_PM_STATE,
-				       indicator_battery_pm_state_change_cb);
-	if (ret != OK)
-		ERR("Failed to unregister callback!");
+	ret = ret | vconf_ignore_key_changed(VCONFKEY_SETAPPL_BATTERY_PERCENTAGE_BOOL,
+					indicator_battery_batt_percentage_cb);
+	ret = ret | vconf_ignore_key_changed(VCONFKEY_SYSMAN_BATTERY_STATUS_LOW,
+					indicator_battery_batt_low_state_change_cb);
+
+
 
 	delete_timer();
 
-	for(i=0 ; i<INDICATOR_WIN_MAX ; i++)
-	{
-		if (battery[i].txt_obj.data != NULL)
-			free(battery[i].txt_obj.data);
-	}
+	return ret;
+}
 
-	return OK;
+static void _resize_battery_digits_icons_box()
+{
+	if (battery_percentage < 10) {
+		util_signal_emit(digit.ad, "indicator.battery.percentage.one.digit.show", "indicator.prog");
+	} else if(battery_percentage < 100) {
+		util_signal_emit(digit.ad, "indicator.battery.percentage.two.digits.show", "indicator.prog");
+	} else {
+		util_signal_emit(digit.ad, "indicator.battery.percentage.full.show", "indicator.prog");
+	}
 }

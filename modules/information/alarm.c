@@ -1,18 +1,22 @@
 /*
- * Copyright 2012  Samsung Electronics Co., Ltd
+ *  Indicator
  *
- * Licensed under the Flora License, Version 1.1 (the "License");
+ * Copyright (c) 2000 - 2015 Samsung Electronics Co., Ltd. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *  http://floralicense.org/license/
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
+
 
 
 #include <stdio.h>
@@ -20,46 +24,35 @@
 #include <vconf.h>
 #include "common.h"
 #include "indicator.h"
-#include "indicator_ui.h"
+#include "main.h"
 #include "modules.h"
-#include "indicator_icon_util.h"
+#include "icon.h"
 
-#define ICON_PRIORITY	INDICATOR_PRIORITY_SYSTEM_3
+#define ICON_PRIORITY	INDICATOR_PRIORITY_SYSTEM_1
 #define MODULE_NAME		"alarm"
 
+static int bShown = 0;
 static int register_alarm_module(void *data);
 static int unregister_alarm_module(void);
+#ifdef _SUPPORT_SCREEN_READER
+static char *access_info_cb(void *data, Evas_Object *obj);
+#endif
 
-Indicator_Icon_Object useralarm[INDICATOR_WIN_MAX] = {
-{
-	.win_type = INDICATOR_WIN_PORT,
+icon_s useralarm = {
 	.type = INDICATOR_IMG_ICON,
 	.name = MODULE_NAME,
 	.priority = ICON_PRIORITY,
 	.always_top = EINA_FALSE,
 	.exist_in_view = EINA_FALSE,
-	.txt_obj = {0,},
 	.img_obj = {0,},
 	.obj_exist = EINA_FALSE,
 	.area = INDICATOR_ICON_AREA_SYSTEM,
 	.init = register_alarm_module,
 	.fini = unregister_alarm_module,
-},
-{
-	.win_type = INDICATOR_WIN_LAND,
-	.type = INDICATOR_IMG_ICON,
-	.name = MODULE_NAME,
-	.priority = ICON_PRIORITY,
-	.always_top = EINA_FALSE,
-	.exist_in_view = EINA_FALSE,
-	.txt_obj = {0,},
-	.img_obj = {0,},
-	.obj_exist = EINA_FALSE,
-	.area = INDICATOR_ICON_AREA_SYSTEM,
-	.init = register_alarm_module,
-	.fini = unregister_alarm_module,
-}
-
+#ifdef _SUPPORT_SCREEN_READER
+	.tts_enable = EINA_TRUE,
+	.access_cb = access_info_cb,
+#endif
 };
 
 static char *icon_path[] = {
@@ -67,35 +60,38 @@ static char *icon_path[] = {
 	NULL
 };
 
+
+
 static void set_app_state(void* data)
 {
-	int i = 0;
-
-	for (i=0 ; i<INDICATOR_WIN_MAX ; i++)
-	{
-		useralarm[i].ad = data;
-	}
-
+	useralarm.ad = data;
 }
+
+
 
 static void show_image_icon(void *data)
 {
-	int i = 0;
-	for (i=0 ; i<INDICATOR_WIN_MAX ; i++)
+	if(bShown == 1)
 	{
-		useralarm[i].img_obj.data = icon_path[0];
-		indicator_util_icon_show(&useralarm[i]);
+		return;
 	}
+
+	useralarm.img_obj.data = icon_path[0];
+	icon_show(&useralarm);
+
+	bShown = 1;
 }
+
+
 
 static void hide_image_icon(void)
 {
-	int i = 0;
-	for (i=0 ; i<INDICATOR_WIN_MAX ; i++)
-	{
-		indicator_util_icon_hide(&useralarm[i]);
-	}
+	icon_hide(&useralarm);
+
+	bShown = 0;
 }
+
+
 
 static void indicator_alarm_change_cb(keynode_t *node, void *data)
 {
@@ -107,11 +103,11 @@ static void indicator_alarm_change_cb(keynode_t *node, void *data)
 	ret = vconf_get_int(VCONFKEY_ALARM_STATE, &status);
 	if (ret == OK) {
 		if (status > 0) {
-			INFO("ALARM COUNT: %d", status);
+			DBG("ALARM COUNT: %d", status);
 			show_image_icon(data);
 			return;
 		}
-		INFO("ALARM COUNT: %d", status);
+		DBG("ALARM COUNT: %d", status);
 		hide_image_icon();
 		return;
 	}
@@ -119,32 +115,60 @@ static void indicator_alarm_change_cb(keynode_t *node, void *data)
 	return;
 }
 
+
+
+#ifdef _SUPPORT_SCREEN_READER
+static char *access_info_cb(void *data, Evas_Object *obj)
+{
+	char *tmp = NULL;
+	char buf[256] = {0,};
+
+	int status = 0;
+
+	vconf_get_int(VCONFKEY_ALARM_STATE, &status);
+
+	if(status>0)
+	{
+		snprintf(buf, sizeof(buf), "%s, %s, %s", _("IDS_COM_BODY_ALARM"),_("IDS_IDLE_BODY_ICON"),_("IDS_IDLE_BODY_STATUS_BAR_ITEM"));
+	}
+
+	tmp = strdup(buf);
+	if (!tmp) return NULL;
+	return tmp;
+}
+#endif
+
+
+
 static int register_alarm_module(void *data)
 {
-	int ret;
+	int ret = -1;
 
 	retif(data == NULL, FAIL, "Invalid parameter!");
 
 	set_app_state(data);
+	if (ret < 0)
+	{
+		ERR("Fail to init alarmdb.");
+		return FAIL;
+	}
 
 	ret = vconf_notify_key_changed(VCONFKEY_ALARM_STATE,
-				       indicator_alarm_change_cb, data);
-	if (ret != OK)
-		ERR("Failed to register callback!");
+					indicator_alarm_change_cb, data);
 
 	indicator_alarm_change_cb(NULL, data);
 
 	return ret;
 }
 
+
+
 static int unregister_alarm_module(void)
 {
 	int ret;
 
 	ret = vconf_ignore_key_changed(VCONFKEY_ALARM_STATE,
-				       indicator_alarm_change_cb);
-	if (ret != OK)
-		ERR("Failed to unregister callback!");
+					indicator_alarm_change_cb);
 
-	return OK;
+	return ret;
 }

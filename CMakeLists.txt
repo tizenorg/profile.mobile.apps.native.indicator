@@ -5,9 +5,9 @@ IF("${CMAKE_BUILD_TYPE}" STREQUAL "")
 	SET(CMAKE_BUILD_TYPE "Release")
 ENDIF("${CMAKE_BUILD_TYPE}" STREQUAL "")
 
-SET(VENDOR "tizen")
+SET(VENDOR "org.tizen")
 SET(PACKAGE ${PROJECT_NAME})
-SET(PKGNAME "org.${VENDOR}.${PACKAGE}")
+SET(PKGNAME "${VENDOR}.${PACKAGE}")
 SET(PREFIX ${CMAKE_INSTALL_PREFIX})
 SET(PREFIXRW ${CMAKE_INSTALL_PREFIXRW})
 SET(BINDIR "${PREFIX}/bin")
@@ -16,11 +16,13 @@ SET(DATADIR "${PREFIXRW}/data")
 SET(LOCALEDIR "${RESDIR}/locale")
 SET(ICONDIR "${RESDIR}/icons")
 SET(EDJDIR "${RESDIR}/edje")
+SET(CHANGEABLEDIR "${PREFIX}/shared/res/tables")
 SET(DESKTOPDIR "/usr/share/applications")
 SET(MANIFESTXMLDIR "/usr/share/packages")
 
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/daemon DAEMON_SRCS)
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/test TEST_SRCS)
+#AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/modules MODULE_SRCS)
 FILE(GLOB_RECURSE MODULE_SRCS modules/*.c)
 
 SET(SRCS ${DAEMON_SRCS} ${MODULE_SRCS} ${TEST_SRCS})
@@ -34,14 +36,31 @@ INCLUDE_DIRECTORIES(
 
 SET(CMAKE_SKIP_BUILD_RPATH TRUE)
 
+FIND_PROGRAM(UNAME NAMES uname)
+EXEC_PROGRAM("${UNAME}" ARGS "-m" OUTPUT_VARIABLE "ARCH")
+
+IF("${ARCH}" STREQUAL "armv7l")
+    ADD_DEFINITIONS("-DDEVICE_BUILD")
+    MESSAGE("Building for target: add -DDEVICE_BUILD")
+ENDIF("${ARCH}" STREQUAL "armv7l")
+
 INCLUDE(FindPkgConfig)
 pkg_check_modules(pkgs REQUIRED
 	capi-appfw-application
 	capi-appfw-app-manager
 	capi-system-runtime-info
+	capi-network-bluetooth
+	capi-appfw-preference
+	capi-system-system-settings
+	capi-media-player
+	capi-media-sound-manager
+	capi-media-metadata-extractor
+	capi-network-wifi
+	capi-ui-efl-util
+	appcore-common
 	dlog
 	ecore
-	ecore-x
+#	ecore-x
 	ecore-evas
 	ecore-file
 	edbus
@@ -49,25 +68,34 @@ pkg_check_modules(pkgs REQUIRED
 	elementary
 	evas
 	eina
-	fontconfig
+	edbus
 	libprivilege-control
 	notification
+#	utilX
 	vconf
-	utilX
 	minicontrol-monitor
 	feedback
+	pkgmgr-info
+	efl-assist
+	tapi
 )
 
 FOREACH(flag ${pkgs_CFLAGS})
 	SET(EXTRA_CFLAGS "${EXTRA_CFLAGS} ${flag}")
 ENDFOREACH(flag)
-#SET(EXTRA_CFLAGS "${EXTRA_CFLAGS} -finstrument-functions -g")
 
-#SET(CMAKE_C_COMPILER "/scratchbox/devkits/sbwrap")
-#SET(CMAKE_C_COMPILER_ARG1 "/home/serena/working/indicator.trace /scratchbox/compilers/bin/gcc gcc")
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${EXTRA_CFLAGS} -fPIE")
 
+SET(CMAKE_C_FLAGS_PROFILING    "-O0 -g -pg -fPIE")
+SET(CMAKE_CXX_FLAGS_PROFILING  "-O0 -std=c++0x -g -pg -fPIE")
+SET(CMAKE_C_FLAGS_DEBUG        "-O0 -g -fPIE")
+SET(CMAKE_CXX_FLAGS_DEBUG      "-O0 -std=c++0x -g -fPIE")
+SET(CMAKE_C_FLAGS_RELEASE      "-O2 -g -fPIE")
+SET(CMAKE_CXX_FLAGS_RELEASE    "-O2 -std=c++0x -g -fPIE")
+SET(CMAKE_C_FLAGS_CCOV         "-O2 -g --coverage -fPIE")
+SET(CMAKE_CXX_FLAGS_CCOV       "-O2 -std=c++0x -g --coverage -fPIE")
 
-SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${EXTRA_CFLAGS} -Wall -g -O2")
+SET(CMAKE_EXE_LINKER_FLAGS "-Wl,--as-needed -pie")
 
 ADD_DEFINITIONS("-DVENDOR=\"${VENDOR}\"")
 ADD_DEFINITIONS("-DPACKAGE=\"${PACKAGE}\"")
@@ -80,10 +108,8 @@ ADD_DEFINITIONS("-DICONDIR=\"${ICONDIR}\"")
 ADD_DEFINITIONS("-DEDJDIR=\"${EDJDIR}\"")
 ADD_DEFINITIONS("-DHOME_KEY_EMULATION")
 ADD_DEFINITIONS("-DINDICATOR_SUPPORT_OPACITY_MODE")
-#ADD_DEFINITIONS("-DFILE_DEBUG")
 ADD_DEFINITIONS("-D_DLOG_USED")
 
-SET(CMAKE_EXE_LINKER_FLAGS "-Wl,--as-needed")
 
 ADD_EXECUTABLE(${PROJECT_NAME} ${SRCS})
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} -licui18n -licuuc)
@@ -91,7 +117,6 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${pkgs_LDFLAGS})
 
 INSTALL(TARGETS ${PROJECT_NAME} DESTINATION ${BINDIR})
 INSTALL(DIRECTORY DESTINATION ${DATADIR})
+INSTALL(FILES ${CMAKE_CURRENT_SOURCE_DIR}/${PKGNAME}.efl DESTINATION /etc/smack/accesses.d)
 
-ADD_SUBDIRECTORY(po)
 ADD_SUBDIRECTORY(data)
-

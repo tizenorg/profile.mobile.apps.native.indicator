@@ -1,18 +1,23 @@
 /*
- * Copyright 2012  Samsung Electronics Co., Ltd
+ *  Indicator
  *
- * Licensed under the Flora License, Version 1.1 (the "License");
+ * Copyright (c) 2000 - 2015 Samsung Electronics Co., Ltd. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *  http://floralicense.org/license/
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
+
+#include "color_classes.edc"
 
 #define TEMP_SWALLOW_PART_FROM_LEFT( partName, rel_x, rel_y, MinWidth, MinHeight) \
 			part { \
@@ -48,19 +53,54 @@
 				} \
 			} \
 
-#define SWALLOW_PART_FROM_LEFT_WITH_EFFECT( partName, rel_x, rel_y, MinWidth, MinHeight) \
+#define SWALLOW_PART_FROM_LEFT_WITH_SPACE( partName, rel_x, rel_y, MinWidth, MinHeight) \
+			part {\
+			  name : "rect."partName; \
+			  type : RECT;\
+			  scale : 1;\
+			  description {\
+			     state : "default" 0.0;\
+			     rel1.to : partName;\
+			     rel2.to : partName;\
+			     color : 0 0 0 0;\
+			  }\
+			}\
 			part { \
 				name: partName; \
 				type: SWALLOW; \
-				mouse_events: 0; \
-				clip_to : slide_clip2; \
 				scale: 1; \
 				description { \
 					state: "default" 0.0; \
 					min: MinWidth MinHeight; \
 					fixed: 1 0; \
-					rel1 { relative: 1.0 -1.0; to_x: rel_x; to_y: rel_y; } \
-					rel2 { relative: 1.0 0.0; to_x: rel_x; to_y: rel_y; } \
+					rel1 { relative: 1.0 0.0; to_x: rel_x; to_y: rel_y; } \
+					rel2 { relative: 1.0 1.0; to_x: rel_x; to_y: rel_y; } \
+					align: 0.0 0.5; \
+					visible: 1; \
+				} \
+				description { \
+					state: "hide" 0.0; \
+					min: 0 MinHeight; \
+					fixed: 1 0; \
+					rel1 { relative: 1.0 0.0; to_x: rel_x; to_y: rel_y; } \
+					rel2 { relative: 1.0 1.0; to_x: rel_x; to_y: rel_y; } \
+					align: 0.0 0.5; \
+					visible: 0; \
+				} \
+			} \
+
+#define SWALLOW_PART_FROM_LEFT_WITH_EFFECT( partName, rel_x, rel_y, MinWidth, MinHeight) \
+			part { \
+				name: partName; \
+				type: SWALLOW; \
+				mouse_events: 0; \
+				scale: 1; \
+				description { \
+					state: "default" 0.0; \
+					min: MinWidth MinHeight; \
+					fixed: 1 0; \
+					rel1 { relative: 1.0 0.0; to_x: rel_x; to_y: rel_y; } \
+					rel2 { relative: 1.0 1.0; to_x: rel_x; to_y: rel_y; } \
 					align: 0.0 0.5; \
 					visible: 1; \
 				} \
@@ -80,7 +120,6 @@
 				name: partName; \
 				type: SWALLOW; \
 				mouse_events: 0; \
-				clip_to : slide_clip2; \
 				scale: 1; \
 				description { \
 					state: "default" 0.0; \
@@ -89,7 +128,7 @@
 					rel1 { relative: 1.0 0.0; to_x: rel_x; to_y: rel_y; } \
 					rel2 { relative: 1.0 1.0; to_x: rel_x; to_y: rel_y; } \
 					align: 0.0 0.5; \
-					visible: 0; \
+					visible: 1; \
 				} \
 				description { \
 					state: "show" 0.0; \
@@ -123,7 +162,6 @@
 			part { \
 				name: partName; \
 				type: SWALLOW; \
-				mouse_events: 0; \
 				scale: 1; \
 				description { \
 					state: "default" 0.0; \
@@ -136,19 +174,42 @@
 				} \
 			} \
 
-#define SWALLOW_PART_FROM_RIGHT_WITH_EFFECT( partName, rel_x, rel_y, MinWidth, MinHeight) \
+#define SWALLOW_PART_FROM_RIGHT_WITH_SPACE( partName, rel_x, rel_y, MinWidth, MinHeight) \
 			part { \
 				name: partName; \
 				type: SWALLOW; \
-				mouse_events: 0; \
-				clip_to : slide_clip; \
 				scale: 1; \
 				description { \
 					state: "default" 0.0; \
 					min: MinWidth MinHeight; \
 					fixed: 1 0; \
-					rel1 { relative: 0.0 -1.0; to_x: rel_x; to_y: rel_y; } \
-					rel2 { relative: 0.0 0.0; to_x: rel_x; to_y: rel_y; } \
+					rel1 { relative: 0.0 0.0; to_x: rel_x; to_y: rel_y; } \
+					rel2 { relative: 0.0 1.0; to_x: rel_x; to_y: rel_y; } \
+					align: 1.0 0.5; \
+					visible: 1; \
+				} \
+				description { \
+					state: "hide" 0.0; \
+					min: 0 MinHeight; \
+					fixed: 1 0; \
+					rel1 { relative: 0.0 0.0; to_x: rel_x; to_y: rel_y; } \
+					rel2 { relative: 0.0 1.0; to_x: rel_x; to_y: rel_y; } \
+					align: 1.0 0.5; \
+					visible: 0; \
+				} \
+			} \
+
+#define SWALLOW_PART_FROM_RIGHT_WITH_EFFECT( partName, rel_x, rel_y, MinWidth, MinHeight) \
+			part { \
+				name: partName; \
+				type: SWALLOW; \
+				scale: 1; \
+				description { \
+					state: "default" 0.0; \
+					min: MinWidth MinHeight; \
+					fixed: 1 0; \
+					rel1 { relative: 0.0 0.0; to_x: rel_x; to_y: rel_y; } \
+					rel2 { relative: 0.0 1.0; to_x: rel_x; to_y: rel_y; } \
 					align: 1.0 0.5; \
 					visible: 1; \
 				} \
@@ -168,7 +229,6 @@
 				name: partName; \
 				type: SWALLOW; \
 				mouse_events: 0; \
-				clip_to : slide_clip; \
 				scale: 1; \
 				description { \
 					state: "default" 0.0; \
@@ -177,7 +237,7 @@
 					rel1 { relative: 0.0 0.0; to_x: rel_x; to_y: rel_y; } \
 					rel2 { relative: 0.0 1.0; to_x: rel_x; to_y: rel_y; } \
 					align: 1.0 0.5; \
-					visible: 0; \
+					visible: 1; \
 				} \
 				description { \
 					state: "show" 0.0; \
@@ -206,6 +266,12 @@
 					color : colorValue; \
 					visible: visibleValue; \
 				} \
+				description { \
+					state: "hide" 0.0; \
+					inherit: "default" 0.0; \
+					min: 0 0; \
+					visible: 0; \
+				} \
 			} \
 
 #define FIXED_RECT_FROM_RIGHT( rectName, rel_x, rel_y, MinWidth, colorValue, visibleValue) \
@@ -223,6 +289,12 @@
 					align: 1.0 0.5; \
 					color : colorValue; \
 					visible: visibleValue; \
+				} \
+				description { \
+					state: "hide" 0.0; \
+					inherit: "default" 0.0; \
+					min: 0 0; \
+					visible: 0; \
 				} \
 			} \
 
@@ -287,38 +359,32 @@
 			part { \
 				name: partName; \
 				type: SWALLOW; \
-				mouse_events: 0; \
 				scale: 1; \
 				description { \
 					state: "default" 0.0; \
 					rel1 { relative: 1.0 0.0; to: lPadding; } \
 					rel2 { relative: 0.0 1.0; to: rPadding; } \
 					align: 0.5 0.5; \
-					map { \
-						on: 1; \
-						perspective_on: 1; \
-						rotation.z: 0.0; \
-					} \
 				} \
 				description { \
-					state: "rotate_tick" 0.0; \
+					state: "rotate_120" 0.0; \
 					inherit: "default" 0.0; \
-					map.rotation.z: 20.0; \
 				} \
 				description { \
-					state: "rotate_tock" 0.0; \
+					state: "rotate_60" 0.0; \
 					inherit: "default" 0.0; \
-					map.rotation.z: -20.0; \
 				} \
 				description { \
 					state: "rotate_180" 0.0; \
 					inherit: "default" 0.0; \
-					map.rotation.z: 180.0; \
 				} \
 				description { \
-					state: "rotate_360" 0.0; \
+					state: "rotate_240" 0.0; \
 					inherit: "default" 0.0; \
-					map.rotation.z: 360.0; \
+				} \
+				description { \
+					state: "rotate_300" 0.0; \
+					inherit: "default" 0.0; \
 				} \
 				description { \
 					state: "invisible" 0.0; \
@@ -332,10 +398,11 @@
 				action: ACTION_STOP; \
 				target: "icon_blink_show"; \
 				target: "icon_blink_hide"; \
-				target: "icon_tick"; \
-				target: "icon_tock"; \
+				target: "icon_rotate_60"; \
+				target: "icon_rotate_120"; \
 				target: "icon_rotate_180"; \
-				target: "icon_rotate_360"; \
+				target: "icon_rotate_240"; \
+				target: "icon_rotate_300"; \
 				target: "icon_rotate_0"; \
 			} \
 			program { name: "icon_default"; \
@@ -344,25 +411,6 @@
 				action:  STATE_SET "default" 0.0; \
 				target: targetName; \
 				after: "icon_default_pre"; \
-			} \
-			program { name: "icon_tick"; \
-				action:  STATE_SET "rotate_tick" 0.0; \
-				target: targetName; \
-				transition: LINEAR 0.5; \
-				after: "icon_tock"; \
-			} \
-			program { name: "icon_tock"; \
-				action:  STATE_SET "rotate_tock" 0.0; \
-				target: targetName; \
-				transition: LINEAR 0.5; \
-				after: "icon_tick"; \
-			} \
-			program { name: "icon_metronome"; \
-				signal: "icon,state,metronome"; \
-				source: sourceName; \
-				action:  STATE_SET "rotate_tick" 0.0; \
-				target: targetName; \
-				after: "icon_tock"; \
 			} \
 			program { name: "icon_blink_show"; \
 				action:  STATE_SET "default" 0.0; \
@@ -379,31 +427,50 @@
 			program { name: "icon_blink"; \
 				signal: "icon,state,blink"; \
 				source: sourceName; \
-				action:  STATE_SET "invisible" 0.0; \
+				action:  STATE_SET "default" 0.0; \
 				target: targetName; \
-				after: "icon_blink_show"; \
+				after: "icon_blink_hide"; \
 			} \
 			program { name: "icon_rotate_0"; \
 				action:  STATE_SET "default" 0.0; \
 				target: targetName; \
+				in: 0.4 0.0; \
+				after: "icon_rotate_60"; \
+			} \
+			program { name: "icon_rotate_60"; \
+				action:  STATE_SET "rotate_60" 0.0; \
+				target: targetName; \
+				in: 0.4 0.0; \
+				after: "icon_rotate_120"; \
+			} \
+			program { name: "icon_rotate_120"; \
+				action:  STATE_SET "rotate_120" 0.0; \
+				target: targetName; \
+				in: 0.4 0.0; \
 				after: "icon_rotate_180"; \
 			} \
 			program { name: "icon_rotate_180"; \
 				action:  STATE_SET "rotate_180" 0.0; \
 				target: targetName; \
-				transition: LINEAR 0.8; \
-				after: "icon_rotate_360"; \
+				in: 0.4 0.0; \
+				after: "icon_rotate_240"; \
 			} \
-			program { name: "icon_rotate_360"; \
-				action:  STATE_SET "rotate_360" 0.0; \
+			program { name: "icon_rotate_240"; \
+				action:  STATE_SET "rotate_240" 0.0; \
 				target: targetName; \
-				transition: LINEAR 0.8; \
+				in: 0.4 0.0; \
+				after: "icon_rotate_300"; \
+			} \
+			program { name: "icon_rotate_300"; \
+				action:  STATE_SET "rotate_300" 0.0; \
+				target: targetName; \
+				in: 0.4 0.0; \
 				after: "icon_rotate_0"; \
 			} \
 			program { name: "icon_rotate"; \
 				signal: "icon,state,rotate"; \
 				source: sourceName; \
-				action:  STATE_SET "rotate_180" 0.0; \
+				action:  STATE_SET "default" 0.0; \
 				target: targetName; \
-				after: "icon_rotate_360"; \
+				after : icon_rotate_0; \
 			} \

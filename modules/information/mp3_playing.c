@@ -1,74 +1,61 @@
 /*
- * Copyright 2012  Samsung Electronics Co., Ltd
+ *  Indicator
  *
- * Licensed under the Flora License, Version 1.1 (the "License");
+ * Copyright (c) 2000 - 2015 Samsung Electronics Co., Ltd. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *  http://floralicense.org/license/
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
+
 
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <vconf.h>
 #include <minicontrol-monitor.h>
-#include "common.h"
-#include "indicator.h"
-#include "indicator_icon_util.h"
-#include "modules.h"
-#include "indicator_ui.h"
 
-#define ICON_PRIORITY	INDICATOR_PRIORITY_NOTI_1
+#include "common.h"
+#include "modules.h"
+#include "indicator.h"
+#include "main.h"
+#include "util.h"
+#include "icon.h"
+
+#define ICON_PRIORITY	INDICATOR_PRIORITY_MINICTRL2
 #define MODULE_NAME		"MP3_PLAY"
 #define MINICONTROL_NAME	"[musicplayer-mini]"
+#define MUSIC_STATUS_FILE_PATH	"/opt/usr/apps/org.tizen.music-player-lite/shared/data/MusicPlayStatus.ini"
+#define MAX_NAM_LEN 640
+#define MP_APP_ID "org.tizen.music-player-lite"
 
 static int register_mp3_play_module(void *data);
 static int unregister_mp3_play_module(void);
-static int mctrl_monitor_cb(int action, const char *name, void *data);
 static int wake_up_cb(void *data);
 
-static int mp_registerd = 0;
 static int updated_while_lcd_off = 0;
+static Ecore_File_Monitor *pFileMonitor = NULL;
 
-
-Indicator_Icon_Object mp3_play[INDICATOR_WIN_MAX] = {
-{
-	.win_type = INDICATOR_WIN_PORT,
+icon_s mp3_play = {
 	.name = MODULE_NAME,
 	.priority = ICON_PRIORITY,
-	.always_top = EINA_TRUE,
+	.always_top = EINA_FALSE,
 	.exist_in_view = EINA_FALSE,
-	.txt_obj = {0,},
 	.img_obj = {0,},
 	.obj_exist = EINA_FALSE,
-	.area = INDICATOR_ICON_AREA_NOTI,
+	.area = INDICATOR_ICON_AREA_MINICTRL,
 	.init = register_mp3_play_module,
 	.fini = unregister_mp3_play_module,
-	.minictrl_control = mctrl_monitor_cb,
 	.wake_up = wake_up_cb
-},
-{
-	.win_type = INDICATOR_WIN_LAND,
-	.name = MODULE_NAME,
-	.priority = ICON_PRIORITY,
-	.always_top = EINA_TRUE,
-	.exist_in_view = EINA_FALSE,
-	.txt_obj = {0,},
-	.img_obj = {0,},
-	.obj_exist = EINA_FALSE,
-	.area = INDICATOR_ICON_AREA_NOTI,
-	.init = register_mp3_play_module,
-	.fini = unregister_mp3_play_module,
-	.minictrl_control = mctrl_monitor_cb,
-	.wake_up = wake_up_cb
-}
 };
 
 enum {
@@ -77,76 +64,101 @@ enum {
 };
 
 static char *icon_path[] = {
-	"Background playing/B03_Backgroundplaying_MP3playing.png",
-	"Background playing/B03_Backgroundplaying_Music_paused.png",
+	"Background playing/B03_Backgroundplaying_music_playing.png",
+	"Background playing/B03_Backgroundplaying_music_paused.png",
 	NULL
 };
 
+static int prevIndex = -1;
+
+
+
 static void set_app_state(void* data)
 {
-	int i = 0;
-
-	for (i=0 ; i<INDICATOR_WIN_MAX ; i++)
-	{
-		mp3_play[i].ad = data;
-	}
+	mp3_play.ad = data;
 }
+
+
 
 static void show_image_icon(void *data, int status)
 {
-	int i = 0;
-	for (i=0 ; i<INDICATOR_WIN_MAX ; i++)
-	{
-		mp3_play[i].img_obj.data = icon_path[status];
-		indicator_util_icon_show(&mp3_play[i]);
+	if (prevIndex == status) {
+		return;
 	}
+
+	mp3_play.img_obj.data = icon_path[status];
+	icon_show(&mp3_play);
+
+	prevIndex = status;
 }
+
+
 
 static void hide_image_icon(void)
 {
-	int i = 0;
-	for (i=0 ; i<INDICATOR_WIN_MAX ; i++)
-	{
-		indicator_util_icon_hide(&mp3_play[i]);
-	}
+	icon_hide(&mp3_play);
+
+	prevIndex = -1;
 }
+
+
 
 static void show_mp_icon(void* data)
 {
-	int status;
-	int ret;
+	FILE* fp = fopen(MUSIC_STATUS_FILE_PATH, "r");
+	char line[MAX_NAM_LEN+1];
 
 	retif(data == NULL, , "Invalid parameter!");
+	if(fp == NULL)
+	{
+		ERR("Invalid file path !!");
+		return;
+	}
 
-	if(indicator_util_get_update_flag()==0)
+	if(icon_get_update_flag()==0)
 	{
 		updated_while_lcd_off = 1;
 		DBG("need to update %d",updated_while_lcd_off);
+		fclose(fp);
 		return;
 	}
+
 	updated_while_lcd_off = 0;
 
-	ret = vconf_get_int(VCONFKEY_MUSIC_STATE, &status);
-	if (ret == OK) {
-		INFO("MUSIC state: %d", status);
-		switch (status) {
-		case VCONFKEY_MUSIC_PLAY:
+	if(fgets(line, MAX_NAM_LEN, fp))
+	{
+		if(strstr(line, "play"))
+		{
+			DBG("Music state : PLAY");
 			show_image_icon(data, MUSIC_PLAY);
-			break;
-		case VCONFKEY_MUSIC_PAUSE:
+		}
+		else if(strstr(line, "pause"))
+		{
+			DBG("Music state : PAUSED");
 			show_image_icon(data, MUSIC_PAUSED);
-			break;
-		default:
-			break;
+		}
+		else if(strstr(line, "stop") || strstr(line, "off"))
+		{
+			DBG("Music state : STOP or OFF");
+			hide_image_icon();
 		}
 	}
+	retif(fclose(fp), , "File close error!");
+
 }
 
 
-static void indicator_mp3_play_change_cb(keynode_t *node, void *data)
+
+void hide_mp_icon(void)
+{
+	hide_image_icon();
+}
+
+
+
+static void indicator_mp3_play_change_cb(void *data, Ecore_File_Monitor *em, Ecore_File_Event event, const char* path)
 {
 	retif(data == NULL, , "Invalid parameter!");
-
 	DBG("indicator_mp3_play_change_cb");
 
 	show_mp_icon(data);
@@ -154,71 +166,44 @@ static void indicator_mp3_play_change_cb(keynode_t *node, void *data)
 	return;
 }
 
-static int mctrl_monitor_cb(int action, const char *name, void *data)
-{
-	retif(!data, FAIL, "data is NULL");
-	retif(!name, FAIL, "name is NULL");
 
-	if(strncmp(name,MINICONTROL_NAME,strlen(MINICONTROL_NAME))!=0)
-	{
-		ERR("_mctrl_monitor_cb:no mp %s",name);
-		return FAIL;
-	}
-
-	DBG("_mctrl_monitor_cb:%s %d",name,action);
-
-	switch (action) {
-	case MINICONTROL_ACTION_START:
-		vconf_notify_key_changed(VCONFKEY_MUSIC_STATE, indicator_mp3_play_change_cb, data);
-		mp_registerd = 1;
-		show_mp_icon(data);
-		break;
-	case MINICONTROL_ACTION_STOP:
-		mp_registerd = 0;
-		if(indicator_util_get_update_flag()==1)
-		{
-			hide_image_icon();
-			return OK;
-		}
-		vconf_ignore_key_changed(VCONFKEY_MUSIC_STATE, indicator_mp3_play_change_cb);
-		break;
-	default:
-		break;
-	}
-
-	return OK;
-}
 
 static int wake_up_cb(void *data)
 {
 	if(updated_while_lcd_off==0)
 	{
-		DBG("ICON WAS NOT UPDATED");
 		return OK;
 	}
 
-	if(mp_registerd==1)
-	{
-		indicator_mp3_play_change_cb(NULL, data);
-	}
-	else
-	{
-		hide_image_icon();
-	}
+	indicator_mp3_play_change_cb(data, pFileMonitor, (Ecore_File_Event)NULL, MUSIC_STATUS_FILE_PATH);
 	return OK;
 }
 
+
+
 static int register_mp3_play_module(void *data)
 {
-
+	DBG("Music file monitor added !!");
 	retif(data == NULL, FAIL, "Invalid parameter!");
 
 	set_app_state(data);
 
+	ECORE_FILE_MONITOR_DELIF(pFileMonitor);
+	pFileMonitor = util_file_monitor_add(MUSIC_STATUS_FILE_PATH, (Ecore_File_Monitor_Cb)indicator_mp3_play_change_cb, data);
+	retif(pFileMonitor == NULL, FAIL, "util_file_monitor_add return NULL!!");
+
 	return OK;
 }
 
+
+
 static int unregister_mp3_play_module(void)
 {
+	DBG("Music file monitor removed !!");
+	retif(pFileMonitor == NULL, FAIL, "File Monitor do not exist !");
+
+	util_file_monitor_remove(pFileMonitor);
+	pFileMonitor = NULL;
+
 	return OK;
 }

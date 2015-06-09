@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns="http://tizen.org/ns/packages" package="@PKGNAME@" version="0.1.72-1" install-location="internal-only">
-	<label>@PROJECT_NAME@</label>
+<manifest xmlns="http://tizen.org/ns/packages" api-version="2.3.1" package="org.tizen.indicator" version="0.2.53-1" install-location="internal-only">
+	<label>Indicator</label>
 	<author email="yjoo93.park@samsung.com" href="www.samsung.com">Youngjoo Park</author>
 	<author email="seungtaek.chung@samsung.com" href="www.samsung.com">seungtaek chung</author>
 	<author email="sung1103.park@samsung.com" href="www.samsung.com">Sung Park</author>
-	<description>@PROJECT_NAME@</description>
+	<description>Indicator</description>
 	<ui-application appid="@PKGNAME@" exec="@BINDIR@/@PROJECT_NAME@" nodisplay="true" multiple="false" type="capp" taskmanage="false">
 		<icon>@PKGNAME@.png</icon>
-		<label>@PROJECT_NAME@</label>
+		<label>Indicator</label>
 	</ui-application>
 </manifest>

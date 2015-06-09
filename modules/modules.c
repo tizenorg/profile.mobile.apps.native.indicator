@@ -1,185 +1,237 @@
 /*
- * Copyright 2012  Samsung Electronics Co., Ltd
+ *  Indicator
  *
- * Licensed under the Flora License, Version 1.1 (the "License");
+ * Copyright (c) 2000 - 2015 Samsung Electronics Co., Ltd. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *  http://floralicense.org/license/
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
 
 
+#include "common.h"
 #include "modules.h"
 
-#define INDICATOR_MODULE_NUMBERS 22
+#define INDICATOR_MODULE_NUMBERS 32
 
-extern Indicator_Icon_Object home[INDICATOR_WIN_MAX];
-extern Indicator_Icon_Object rssi[INDICATOR_WIN_MAX];
-extern Indicator_Icon_Object usb[INDICATOR_WIN_MAX];
-extern Indicator_Icon_Object wifi[INDICATOR_WIN_MAX];
-extern Indicator_Icon_Object mobile_hotspot[INDICATOR_WIN_MAX];
-extern Indicator_Icon_Object conn[INDICATOR_WIN_MAX];
-extern Indicator_Icon_Object sos[INDICATOR_WIN_MAX];
-extern Indicator_Icon_Object call[INDICATOR_WIN_MAX];
-extern Indicator_Icon_Object call_divert[INDICATOR_WIN_MAX];
-extern Indicator_Icon_Object mmc[INDICATOR_WIN_MAX];
-extern Indicator_Icon_Object noti[INDICATOR_WIN_MAX];
-extern Indicator_Icon_Object useralarm[INDICATOR_WIN_MAX];
-extern Indicator_Icon_Object mp3_play[INDICATOR_WIN_MAX];
-extern Indicator_Icon_Object voice_recorder[INDICATOR_WIN_MAX];
-extern Indicator_Icon_Object silent[INDICATOR_WIN_MAX];
-extern Indicator_Icon_Object bluetooth[INDICATOR_WIN_MAX];
-extern Indicator_Icon_Object gps[INDICATOR_WIN_MAX];
-extern Indicator_Icon_Object nfc[INDICATOR_WIN_MAX];
-extern Indicator_Icon_Object wifi_direct[INDICATOR_WIN_MAX];
-extern Indicator_Icon_Object sysclock[INDICATOR_WIN_MAX];
-extern Indicator_Icon_Object battery[INDICATOR_WIN_MAX];
-extern Indicator_Icon_Object earphone[INDICATOR_WIN_MAX];
+/* search */
+#ifndef _INDICATOR_REMOVE_SEARCH
+extern icon_s search;
+#endif
+/* Network */
+extern icon_s rssi;
+
+/* Connection */
+extern icon_s usb;
+extern icon_s wifi;
+extern icon_s mobile_hotspot;
+extern icon_s conn;
+
+/* Processing */
+extern icon_s call;
+extern icon_s call_divert;
+
+/* Information */
+extern icon_s mmc;
+extern icon_s noti;
+
+/* alarm */
+extern icon_s useralarm;
+
+/* playing */
+extern icon_s fm_radio;
+extern icon_s mp3_play;
+extern icon_s voice_recorder;
+
+/* Setting */
+extern icon_s silent;
+extern icon_s bluetooth;
+extern icon_s gps;
+extern icon_s nfc;
+extern icon_s wifi_direct;
+
+/* Clock */
+extern icon_s sysclock;
+
+/* Power */
+extern icon_s battery;
+
+/* Smart stay */
+/* earphone */
+extern icon_s earphone;
+
+/* always */
+extern icon_s lowmem;
+extern icon_s dock;
+
+extern icon_s video_play;
+extern icon_s more_notify;
 
 
-static Indicator_Icon_Object *modules[INDICATOR_WIN_MAX][INDICATOR_MODULE_NUMBERS] = {
-{
-	&sysclock[0],
-	&battery[0],
-	&wifi[0],
-	&rssi[0],
-	&sos[0],
-	&usb[0],
-	&mobile_hotspot[0],
-	&conn[0],
-	&call[0],
-	&call_divert[0],
-	&mmc[0],
-	&noti[0],
-	&useralarm[0],
-	&mp3_play[0],
-	&voice_recorder[0],
-	&silent[0],
-	&bluetooth[0],
-	&gps[0],
-	&nfc[0],
-	&wifi_direct[0],
-	&earphone[0],
+
+static icon_s *modules[INDICATOR_MODULE_NUMBERS] = {
+	/* search */
+#ifndef _INDICATOR_REMOVE_SEARCH
+	&search,
+#endif
+	/* Clock */
+	&sysclock,
+	/* Power */
+	&battery,
+	/* Network */
+	&wifi,
+	&rssi,
+	/* Connection */
+	&usb,
+	&mobile_hotspot,
+	&conn,
+	/* Processing */
+	&call,
+	&call_divert,
+
+	/* Information */
+	/* &message, */
+	/* &voice_mail, */
+	&mmc,
+	&noti,
+	&useralarm,
+	&fm_radio,
+	&mp3_play,
+	&voice_recorder,
+
+	/* Setting */
+	&silent,
+	&bluetooth,
+	&gps,
+	&wifi_direct,
+	&nfc,
+
+	/*Smart Stay*/
+	&earphone,
+	&lowmem,
+	&dock,
+	&video_play,
+	&more_notify,
+/* Add your module object here */
 	NULL
-},
-{
-	&sysclock[1],
-	&battery[1],
-	&wifi[1],
-	&rssi[1],
-	&sos[1],
-	&usb[1],
-	&mobile_hotspot[1],
-	&conn[1],
-	&call[1],
-	&call_divert[1],
-	&mmc[1],
-	&noti[1],
-	&useralarm[1],
-	&mp3_play[1],
-	&voice_recorder[1],
-	&silent[1],
-	&bluetooth[1],
-	&gps[1],
-	&nfc[1],
-	&wifi_direct[1],
-	&earphone[1],
-	NULL
-}
-
 };
 
-void indicator_init_modules(void *data)
+void modules_init(void *data)
 {
 	int i;
-	int j = 0;
-
-	for(j=0;j<INDICATOR_WIN_MAX;j++)
-	{
-		for (i = 0; modules[j][i]; i++) {
-			indicator_icon_list_insert(modules[j][i]);
-			modules[j][i]->ad = data;
-			if (modules[j][i]->init)
-				modules[j][i]->init(data);
+	/* add items to list */
+	for (i = 0; modules[i]; i++) {
+		list_insert_icon(modules[i]);
+		modules[i]->ad = data;
+		if (modules[i]->init)
+		{
+			modules[i]->init(data);
 		}
 	}
 }
 
-void indicator_fini_modules(void *data)
+
+
+void modules_init_first(void *data)
 {
 	int i;
-	int j = 0;
-
-	for(j=0;j<INDICATOR_WIN_MAX;j++)
-	{
-		for (i = 0; modules[j][i]; i++) {
-			if (modules[j][i]->fini)
-				modules[j][i]->fini();
-		}
-	}
-
-	indicator_icon_all_list_free();
-}
-
-void indicator_lang_changed_modules(void *data)
-{
-	int i;
-	int j = 0;
-
-	for(j=0;j<INDICATOR_WIN_MAX;j++)
-	{
-		for (i = 0; modules[j][i]; i++) {
-			if (modules[j][i]->lang_changed)
-				modules[j][i]->lang_changed(data);
+	/* add items to list */
+	for (i = 0; i < 5; i++) {
+		list_insert_icon(modules[i]);
+		modules[i]->ad = data;
+		if (modules[i]->init)
+		{
+			modules[i]->init(data);
 		}
 	}
 }
 
-void indicator_region_changed_modules(void *data)
+
+
+void modules_fini(void *data)
 {
 	int i;
-	int j = 0;
+	/* add items to list */
+	for (i = 0; modules[i]; i++) {
+		if (modules[i]->fini)
+			modules[i]->fini();
+	}
 
-	for(j=0;j<INDICATOR_WIN_MAX;j++)
-	{
-		for (i = 0; modules[j][i]; i++) {
-			if (modules[j][i]->region_changed)
-				modules[j][i]->region_changed(data);
-		}
+	/* delete modules */
+	list_free_all();
+}
+
+
+
+void modules_lang_changed(void *data)
+{
+	int i;
+	/* add items to list */
+	for (i = 0; modules[i]; i++) {
+		if (modules[i]->lang_changed)
+			modules[i]->lang_changed(data);
 	}
 }
 
-void indicator_minictrl_control_modules(int action, const char* name, void *data)
+
+
+void modules_region_changed(void *data)
 {
 	int i;
-	int j = 0;
-
-	for(j=0;j<INDICATOR_WIN_MAX;j++)
-	{
-		for (i = 0; modules[j][i]; i++) {
-			if (modules[j][i]->minictrl_control)
-				modules[j][i]->minictrl_control(action, name, data);
-		}
+	/* add items to list */
+	for (i = 0; modules[i]; i++) {
+		if (modules[i]->region_changed)
+			modules[i]->region_changed(data);
 	}
 }
 
-void indicator_wake_up_modules(void *data)
+
+
+void modules_minictrl_control(int action, const char* name, void *data)
 {
 	int i;
-	int j = 0;
+	/* add items to list */
+	for (i = 0; modules[i]; i++) {
+		if (modules[i]->minictrl_control)
+			modules[i]->minictrl_control(action, name, data);
+	}
+}
 
-	for(j=0;j<INDICATOR_WIN_MAX;j++)
-	{
-		for (i = 0; modules[j][i]; i++) {
-			if (modules[j][i]->wake_up)
-				modules[j][i]->wake_up(data);
+
+
+void modules_wake_up(void *data)
+{
+	int i;
+	/* add items to list */
+	for (i = 0; modules[i]; i++) {
+		if (modules[i]->wake_up)
+			modules[i]->wake_up(data);
+	}
+}
+
+
+
+#ifdef _SUPPORT_SCREEN_READER
+void modules_register_tts(void *data)
+{
+	int i;
+	/* add items to list */
+	for (i = 0; modules[i]; i++) {
+		modules[i]->ad = data;
+		if (modules[i]->register_tts)
+		{
+			modules[i]->register_tts(data);
 		}
 	}
 }
+#endif
 

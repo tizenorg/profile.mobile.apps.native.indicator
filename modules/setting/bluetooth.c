@@ -1,69 +1,66 @@
 /*
- * Copyright 2012  Samsung Electronics Co., Ltd
+ *  Indicator
  *
- * Licensed under the Flora License, Version 1.1 (the "License");
+ * Copyright (c) 2000 - 2015 Samsung Electronics Co., Ltd. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *  http://floralicense.org/license/
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
 
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <vconf.h>
+#include <bluetooth.h>
 #include "common.h"
 #include "indicator.h"
-#include "indicator_icon_util.h"
+#include "icon.h"
 #include "modules.h"
-#include "indicator_ui.h"
+#include "main.h"
+#include "util.h"
 
-#define ICON_PRIORITY	INDICATOR_PRIORITY_SYSTEM_4
+#define ICON_PRIORITY	INDICATOR_PRIORITY_FIXED7
 #define MODULE_NAME		"bluetooth"
 #define TIMER_INTERVAL	0.5
+
+Ecore_Timer *timer_bt = NULL;
 
 static int register_bluetooth_module(void *data);
 static int unregister_bluetooth_module(void);
 static int wake_up_cb(void *data);
+static void show_image_icon(void *data, int index);
+static void hide_image_icon(void);
+#ifdef _SUPPORT_SCREEN_READER
+static char *access_info_cb(void *data, Evas_Object *obj);
+#endif
 
-Indicator_Icon_Object bluetooth[INDICATOR_WIN_MAX] = {
-{
-	.win_type = INDICATOR_WIN_PORT,
+
+icon_s bluetooth = {
 	.type = INDICATOR_IMG_ICON,
 	.name = MODULE_NAME,
 	.priority = ICON_PRIORITY,
 	.always_top = EINA_FALSE,
 	.exist_in_view = EINA_FALSE,
-	.txt_obj = {0,},
 	.img_obj = {0,},
 	.obj_exist = EINA_FALSE,
-	.area = INDICATOR_ICON_AREA_SYSTEM,
+	.area = INDICATOR_ICON_AREA_FIXED,
 	.init = register_bluetooth_module,
 	.fini = unregister_bluetooth_module,
-	.wake_up = wake_up_cb
-},
-{
-	.win_type = INDICATOR_WIN_LAND,
-	.type = INDICATOR_IMG_ICON,
-	.name = MODULE_NAME,
-	.priority = ICON_PRIORITY,
-	.always_top = EINA_FALSE,
-	.exist_in_view = EINA_FALSE,
-	.txt_obj = {0,},
-	.img_obj = {0,},
-	.obj_exist = EINA_FALSE,
-	.area = INDICATOR_ICON_AREA_SYSTEM,
-	.init = register_bluetooth_module,
-	.fini = unregister_bluetooth_module,
-	.wake_up = wake_up_cb
-}
-
+	.wake_up = wake_up_cb,
+#ifdef _SUPPORT_SCREEN_READER
+	.tts_enable = EINA_TRUE,
+	.access_cb = access_info_cb
+#endif
 };
 
 enum {
@@ -76,68 +73,42 @@ enum {
 
 static const char *icon_path[LEVEL_MAX] = {
 	[LEVEL_BT_NOT_CONNECTED] =
-		"Bluetooth, NFC, GPS/B03_BT_On&Notconnected.png",
-	[LEVEL_BT_CONNECTED] = "Bluetooth, NFC, GPS/B03_BT_On&Connected.png",
+		"Bluetooth, NFC, GPS/B03_BT_On&Connected.png",
+	[LEVEL_BT_CONNECTED] = "Bluetooth, NFC, GPS/B03-4_BT_activated_on.png",
 	[LEVEL_BT_HEADSET] =
 		"Bluetooth, NFC, GPS/B03_BT_On&Connected&headset.png",
 };
 
-static Ecore_Timer *timer;
-static Eina_Bool bt_transferring = EINA_FALSE;
 static int updated_while_lcd_off = 0;
-
+static int prevIndex = -1;
 
 static void set_app_state(void* data)
 {
-	int i = 0;
-
-	for (i=0 ; i<INDICATOR_WIN_MAX ; i++)
-	{
-		bluetooth[i].ad = data;
-	}
-}
-
-static void delete_timer(void)
-{
-	if (timer != NULL) {
-		ecore_timer_del(timer);
-		timer = NULL;
-	}
+	bluetooth.ad = data;
 }
 
 static void show_image_icon(void *data, int index)
 {
-	int i = 0;
-
 	if (index < LEVEL_MIN || index >= LEVEL_MAX)
 		index = LEVEL_MIN;
 
-	for (i=0 ; i<INDICATOR_WIN_MAX ; i++)
+	if(prevIndex == index)
 	{
-		bluetooth[i].img_obj.data = icon_path[index];
-		indicator_util_icon_show(&bluetooth[i]);
+		return;
 	}
+	bluetooth.img_obj.data = icon_path[index];
+	icon_show(&bluetooth);
+
+	prevIndex = index;
+	util_signal_emit(bluetooth.ad,"indicator.bluetooth.show","indicator.prog");
 }
 
 static void hide_image_icon(void)
 {
-	int i = 0;
-	for (i=0 ; i<INDICATOR_WIN_MAX ; i++)
-	{
-		indicator_util_icon_hide(&bluetooth[i]);
-	}
-}
+	icon_hide(&bluetooth);
 
-static Eina_Bool indicator_bluetooth_multidev_cb(void *data)
-{
-	static int i = 0;
-
-	retif(data == NULL, ECORE_CALLBACK_CANCEL, "Invalid parameter!");
-
-	show_image_icon(data, LEVEL_BT_CONNECTED + i);
-	i = (++i % 2) ? i : 0;
-
-	return ECORE_CALLBACK_RENEW;
+	prevIndex = -1;
+	util_signal_emit(bluetooth.ad,"indicator.bluetooth.hide","indicator.prog");
 }
 
 #define NO_DEVICE			(0x00)
@@ -147,75 +118,55 @@ static Eina_Bool indicator_bluetooth_multidev_cb(void *data)
 
 static void show_bluetooth_icon(void *data, int status)
 {
-	INFO("Bluetooth status = %d", status);
-
 	if (status == NO_DEVICE) {
 		show_image_icon(data, LEVEL_BT_NOT_CONNECTED);
 		return;
 	}
-	if (status & DATA_TRANSFER) {
-		if(bt_transferring != EINA_TRUE) {
-			bt_transferring	= EINA_TRUE;
-		}
-		return;
-	}
-
-	if ((status & HEADSET_CONNECTED) && (status & DEVICE_CONNECTED)) {
-		INFO("BT_MULTI_DEVICE_CONNECTED");
-		timer = ecore_timer_add(TIMER_INTERVAL,
-					indicator_bluetooth_multidev_cb, data);
-		return;
-	}
 
 	if (status & HEADSET_CONNECTED) {
-		INFO("BT_HEADSET_CONNECTED");
 		show_image_icon(data, LEVEL_BT_HEADSET);
 	} else if (status & DEVICE_CONNECTED) {
-		INFO("BT_DEVICE_CONNECTED");
 		show_image_icon(data, LEVEL_BT_CONNECTED);
 	}
 	return;
 }
 
+static void indicator_bluetooth_adapter_state_changed_cb(int result, bt_adapter_state_e adapter_state, void *user_data)
+{
+	DBG("BT STATUS: %d", adapter_state);
+	if (adapter_state != BT_ADAPTER_ENABLED)    // If adapter_state is NULL. hide_image_icon().
+	{
+		DBG("BT is not enabled. So hide BT icon.");
+		hide_image_icon();
+	}
+}
+
 static void indicator_bluetooth_change_cb(keynode_t *node, void *data)
 {
-	int status, dev;
-	int ret;
+	DBG("indicator_bluetooth_change_cb");
+	int dev = 0;
+	int ret = 0;
 	int result = NO_DEVICE;
+	bt_adapter_state_e adapter_state = BT_ADAPTER_DISABLED;
 
 	retif(data == NULL, , "Invalid parameter!");
 
-	if(indicator_util_get_update_flag()==0)
-	{
+	if (icon_get_update_flag() == 0) {
 		updated_while_lcd_off = 1;
-		DBG("need to update %d",updated_while_lcd_off);
 		return;
 	}
 	updated_while_lcd_off = 0;
 
-	ret = vconf_get_int(VCONFKEY_BT_STATUS, &status);
-	if (ret == OK) {
-		INFO("BT STATUS: %d", status);
-		if (!(status & VCONFKEY_BT_STATUS_TRANSFER)) {
-			if (bt_transferring == EINA_TRUE) {
-				bt_transferring = EINA_FALSE;
-			}
-		}
-
-		if (status == VCONFKEY_BT_STATUS_OFF) {
-			hide_image_icon();
-			return;
-		} else if (status & VCONFKEY_BT_STATUS_TRANSFER) {
-			INFO("BT TRASFER!");
-			result = (result | DATA_TRANSFER);
-			show_bluetooth_icon(data, result);
-			return;
-		}
+	ret = bt_adapter_get_state(&adapter_state);
+	retif(ret != BT_ERROR_NONE, , "bt_adapter_get_state failed");
+	if (adapter_state != BT_ADAPTER_ENABLED) {  // If adapter_state is NULL. hide_image_icon().
+		DBG("BT is not enabled. So don't need to update BT icon.");
+		return;
 	}
 
 	ret = vconf_get_int(VCONFKEY_BT_DEVICE, &dev);
 	if (ret == OK) {
-		INFO("BT DEVICE: %d", dev);
+		DBG("Show BT ICON (BT DEVICE: %d)", dev);
 
 		if (dev == VCONFKEY_BT_DEVICE_NONE) {
 			show_bluetooth_icon(data, NO_DEVICE);
@@ -224,40 +175,25 @@ static void indicator_bluetooth_change_cb(keynode_t *node, void *data)
 		if ((dev & VCONFKEY_BT_DEVICE_HEADSET_CONNECTED) ||
 		    (dev & VCONFKEY_BT_DEVICE_A2DP_HEADSET_CONNECTED)) {
 			result = (result | HEADSET_CONNECTED);
-			INFO("BT_HEADSET_CONNECTED(%x)", result);
+			DBG("BT_HEADSET_CONNECTED(%x)", result);
 		}
-		if (((dev & VCONFKEY_BT_DEVICE_SAP_CONNECTED)) ||
-		    (dev & VCONFKEY_BT_DEVICE_PBAP_CONNECTED)) {
+		if ((dev & VCONFKEY_BT_DEVICE_SAP_CONNECTED)
+		|| (dev & VCONFKEY_BT_DEVICE_PBAP_CONNECTED)
+		|| (dev & VCONFKEY_BT_DEVICE_HID_CONNECTED)
+		|| (dev & VCONFKEY_BT_DEVICE_PAN_CONNECTED)) {
 			result = (result | DEVICE_CONNECTED);
-			INFO("BT_DEVICE_CONNECTED(%x)", result);
+			DBG("BT_DEVICE_CONNECTED(%x)", result);
 		}
 		show_bluetooth_icon(data, result);
 	}
 	return;
 }
 
-static void indicator_bluetooth_pm_state_change_cb(keynode_t *node, void *data)
-{
-	int status = 0;
 
-	retif(data == NULL, , "Invalid parameter!");
-
-	vconf_get_int(VCONFKEY_PM_STATE, &status);
-
-	if(status == VCONFKEY_PM_STATE_LCDOFF)
-	{
-		if (timer != NULL) {
-			ecore_timer_del(timer);
-			timer = NULL;
-		}
-	}
-}
 
 static int wake_up_cb(void *data)
 {
-	if(updated_while_lcd_off==0&&bluetooth[0].obj_exist==EINA_FALSE)
-	{
-		DBG("ICON WAS NOT UPDATED");
+	if(updated_while_lcd_off == 0 && bluetooth.obj_exist == EINA_FALSE) {
 		return OK;
 	}
 
@@ -265,65 +201,74 @@ static int wake_up_cb(void *data)
 	return OK;
 }
 
+#ifdef _SUPPORT_SCREEN_READER
+static char *access_info_cb(void *data, Evas_Object *obj)
+{
+	char *tmp = NULL;
+	char buf[256] = {0,};
+
+	switch(prevIndex)
+	{
+		case LEVEL_BT_NOT_CONNECTED:
+			snprintf(buf, sizeof(buf), "%s, %s", _("IDS_IDLE_BODY_BLUETOOTH_ON"),_("IDS_IDLE_BODY_STATUS_BAR_ITEM"));
+			break;
+		case LEVEL_BT_CONNECTED:
+			snprintf(buf, sizeof(buf), "%s, %s", _("Bluetooth On and Connected"),_("IDS_IDLE_BODY_STATUS_BAR_ITEM"));
+			break;
+		case LEVEL_BT_HEADSET:
+			snprintf(buf, sizeof(buf), "%s, %s", _("Bluetooth On and Connected headset"),_("IDS_IDLE_BODY_STATUS_BAR_ITEM"));
+			break;
+	}
+
+	tmp = strdup(buf);
+	if (!tmp) return NULL;
+	return tmp;
+}
+#endif
+
 static int register_bluetooth_module(void *data)
 {
 	int r = 0, ret = -1;
+	bt_adapter_state_e adapter_state = BT_ADAPTER_DISABLED;
 
 	retif(data == NULL, FAIL, "Invalid parameter!");
 
 	set_app_state(data);
 
-	ret = vconf_notify_key_changed(VCONFKEY_BT_STATUS,
-				       indicator_bluetooth_change_cb, data);
-	if (ret != OK) {
-		ERR("Failed to register callback!");
-		r = ret;
-	}
+	// Register bluetooth adapter state call-back.
+	ret = bt_initialize();
+	if(ret != BT_ERROR_NONE) ERR("bt_initialize failed");
+	ret = bt_adapter_set_state_changed_cb(indicator_bluetooth_adapter_state_changed_cb, data);
+	if(ret != BT_ERROR_NONE) ERR("bt_adapter_set_state_changed_cb failed");
 
 	ret = vconf_notify_key_changed(VCONFKEY_BT_DEVICE,
-				       indicator_bluetooth_change_cb, data);
+					indicator_bluetooth_change_cb, data);
 	if (ret != OK) {
-		ERR("Failed to register callback!");
 		r = r | ret;
 	}
 
-	ret = vconf_notify_key_changed(VCONFKEY_PM_STATE,
-				       indicator_bluetooth_pm_state_change_cb, data);
-	if (ret != OK) {
-		ERR("Failed to register callback!");
-		r = r | ret;
-	}
+	ret = bt_adapter_get_state(&adapter_state);
+	retif(ret != BT_ERROR_NONE, -1, "bt_adapter_get_state failed");
 
 	indicator_bluetooth_change_cb(NULL, data);
+	indicator_bluetooth_adapter_state_changed_cb(0, adapter_state, data);
 
 	return r;
 }
 
 static int unregister_bluetooth_module(void)
 {
-	int ret;
+	int ret = 0;
 
-	ret = vconf_ignore_key_changed(VCONFKEY_BT_STATUS,
-				       indicator_bluetooth_change_cb);
-	if (ret != OK)
-		ERR("Failed to unregister callback!");
-
-	ret = vconf_ignore_key_changed(VCONFKEY_BT_DEVICE,
-				       indicator_bluetooth_change_cb);
-	if (ret != OK)
-		ERR("Failed to unregister callback!");
-
-	ret = vconf_ignore_key_changed(VCONFKEY_PM_STATE,
-				       indicator_bluetooth_pm_state_change_cb);
-	if (ret != OK)
-		ERR("Failed to unregister callback!");
+	// Unregister bluetooth adapter state call-back.
+	ret = bt_adapter_unset_state_changed_cb();
+	if(ret != BT_ERROR_NONE) ERR("bt_adapter_unset_state_changed_cb failed");
+	ret = bt_deinitialize();
+	if(ret != BT_ERROR_NONE) ERR("bt_deinitialize failed");
 
 
-	delete_timer();
+	ret = ret | vconf_ignore_key_changed(VCONFKEY_BT_DEVICE,
+					indicator_bluetooth_change_cb);
 
-	if (bt_transferring == EINA_TRUE) {
-		bt_transferring = EINA_FALSE;
-	}
-
-	return OK;
+	return ret;
 }

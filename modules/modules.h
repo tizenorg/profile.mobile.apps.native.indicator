@@ -1,17 +1,20 @@
 /*
- * Copyright 2012  Samsung Electronics Co., Ltd
+ *  Indicator
  *
- * Licensed under the Flora License, Version 1.1 (the "License");
+ * Copyright (c) 2000 - 2015 Samsung Electronics Co., Ltd. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *  http://floralicense.org/license/
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
 
 
@@ -19,16 +22,22 @@
 #define __INDICATOR_MODULES_H__
 
 #include <Ecore.h>
-#include "indicator_ui.h"
-#include "indicator_icon_list.h"
+
+#include "main.h"
+#include "list.h"
 
 #define TIMER_STOP	ECORE_CALLBACK_CANCEL
 #define TIMER_CONTINUE	ECORE_CALLBACK_RENEW
 
-void indicator_init_modules(void *data);
-void indicator_fini_modules(void *data);
-void indicator_lang_changed_modules(void *data);
-void indicator_region_changed_modules(void *data);
-void indicator_minictrl_control_modules(int action, const char* name, void *data);
-void indicator_wake_up_modules(void *data);
+extern void modules_init(void *data);
+extern void modules_fini(void *data);
+extern void modules_lang_changed(void *data);
+extern void modules_region_changed(void *data);
+extern void modules_minictrl_control(int action, const char* name, void *data);
+extern void modules_wake_up(void *data);
+extern void modules_init_first(void *data);
+
+#ifdef _SUPPORT_SCREEN_READER
+extern void modules_register_tts(void *data);
+#endif
 #endif
