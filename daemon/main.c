@@ -666,7 +666,7 @@ static void _create_win(void* data)
 
 //	root = ecore_x_window_root_first_get();
 //	ecore_x_window_size_get(root, &root_w, &root_h);
-
+#if 1
 	if (root_w > qHD_RESOLUTION_WIDTH) { // HD
 		_D("Window w, h (%d,%d)", root_w, root_h);
 		ad->win.port_w = root_w;
@@ -683,11 +683,15 @@ static void _create_win(void* data)
 		ad->win.land_w = root_h;
 		ad->win.h = INDICATOR_HEIGHT_qHD;
 	}
+#endif
 
 	/* Create socket window */
 	ad->win.win = elm_win_add(NULL, "portrait_indicator", ELM_WIN_SOCKET_IMAGE);
 	indi_name = "elm_indicator";
 	elm_win_title_set(ad->win.win, "win sock test:port");
+
+	/*FIXME*/
+
 	ad->win.w = root_w;
 
 	ret_if(!(ad->win.win));
@@ -706,15 +710,6 @@ static void _create_win(void* data)
 	evas_object_size_hint_fill_set(ad->win.win , EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
 	evas_object_size_hint_align_set(ad->win.win , 1.0, 0.5);
 
-	/* make illume2 recognize indicator window */
-	xwin = elm_win_xwindow_get(ad->win.win );
-//	ecore_x_icccm_hints_set(xwin, 0, 0, 0, 0, 0, 0, 0);
-//	states[0] = ECORE_X_WINDOW_STATE_SKIP_TASKBAR;
-//	states[1] = ECORE_X_WINDOW_STATE_SKIP_PAGER;
-//	ecore_x_netwm_window_state_set(xwin, states, 2);
-
-//	zone = ecore_x_e_illume_zone_get(xwin);
-//	ecore_x_event_mask_set(zone, ECORE_X_EVENT_MASK_WINDOW_CONFIGURE);
 	ad->win.evas = evas_object_evas_get(ad->win.win);
 
 	ad->win.layout = _create_layout(ad->win.win, EDJ_FILE0, GRP_MAIN);
@@ -1182,9 +1177,7 @@ int main(int argc, char *argv[])
 	event_callback.resume = app_resume;
 	event_callback.app_control = app_service;
 
-	ui_app_add_event_handler(&handlers[APP_EVENT_LOW_MEMORY], APP_EVENT_LOW_MEMORY, NULL, NULL);
 	ui_app_add_event_handler(&handlers[APP_EVENT_LOW_BATTERY], APP_EVENT_LOW_BATTERY, _indicator_low_bat_cb, NULL);
-	ui_app_add_event_handler(&handlers[APP_EVENT_DEVICE_ORIENTATION_CHANGED], APP_EVENT_DEVICE_ORIENTATION_CHANGED, NULL, NULL);
 	ui_app_add_event_handler(&handlers[APP_EVENT_LANGUAGE_CHANGED], APP_EVENT_LANGUAGE_CHANGED, _indicator_lang_changed_cb, &ad);
 	ui_app_add_event_handler(&handlers[APP_EVENT_REGION_FORMAT_CHANGED], APP_EVENT_REGION_FORMAT_CHANGED, _indicator_region_changed_cb, NULL);
 

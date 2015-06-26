@@ -11,7 +11,8 @@ Group:      utils
 License:    Apache-2.0
 Source0:    %{name}-%{version}.tar.gz
 Source1:    indicator.service.system
-Source101:  indicator.service
+Source2:    indicator.path
+#Source101:  indicator.service
 
 %if "%{?tizen_profile_name}" == "wearable"
 ExcludeArch: %{arm} %ix86 x86_64
@@ -102,12 +103,14 @@ cp -f LICENSE %{buildroot}/usr/share/license/%{PKGNAME}
 %define tizen_author_sign 1
 %define tizen_dist_sign 1
 
-install -d %{buildroot}%{_libdir}/systemd/user/core-efl.target.wants
-install -m0644 %{SOURCE101} %{buildroot}%{_libdir}/systemd/user/
-ln -sf ../indicator.service %{buildroot}%{_libdir}/systemd/user/core-efl.target.wants/indicator.service
-mkdir -p %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants
-install -m 0644 %SOURCE1 %{buildroot}%{_libdir}/systemd/system/indicator.service
-ln -s ../indicator.service %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants/indicator.service
+#install -d %{buildroot}/usr/lib/systemd/user/core-efl.target.wants
+#install -m0644 %{SOURCE101} %{buildroot}/usr/lib/systemd/user/
+#ln -sf ../indicator.service %{buildroot}/usr/lib/systemd/user/core-efl.target.wants/indicator.service
+mkdir -p %{buildroot}/usr/lib/systemd/system/multi-user.target.wants
+install -m 0644 %SOURCE1 %{buildroot}/usr/lib/systemd/system/indicator.service
+ln -s ../indicator.service %{buildroot}/usr/lib/systemd/system/multi-user.target.wants/indicator.service
+install -m 0644 %SOURCE2 %{buildroot}/usr/lib/systemd/system/indicator.path
+ln -s ../indicator.path %{buildroot}/usr/lib/systemd/system/multi-user.target.wants/
 
 %clean
 rm -rf %{buildroot}
@@ -126,10 +129,12 @@ vconftool set -t int memory/private/%{PKGNAME}/show_more_noti_port 0 -i -g 6518 
 /usr/share/packages/%{PKGNAME}.xml
 %attr(775,app,app) %{PREFIXRW}/data
 %attr(755,-,-) %{_sysconfdir}/init.d/indicator
-%{_libdir}/systemd/user/core-efl.target.wants/indicator.service
-%{_libdir}/systemd/user/indicator.service
-%{_libdir}/systemd/system/multi-user.target.wants/indicator.service
-%{_libdir}/systemd/system/indicator.service
+#/usr/lib/systemd/user/core-efl.target.wants/indicator.service
+#/usr/lib/systemd/user/indicator.service
+/usr/lib/systemd/system/multi-user.target.wants/indicator.service
+/usr/lib/systemd/system/indicator.service
+/usr/lib/systemd/system/multi-user.target.wants/indicator.path
+/usr/lib/systemd/system/indicator.path
 /usr/share/license/%{PKGNAME}
 /etc/smack/accesses.d/%{PKGNAME}.efl
 /usr/apps/%{PKGNAME}/author-signature.xml
