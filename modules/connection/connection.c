@@ -37,7 +37,6 @@
 #include "util.h"
 #include "box.h"
 #include "log.h"
-#include "network/rssi.h"
 
 #define ICON_PRIORITY	INDICATOR_PRIORITY_FIXED5
 #define MODULE_NAME		"connection"
@@ -289,9 +288,7 @@ static void on_noti(TapiHandle *handle_obj, const char *noti_id, void *data, voi
 		}
 	}
 
-	int index = rssi_get_sim_number(handle_obj);
-	default_subscription = ad->tel_info[index].prefered_data;
-
+	default_subscription = ad->tel_info.prefered_data;
 	if(default_subscription == TAPI_NETWORK_DEFAULT_DATA_SUBS_UNKNOWN)
 	{
 		hide_image_icon();
@@ -309,13 +306,15 @@ static void on_noti(TapiHandle *handle_obj, const char *noti_id, void *data, voi
 			}
 		}
 
-		val = ad->tel_info[0].network_service_type;
-		ps_type = ad->tel_info[0].network_ps_type;
+		val = ad->tel_info.network_service_type;
+		ps_type = ad->tel_info.network_ps_type;
 
 		DBG("TAPI_NETWORK_DEFAULT_DATA_SUBS_SIM1 %d",val);
 		DBG("TAPI_NETWORK_DEFAULT_DATA_SUBS_SIM1 %d",ps_type);
 		_show_proper_icon(val,ps_type, user_data);
 	}
+	/* FIXME : remove? */
+#if 0
 	else
 	{
 		int ret = 0;
@@ -336,6 +335,7 @@ static void on_noti(TapiHandle *handle_obj, const char *noti_id, void *data, voi
 		DBG("TAPI_NETWORK_DEFAULT_DATA_SUBS_SIM2 %d",ps_type);
 		_show_proper_icon(val,ps_type, user_data);
 	}
+#endif
 }
 
 
@@ -580,11 +580,11 @@ static void dnet_state_callback(keynode_t *node, void *data)
 
 
 
-static void dnet2_state_callback(keynode_t *node, void *data)
+/*static void dnet2_state_callback(keynode_t *node, void *data)
 {
 	DBG("dnet_state_callback");
 	on_noti(tapi_handle[1], NULL, NULL, data);
-}
+}*/
 
 
 

@@ -666,7 +666,7 @@ static void _create_win(void* data)
 
 //	root = ecore_x_window_root_first_get();
 //	ecore_x_window_size_get(root, &root_w, &root_h);
-#if 1
+#if 0
 	if (root_w > qHD_RESOLUTION_WIDTH) { // HD
 		_D("Window w, h (%d,%d)", root_w, root_h);
 		ad->win.port_w = root_w;
@@ -687,14 +687,28 @@ static void _create_win(void* data)
 
 	/* Create socket window */
 	ad->win.win = elm_win_add(NULL, "portrait_indicator", ELM_WIN_SOCKET_IMAGE);
+	ret_if(!(ad->win.win));
 	indi_name = "elm_indicator";
 	elm_win_title_set(ad->win.win, "win sock test:port");
 
-	/*FIXME*/
+	/* FIXME : get indicator width and height withour ecore_x API */
+	elm_win_screen_size_get(ad->win.win, NULL, NULL, &root_w, &root_h);
+	_D("Window w (%d)", root_w);
 
+	if (root_w > qHD_RESOLUTION_WIDTH) { // HD
+		ad->win.port_w = root_w;
+		ad->win.land_w = 1280;
+		ad->win.h = root_h;
+	} else if (root_w < qHD_RESOLUTION_WIDTH) { // WVGA
+		ad->win.port_w = root_w;
+		ad->win.land_w = 800;
+		ad->win.h = root_h;
+	} else { // qHD
+		ad->win.port_w = root_w;
+		ad->win.land_w = 960;
+		ad->win.h = root_h;
+	}
 	ad->win.w = root_w;
-
-	ret_if(!(ad->win.win));
 
 	if (!elm_win_socket_listen(ad->win.win , indi_name, 0, EINA_FALSE)) {
 		_E("failed 1st to elm_win_socket_listen() %x", ad->win.win);
@@ -810,13 +824,11 @@ static void _init_win_info(void * data)
 
 static void _init_tel_info(void * data)
 {
-	int i = 0;
 	struct appdata *ad = data;
-	retif(data == NULL, , "Invalid parameter!");
 
-	for(i = 0; i < SIM_CNT_MAX; i++) {
-		memset(&(ad->tel_info[i]),0x00,sizeof(telephony_info));
-	}
+	ret_if(!ad);
+
+	memset(&(ad->tel_info), 0x00, sizeof(telephony_info));
 }
 
 

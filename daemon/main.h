@@ -84,8 +84,6 @@
 
 #define MSG_DOMAIN_CONTROL_ACCESS (int)ECORE_X_ATOM_E_ILLUME_ACCESS_CONTROL
 
-#define SIM_CNT_MAX 2
-
 enum _win_type {
 	/* Clock view */
 	TOP_WIN_NORMAL = 0,
@@ -122,7 +120,7 @@ typedef struct _telephony_info
 struct appdata {
 
 	win_info win;
-	telephony_info tel_info[SIM_CNT_MAX];
+	telephony_info tel_info;
 	int prefered_data;	// Data prefered
 	Evas_Object* win_overlay;
 
