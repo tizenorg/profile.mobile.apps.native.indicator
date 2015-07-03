@@ -1,13 +1,5 @@
 <manifest>
-	<define>
-		<domain name="org.tizen.indicator"/>
-	</define>
-	<assign>
-		<filesystem path="/etc/init.d/indicator" label="_" exec_label="none"/>
-		<filesystem path="/etc/rc.d/rc5.d/S01indicator" label="_" exec_label="none"/>
-		<filesystem path="/etc/rc.d/rc3.d/S44indicator" label="_" exec_label="none"/>
-	</assign>
-	<request>
-		<domain name="org.tizen.indicator"/>
-	</request>
+        <request>
+                <domain name="_" />
+        </request>
 </manifest>

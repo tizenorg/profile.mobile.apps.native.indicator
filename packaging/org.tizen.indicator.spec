@@ -106,11 +106,16 @@ cp -f LICENSE %{buildroot}/usr/share/license/%{PKGNAME}
 #install -d %{buildroot}/usr/lib/systemd/user/core-efl.target.wants
 #install -m0644 %{SOURCE101} %{buildroot}/usr/lib/systemd/user/
 #ln -sf ../indicator.service %{buildroot}/usr/lib/systemd/user/core-efl.target.wants/indicator.service
-mkdir -p %{buildroot}/usr/lib/systemd/system/multi-user.target.wants
-install -m 0644 %SOURCE1 %{buildroot}/usr/lib/systemd/system/indicator.service
-ln -s ../indicator.service %{buildroot}/usr/lib/systemd/system/multi-user.target.wants/indicator.service
-install -m 0644 %SOURCE2 %{buildroot}/usr/lib/systemd/system/indicator.path
-ln -s ../indicator.path %{buildroot}/usr/lib/systemd/system/multi-user.target.wants/
+#mkdir -p %{buildroot}/usr/lib/systemd/system/multi-user.target.wants
+#install -m 0644 %SOURCE1 %{buildroot}/usr/lib/systemd/system/indicator.service
+#ln -s ../indicator.service %{buildroot}/usr/lib/systemd/system/multi-user.target.wants/indicator.service
+#install -m 0644 %SOURCE2 %{buildroot}/usr/lib/systemd/system/indicator.path
+#ln -s ../indicator.path %{buildroot}/usr/lib/systemd/system/multi-user.target.wants/
+mkdir -p %{buildroot}/usr/lib/systemd/user/default.target.wants
+install -m 0644 %SOURCE1 %{buildroot}/usr/lib/systemd/user/indicator.service
+ln -s ../indicator.service %{buildroot}/usr/lib/systemd/user/default.target.wants/indicator.service
+install -m 0644 %SOURCE2 %{buildroot}/usr/lib/systemd/user/indicator.path
+ln -s ../indicator.path %{buildroot}/usr/lib/systemd/user/default.target.wants/
 
 %clean
 rm -rf %{buildroot}
@@ -131,12 +136,16 @@ vconftool set -t int memory/private/%{PKGNAME}/show_more_noti_port 0 -i -g 6518 
 %attr(755,-,-) %{_sysconfdir}/init.d/indicator
 #/usr/lib/systemd/user/core-efl.target.wants/indicator.service
 #/usr/lib/systemd/user/indicator.service
-/usr/lib/systemd/system/multi-user.target.wants/indicator.service
-/usr/lib/systemd/system/indicator.service
-/usr/lib/systemd/system/multi-user.target.wants/indicator.path
-/usr/lib/systemd/system/indicator.path
+#/usr/lib/systemd/system/multi-user.target.wants/indicator.service
+#/usr/lib/systemd/system/indicator.service
+#/usr/lib/systemd/system/multi-user.target.wants/indicator.path
+#/usr/lib/systemd/system/indicator.path
+/usr/lib/systemd/user/default.target.wants/indicator.service
+/usr/lib/systemd/user/indicator.service
+/usr/lib/systemd/user/default.target.wants/indicator.path
+/usr/lib/systemd/user/indicator.path
 /usr/share/license/%{PKGNAME}
-/etc/smack/accesses.d/%{PKGNAME}.efl
+#/etc/smack/accesses.d/%{PKGNAME}.efl
 /usr/apps/%{PKGNAME}/author-signature.xml
 /usr/apps/%{PKGNAME}/signature1.xml
 /usr/apps/%{PKGNAME}/shared/res/tables/org.tizen.indicator_ChangeableColorInfo.xml
