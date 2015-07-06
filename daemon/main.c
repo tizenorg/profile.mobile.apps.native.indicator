@@ -693,22 +693,31 @@ static void _create_win(void* data)
 
 	/* FIXME : get indicator width and height withour ecore_x API */
 	elm_win_screen_size_get(ad->win.win, NULL, NULL, &root_w, &root_h);
-	_D("Window w (%d)", root_w);
+	_D("Window w,h (%d, %d)", root_w, root_h);
 
-	if (root_w > qHD_RESOLUTION_WIDTH) { // HD
-		ad->win.port_w = root_w;
+//	if (root_w > qHD_RESOLUTION_WIDTH) { // HD
+		ad->win.port_w = 720;
 		ad->win.land_w = 1280;
-		ad->win.h = root_h;
+		ad->win.h = 48;
+		/* FIXME */
+		root_w = 720;
+#if 0
 	} else if (root_w < qHD_RESOLUTION_WIDTH) { // WVGA
-		ad->win.port_w = root_w;
+		ad->win.port_w = 480;
 		ad->win.land_w = 800;
-		ad->win.h = root_h;
+		ad->win.h = 36;
+		/* FIXME */
+		root_w = 480;
 	} else { // qHD
-		ad->win.port_w = root_w;
+		ad->win.port_w = 540;
 		ad->win.land_w = 960;
-		ad->win.h = root_h;
+		ad->win.h = 38;
+		/* FIXME */
+		root_w = 540;
 	}
+#endif
 	ad->win.w = root_w;
+	_D("=============================== Window w, h (%d, %d)", ad->win.port_w, ad->win.h);
 
 	if (!elm_win_socket_listen(ad->win.win , indi_name, 0, EINA_FALSE)) {
 		_E("failed 1st to elm_win_socket_listen() %x", ad->win.win);
@@ -719,11 +728,12 @@ static void _create_win(void* data)
 		}
 		listen_timer =  ecore_timer_add(3, (void *)_indicator_listen_timer_cb, &(ad->win));
 	}
+#if 0
 	elm_win_alpha_set(ad->win.win , EINA_TRUE);
 	elm_win_borderless_set(ad->win.win , EINA_TRUE);
 	evas_object_size_hint_fill_set(ad->win.win , EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
 	evas_object_size_hint_align_set(ad->win.win , 1.0, 0.5);
-
+#endif
 	ad->win.evas = evas_object_evas_get(ad->win.win);
 
 	ad->win.layout = _create_layout(ad->win.win, EDJ_FILE0, GRP_MAIN);
