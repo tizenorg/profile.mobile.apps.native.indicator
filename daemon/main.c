@@ -89,7 +89,6 @@ static Eina_Bool home_button_pressed = EINA_FALSE;
 static Eina_Bool show_hide_pressed = EINA_FALSE;
 Evas_Coord_Point indicator_press_coord = {0,0};
 Ecore_Timer *clock_timer;
-static Ecore_Timer *listen_timer = NULL;
 int is_transparent = 0;
 int current_angle = 0;
 int current_state = 0;
@@ -608,26 +607,20 @@ static Evas_Object *_create_layout(Evas_Object * parent, const char *file, const
 	return layout;
 }
 
-static void _indicator_listen_timer_cb(void* data)
+static Eina_Bool _indicator_listen_timer_cb(void* data)
 {
-	char *indi_name = NULL;
 	win_info *win = NULL;
 
 	ret_if(!data);
 
 	win = (win_info*)data;
-	indi_name = "elm_indicator";
 
-	if (listen_timer != NULL) {
-		ecore_timer_del(listen_timer);
-		listen_timer = NULL;
-	}
-
-	if (!elm_win_socket_listen(win->win , indi_name, 0, EINA_FALSE)) {
+	if (!elm_win_socket_listen(win->win , INDICATOR_SERVICE_NAME, 0, EINA_FALSE)) {
 		_E("faile to elm_win_socket_listen() %x", win->win);
-		listen_timer =  ecore_timer_add(3, (void *)_indicator_listen_timer_cb, win);
+		return ECORE_CALLBACK_RENEW;
 	} else {
 		_D("listen success");
+		return ECORE_CALLBACK_CANCEL;
 	}
 }
 
@@ -649,7 +642,6 @@ static void _create_box(win_info *win)
 #define INDICATOR_HEIGHT_WVGA 36
 static void _create_win(void* data)
 {
-	char *indi_name = NULL;
 	struct appdata *ad = NULL;
 	Ecore_X_Window xwin;
 //	Ecore_X_Window zone;
@@ -686,10 +678,8 @@ static void _create_win(void* data)
 #endif
 
 	/* Create socket window */
-	ad->win.win = elm_win_add(NULL, "portrait_indicator", ELM_WIN_SOCKET_IMAGE);
+	ad->win.win = elm_win_add(NULL, "indicator", ELM_WIN_SOCKET_IMAGE);
 	ret_if(!(ad->win.win));
-	indi_name = "elm_indicator";
-	elm_win_title_set(ad->win.win, "win sock test:port");
 
 	/* FIXME : get indicator width and height withour ecore_x API */
 	elm_win_screen_size_get(ad->win.win, NULL, NULL, &root_w, &root_h);
@@ -719,14 +709,12 @@ static void _create_win(void* data)
 	ad->win.w = root_w;
 	_D("=============================== Window w, h (%d, %d)", ad->win.port_w, ad->win.h);
 
-	if (!elm_win_socket_listen(ad->win.win , indi_name, 0, EINA_FALSE)) {
+	if (!elm_win_socket_listen(ad->win.win , INDICATOR_SERVICE_NAME, 0, EINA_FALSE)) {
 		_E("failed 1st to elm_win_socket_listen() %x", ad->win.win);
 		/* Start timer */
-		if (listen_timer != NULL) {
-			ecore_timer_del(listen_timer);
-			listen_timer = NULL;
+		if (ecore_timer_add(3, _indicator_listen_timer_cb, &(ad->win))) {
+			_E("Failed to add timer object");
 		}
-		listen_timer =  ecore_timer_add(3, (void *)_indicator_listen_timer_cb, &(ad->win));
 	}
 #if 0
 	elm_win_alpha_set(ad->win.win , EINA_TRUE);
