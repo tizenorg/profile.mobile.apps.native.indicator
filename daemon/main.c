@@ -683,14 +683,14 @@ static void _create_win(void* data)
 
 	/* FIXME : get indicator width and height withour ecore_x API */
 	elm_win_screen_size_get(ad->win.win, NULL, NULL, &root_w, &root_h);
-	_D("Window w,h (%d, %d)", root_w, root_h);
+	_D("Window w, h (%d, %d)", root_w, root_h);
 
 //	if (root_w > qHD_RESOLUTION_WIDTH) { // HD
-		ad->win.port_w = 720;
-		ad->win.land_w = 1280;
-		ad->win.h = 48;
+		ad->win.port_w = 1440;
+		ad->win.land_w = 2560;
+		ad->win.h = 96;
 		/* FIXME */
-		root_w = 720;
+		root_w = 1440;
 #if 0
 	} else if (root_w < qHD_RESOLUTION_WIDTH) { // WVGA
 		ad->win.port_w = 480;
@@ -723,7 +723,13 @@ static void _create_win(void* data)
 	evas_object_size_hint_align_set(ad->win.win , 1.0, 0.5);
 #endif
 	ad->win.evas = evas_object_evas_get(ad->win.win);
-
+#if 0
+	Evas_Object *rect = evas_object_rectangle_add(ad->win.evas);
+	evas_object_resize(rect, 1440, 96);
+	evas_object_color_set(rect, 0, 0, 255, 255);
+	evas_object_show(rect);
+	evas_object_layer_set(rect, -256);
+#endif
 	ad->win.layout = _create_layout(ad->win.win, EDJ_FILE0, GRP_MAIN);
 	ret_if(!(ad->win.layout));
 
