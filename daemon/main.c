@@ -19,7 +19,6 @@
 
 #include <stdio.h>
 #include <app.h>
-//#include <Ecore_X.h>
 #include <vconf.h>
 #include <unistd.h>
 #include <privilege-control.h>
@@ -28,7 +27,6 @@
 #include <minicontrol-monitor.h>
 #include <feedback.h>
 #include <notification.h>
-//#include <notification_internal.h>
 #include <app_preference.h>
 #include <wifi.h>
 #if 0
@@ -636,19 +634,13 @@ static void _create_box(win_info *win)
 	return;
 }
 
-#define qHD_RESOLUTION_WIDTH 540
-#define INDICATOR_HEIGHT_HD 48
-#define INDICATOR_HEIGHT_qHD 38
-#define INDICATOR_HEIGHT_WVGA 36
+#define INDICATOR_HEIGHT_N4 96
 static void _create_win(void* data)
 {
 	struct appdata *ad = NULL;
-	Ecore_X_Window xwin;
-//	Ecore_X_Window zone;
-//	Ecore_X_Window_State states[2];
+	Evas_Object *dummy_win = NULL;
 	int root_w;
 	int root_h;
-//	Ecore_X_Window root;
 
 	ret_if(!data);
 
@@ -656,58 +648,21 @@ static void _create_win(void* data)
 
 	ad = data;
 
-//	root = ecore_x_window_root_first_get();
-//	ecore_x_window_size_get(root, &root_w, &root_h);
-#if 0
-	if (root_w > qHD_RESOLUTION_WIDTH) { // HD
-		_D("Window w, h (%d,%d)", root_w, root_h);
-		ad->win.port_w = root_w;
-		ad->win.land_w = root_h;
-		ad->win.h = INDICATOR_HEIGHT_HD;
-	} else if (root_w < qHD_RESOLUTION_WIDTH) { // WVGA
-		_D("Window w, h (%d,%d)", root_w, root_h);
-		ad->win.port_w = root_w;
-		ad->win.land_w = root_h;
-		ad->win.h = INDICATOR_HEIGHT_WVGA;
-	} else { // qHD
-		_D("Window w, h (%d,%d)", root_w, root_h);
-		ad->win.port_w = root_w;
-		ad->win.land_w = root_h;
-		ad->win.h = INDICATOR_HEIGHT_qHD;
-	}
-#endif
-
 	/* Create socket window */
 	ad->win.win = elm_win_add(NULL, "indicator", ELM_WIN_SOCKET_IMAGE);
 	ret_if(!(ad->win.win));
 
-	/* FIXME : get indicator width and height withour ecore_x API */
-	elm_win_screen_size_get(ad->win.win, NULL, NULL, &root_w, &root_h);
-	_D("Window w, h (%d, %d)", root_w, root_h);
+	dummy_win = elm_win_add(NULL, "indicator_dummy", ELM_WIN_BASIC);
+	ret_if(!dummy_win);
+	evas_object_del(dummy_win);
 
-//	if (root_w > qHD_RESOLUTION_WIDTH) { // HD
-		ad->win.port_w = 1440;
-		ad->win.land_w = 2560;
-		ad->win.h = 96;
-		/* FIXME */
-		root_w = 1440;
-#if 0
-	} else if (root_w < qHD_RESOLUTION_WIDTH) { // WVGA
-		ad->win.port_w = 480;
-		ad->win.land_w = 800;
-		ad->win.h = 36;
-		/* FIXME */
-		root_w = 480;
-	} else { // qHD
-		ad->win.port_w = 540;
-		ad->win.land_w = 960;
-		ad->win.h = 38;
-		/* FIXME */
-		root_w = 540;
-	}
-#endif
+	elm_win_screen_size_get(dummy_win, NULL, NULL, &root_w, &root_h);
+	_D("Dummy window w, h (%d, %d)", root_w, root_h);
+
+	ad->win.port_w = root_w;
+	ad->win.land_w = root_h;
+	ad->win.h = INDICATOR_HEIGHT_N4;
 	ad->win.w = root_w;
-	_D("=============================== Window w, h (%d, %d)", ad->win.port_w, ad->win.h);
 
 	if (!elm_win_socket_listen(ad->win.win , INDICATOR_SERVICE_NAME, 0, EINA_FALSE)) {
 		_E("failed 1st to elm_win_socket_listen() %x", ad->win.win);
@@ -804,7 +759,7 @@ static void create_overlay_win(void* data)
 
 //	zone = ecore_x_e_illume_zone_get(xwin);
 //	ecore_x_event_mask_set(zone, ECORE_X_EVENT_MASK_WINDOW_CONFIGURE);
-	evas_object_show(eo);
+//	evas_object_show(eo);
 
 	ad->win_overlay = eo;
 //	ad->atom_active = ecore_x_atom_get("_E_ACTIVE_INDICATOR_WIN");
@@ -1151,7 +1106,7 @@ static void app_service(app_control_h service, void *data)
 
 	_D("INDICATOR IS STARTED");
 
-	create_overlay_win(data);
+	//create_overlay_win(data);
 	register_event_handler(ad);
 	modules_init(data);
 #ifdef _SUPPORT_SCREEN_READER
