@@ -12,7 +12,6 @@ License:    Apache-2.0
 Source0:    %{name}-%{version}.tar.gz
 Source1:    indicator.service.system
 Source2:    indicator.path
-#Source101:  indicator.service
 
 %if "%{?tizen_profile_name}" == "wearable"
 ExcludeArch: %{arm} %ix86 x86_64
@@ -37,7 +36,6 @@ BuildRequires: pkgconfig(appcore-common)
 BuildRequires: pkgconfig(dlog)
 BuildRequires: pkgconfig(elementary)
 BuildRequires: pkgconfig(ecore)
-#BuildRequires: pkgconfig(ecore-x)
 BuildRequires: pkgconfig(ecore-evas)
 BuildRequires: pkgconfig(edje)
 BuildRequires: pkgconfig(evas)
@@ -45,7 +43,6 @@ BuildRequires: pkgconfig(eina)
 BuildRequires: pkgconfig(vconf)
 BuildRequires: pkgconfig(libprivilege-control)
 BuildRequires: pkgconfig(notification)
-#BuildRequires: pkgconfig(utilX)
 BuildRequires: pkgconfig(minicontrol-monitor)
 BuildRequires: pkgconfig(icu-io)
 BuildRequires: pkgconfig(feedback)
@@ -103,17 +100,8 @@ cp -f LICENSE %{buildroot}/usr/share/license/%{PKGNAME}
 %define tizen_author_sign 1
 %define tizen_dist_sign 1
 
-#install -d %{buildroot}/usr/lib/systemd/user/core-efl.target.wants
-#install -m0644 %{SOURCE101} %{buildroot}/usr/lib/systemd/user/
-#ln -sf ../indicator.service %{buildroot}/usr/lib/systemd/user/core-efl.target.wants/indicator.service
-#mkdir -p %{buildroot}/usr/lib/systemd/system/multi-user.target.wants
-#install -m 0644 %SOURCE1 %{buildroot}/usr/lib/systemd/system/indicator.service
-#ln -s ../indicator.service %{buildroot}/usr/lib/systemd/system/multi-user.target.wants/indicator.service
-#install -m 0644 %SOURCE2 %{buildroot}/usr/lib/systemd/system/indicator.path
-#ln -s ../indicator.path %{buildroot}/usr/lib/systemd/system/multi-user.target.wants/
 mkdir -p %{buildroot}/usr/lib/systemd/user/default.target.wants
 install -m 0644 %SOURCE1 %{buildroot}/usr/lib/systemd/user/indicator.service
-ln -s ../indicator.service %{buildroot}/usr/lib/systemd/user/default.target.wants/indicator.service
 install -m 0644 %SOURCE2 %{buildroot}/usr/lib/systemd/user/indicator.path
 ln -s ../indicator.path %{buildroot}/usr/lib/systemd/user/default.target.wants/
 
@@ -134,18 +122,10 @@ vconftool set -t int memory/private/%{PKGNAME}/show_more_noti_port 0 -i -g 6518 
 /usr/share/packages/%{PKGNAME}.xml
 %attr(775,app,app) %{PREFIXRW}/data
 %attr(755,-,-) %{_sysconfdir}/init.d/indicator
-#/usr/lib/systemd/user/core-efl.target.wants/indicator.service
-#/usr/lib/systemd/user/indicator.service
-#/usr/lib/systemd/system/multi-user.target.wants/indicator.service
-#/usr/lib/systemd/system/indicator.service
-#/usr/lib/systemd/system/multi-user.target.wants/indicator.path
-#/usr/lib/systemd/system/indicator.path
-/usr/lib/systemd/user/default.target.wants/indicator.service
 /usr/lib/systemd/user/indicator.service
 /usr/lib/systemd/user/default.target.wants/indicator.path
 /usr/lib/systemd/user/indicator.path
 /usr/share/license/%{PKGNAME}
-#/etc/smack/accesses.d/%{PKGNAME}.efl
 /usr/apps/%{PKGNAME}/author-signature.xml
 /usr/apps/%{PKGNAME}/signature1.xml
 /usr/apps/%{PKGNAME}/shared/res/tables/org.tizen.indicator_ChangeableColorInfo.xml
