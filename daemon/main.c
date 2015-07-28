@@ -652,13 +652,14 @@ static void _create_win(void* data)
 	ad->win.win = elm_win_add(NULL, "indicator", ELM_WIN_SOCKET_IMAGE);
 	ret_if(!(ad->win.win));
 
+	elm_win_alpha_set(ad->win.win, EINA_TRUE);
+
 	dummy_win = elm_win_add(NULL, "indicator_dummy", ELM_WIN_BASIC);
-	ret_if(!dummy_win);
-	evas_object_del(dummy_win);
-
-	elm_win_screen_size_get(dummy_win, NULL, NULL, &root_w, &root_h);
-	_D("Dummy window w, h (%d, %d)", root_w, root_h);
-
+	if (dummy_win) {
+		elm_win_screen_size_get(dummy_win, NULL, NULL, &root_w, &root_h);
+		evas_object_del(dummy_win);
+		_D("Dummy window w, h (%d, %d)", root_w, root_h);
+	}
 	ad->win.port_w = root_w;
 	ad->win.land_w = root_h;
 	ad->win.h = INDICATOR_HEIGHT_N4;
