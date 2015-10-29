@@ -27,7 +27,6 @@
 #include <Eina.h>
 #include <glib-object.h>
 
-#define INDICATOR_SHOW_MORE_NOTI_PORT "memory/private/"PACKAGE_NAME"/show_more_noti_port"
 #define VCONFKEY_APPTRAY_STATE "file/private/org.tizen.app-tray/is_top"
 
 #define FIXED_COUNT	11

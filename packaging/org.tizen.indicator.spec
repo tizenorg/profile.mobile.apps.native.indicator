@@ -109,7 +109,6 @@ ln -s ../indicator.path %{buildroot}/usr/lib/systemd/user/default.target.wants/
 rm -rf %{buildroot}
 
 %post
-vconftool set -t int memory/private/%{PKGNAME}/show_more_noti_port 0 -i -g 6518 -f -s %{PKGNAME}
 
 %postun -p /sbin/ldconfig
 

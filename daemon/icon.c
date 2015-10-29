@@ -766,9 +766,9 @@ static void _show_hide_more_noti(win_info* win,int val)
 	bShow = val;
 
 	if (val == 1) {
-		preference_set_int(INDICATOR_SHOW_MORE_NOTI_PORT, 1);
+		preference_set_int(VCONFKEY_INDICATOR_SHOW_MORE_NOTI, 1);
 	} else {
-		preference_set_int(INDICATOR_SHOW_MORE_NOTI_PORT, 0);
+		preference_set_int(VCONFKEY_INDICATOR_SHOW_MORE_NOTI, 0);
 	}
 }
 

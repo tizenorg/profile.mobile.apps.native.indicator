@@ -128,7 +128,7 @@ static void indicator_more_notify_change_cb(const char *key, void *data)
 
 	preference_get_int(key, &val);
 
-	if (strcmp(key, INDICATOR_SHOW_MORE_NOTI_PORT) == 0) {
+	if (strcmp(key, VCONFKEY_INDICATOR_SHOW_MORE_NOTI) == 0) {
 		win = &(ad->win);
 	} else {
 		SECURE_ERR("invalid val %s",key);
@@ -162,7 +162,7 @@ static int register_more_notify_module(void *data)
 
 	set_app_state(data);
 
-	preference_set_changed_cb(INDICATOR_SHOW_MORE_NOTI_PORT, indicator_more_notify_change_cb, data);
+	preference_set_changed_cb(VCONFKEY_INDICATOR_SHOW_MORE_NOTI, indicator_more_notify_change_cb, data);
 
 	return OK;
 }
@@ -171,7 +171,7 @@ static int register_more_notify_module(void *data)
 
 static int unregister_more_notify_module(void)
 {
-	preference_unset_changed_cb(INDICATOR_SHOW_MORE_NOTI_PORT);
+	preference_unset_changed_cb(VCONFKEY_INDICATOR_SHOW_MORE_NOTI);
 
 	return OK;
 }
