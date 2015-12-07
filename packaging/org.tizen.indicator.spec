@@ -13,11 +13,11 @@ Source0:    %{name}-%{version}.tar.gz
 Source1:    indicator.service.system
 Source2:    indicator.path
 
-%if "%{?tizen_profile_name}" == "wearable"
+%if "%{?profile}" == "wearable"
 ExcludeArch: %{arm} %ix86 x86_64
 %endif
 
-%if "%{?tizen_profile_name}"=="tv"
+%if "%{?profile}"=="tv"
 ExcludeArch: %{arm} %ix86 x86_64
 %endif
 
@@ -51,6 +51,7 @@ BuildRequires: pkgconfig(edbus)
 BuildRequires: pkgconfig(efl-assist)
 BuildRequires: pkgconfig(tapi)
 BuildRequires: pkgconfig(message-port)
+BuildRequires: pkgconfig(tzsh-quickpanel-service)
 
 BuildRequires: cmake
 BuildRequires: edje-tools

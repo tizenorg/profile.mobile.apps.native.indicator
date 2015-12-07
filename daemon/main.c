@@ -29,6 +29,7 @@
 #include <notification.h>
 #include <app_preference.h>
 #include <wifi.h>
+#include <tzsh.h>
 #if 0
 #include <app_manager_product.h>
 #endif
@@ -91,6 +92,13 @@ int is_transparent = 0;
 int current_angle = 0;
 int current_state = 0;
 static int bFirst_opacity = 1;
+
+static struct _s_info {
+	Ecore_Timer *listen_timer;
+} s_info = {
+	.listen_timer = NULL,
+};
+
 
 static int _window_new(void *data);
 static int _window_del(void *data);
@@ -359,12 +367,12 @@ static Eina_Bool _active_indicator_handle(void* data,int type)
 static Eina_Bool _property_changed_cb(void *data, int type, void *event)
 {
 #if 0
-//	Ecore_X_Event_Window_Property *ev = event;
-	struct appdata *ad = NULL;
+	struct appdata *ad = data;
+	Ecore_X_Event_Window_Property *ev = event;
 
-	ad = data;
-	retv_if(!data, EINA_FALSE);
-//	retv_if(!ev, EINA_FALSE);
+	retv_if(!ad, ECORE_CALLBACK_PASS_ON);
+	retv_if(!ev, ECORE_CALLBACK_PASS_ON);
+
 	if (ev->atom == ECORE_X_ATOM_E_ILLUME_ROTATE_WINDOW_ANGLE) {
 		if (ev->win == ad->active_indi_win) {
 			_active_indicator_handle(data, 2);
@@ -378,8 +386,11 @@ static Eina_Bool _property_changed_cb(void *data, int type, void *event)
 
 		Ecore_X_Window active_win;
 
-		ret = ecore_x_window_prop_window_get(elm_win_xwindow_get(ad->win_overlay), ad->atom_active, &(active_win), 1);
-		if (ret == -1) return EINA_FALSE;
+		ret = ecore_x_window_prop_window_get(ecore_x_window_root_first_get(), ad->atom_active, &(active_win), 1);
+		if (ret <= -1) {
+			_E("Count of fetched items : %d", ret);
+			return ECORE_CALLBACK_PASS_ON;
+		}
 
 		if (active_win != ad->active_indi_win) {
 			if (ad->active_indi_win != -1) {
@@ -389,16 +400,13 @@ static Eina_Bool _property_changed_cb(void *data, int type, void *event)
 			ad->active_indi_win = active_win;
 
 			ecore_x_window_sniff(ad->active_indi_win);
-			if (indicator_message_retry_check()) {
-				indicator_message_display_trigger();
-			}
 		}
 
 		_active_indicator_handle(data, 1);
 		_active_indicator_handle(data, 2);
 	}
 #endif
-	return EINA_TRUE;
+	return ECORE_CALLBACK_PASS_ON;
 }
 
 #if 0
@@ -528,6 +536,10 @@ static void register_event_handler(void *data)
 //	Ecore_Event_Handler *hdl = NULL;
 	ret_if(!data);
 
+	ad->active_indi_win = -1;
+	//ad->atom_active = ecore_x_atom_get("_NET_ACTIVE_WINDOW");
+	//ecore_x_window_sniff(ecore_x_window_root_first_get());
+
 	_register_event_handler_both(&(ad->win),data);
 
 #if 0
@@ -586,38 +598,38 @@ static int unregister_event_handler(void *data)
 	return OK;
 }
 
-static Evas_Object *_create_layout(Evas_Object * parent, const char *file, const char *group)
+static void _create_layout(struct appdata *ad, const char *file, const char *group)
 {
-	Evas_Object *layout = NULL;
-	int ret;
+	ad->win.layout = elm_layout_add(ad->win.win);
+	ret_if(!ad->win.layout);
 
-	layout = elm_layout_add(parent);
-	if (layout) {
-		ret = elm_layout_file_set(layout, file, group);
-		if (!ret) {
-			evas_object_del(layout);
-			return NULL;
-		}
-		evas_object_size_hint_weight_set(layout, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-		elm_win_resize_object_add(parent, layout);
+	if (EINA_FALSE == elm_layout_file_set(ad->win.layout, file, group)) {
+		_E("Failed to set file of layout");
+		evas_object_del(ad->win.layout);
+		return NULL;
 	}
 
-	return layout;
+	evas_object_size_hint_min_set(ad->win.layout, ad->win.w, ad->win.h);
+	//evas_object_size_hint_weight_set(ad->win.layout, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+	elm_win_resize_object_add(ad->win.win, ad->win.layout);
+	evas_object_move(ad->win.layout, 0, 0);
+	evas_object_show(ad->win.layout);
 }
 
 static Eina_Bool _indicator_listen_timer_cb(void* data)
 {
-	win_info *win = NULL;
+	win_info *win = data;
 
-	ret_if(!data);
+	retv_if(!win, ECORE_CALLBACK_CANCEL);
 
-	win = (win_info*)data;
+	//win = (win_info*)data;
 
 	if (!elm_win_socket_listen(win->win , INDICATOR_SERVICE_NAME, 0, EINA_FALSE)) {
 		_E("faile to elm_win_socket_listen() %x", win->win);
 		return ECORE_CALLBACK_RENEW;
 	} else {
 		_D("listen success");
+		s_info.listen_timer = NULL;
 		return ECORE_CALLBACK_CANCEL;
 	}
 }
@@ -637,16 +649,12 @@ static void _create_box(win_info *win)
 #define INDICATOR_HEIGHT_N4 96
 static void _create_win(void* data)
 {
-	struct appdata *ad = NULL;
+	struct appdata *ad = data;
 	Evas_Object *dummy_win = NULL;
-	int root_w;
-	int root_h;
 
-	ret_if(!data);
+	ret_if(!ad);
 
 	_D("Window created");
-
-	ad = data;
 
 	/* Create socket window */
 	ad->win.win = elm_win_add(NULL, "indicator", ELM_WIN_SOCKET_IMAGE);
@@ -656,131 +664,62 @@ static void _create_win(void* data)
 
 	dummy_win = elm_win_add(NULL, "indicator_dummy", ELM_WIN_BASIC);
 	if (dummy_win) {
-		elm_win_screen_size_get(dummy_win, NULL, NULL, &root_w, &root_h);
+		elm_win_screen_size_get(dummy_win, NULL, NULL, &ad->win.port_w, &ad->win.land_w);
 		evas_object_del(dummy_win);
-		_D("Dummy window w, h (%d, %d)", root_w, root_h);
+		_D("Dummy window w, h (%d, %d)", ad->win.port_w, ad->win.land_w);
+	} else {
+		_E("Critical error. Cannot create window");
 	}
-	ad->win.port_w = root_w;
-	ad->win.land_w = root_h;
-	ad->win.h = INDICATOR_HEIGHT_N4;
-	ad->win.w = root_w;
 
 	if (!elm_win_socket_listen(ad->win.win , INDICATOR_SERVICE_NAME, 0, EINA_FALSE)) {
-		_E("failed 1st to elm_win_socket_listen() %x", ad->win.win);
-		/* Start timer */
-		if (ecore_timer_add(3, _indicator_listen_timer_cb, &(ad->win))) {
-			_E("Failed to add timer object");
+		_E("Failed 1st to elm_win_socket_listen() %x", ad->win.win);
+
+		if (s_info.listen_timer != NULL) {
+			ecore_timer_del(s_info.listen_timer);
+			s_info.listen_timer = NULL;
 		}
+		s_info.listen_timer = ecore_timer_add(3, _indicator_listen_timer_cb, &(ad->win));
 	}
-#if 0
+
+	/* FIXME */
+	ad->win.h = INDICATOR_HEIGHT_N4;
+	ad->win.w = ad->win.port_w;
+	ad->win.evas = evas_object_evas_get(ad->win.win);
+
+	_D("win_size = Original(%d, %d), Scaled(%lf, %lf)", ad->win.port_w, ad->win.h, ELM_SCALE_SIZE(ad->win.port_w), ELM_SCALE_SIZE(ad->win.h));
+#if 0 /* For test */
 	elm_win_alpha_set(ad->win.win , EINA_TRUE);
 	elm_win_borderless_set(ad->win.win , EINA_TRUE);
 	evas_object_size_hint_fill_set(ad->win.win , EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
 	evas_object_size_hint_align_set(ad->win.win , 1.0, 0.5);
-#endif
-	ad->win.evas = evas_object_evas_get(ad->win.win);
-#if 0
+
 	Evas_Object *rect = evas_object_rectangle_add(ad->win.evas);
 	evas_object_resize(rect, 1440, 96);
 	evas_object_color_set(rect, 0, 0, 255, 255);
 	evas_object_show(rect);
 	evas_object_layer_set(rect, -256);
 #endif
-	ad->win.layout = _create_layout(ad->win.win, EDJ_FILE0, GRP_MAIN);
-	ret_if(!(ad->win.layout));
-
-	_D("win_size = Original(%d, %d), Scaled(%lf, %lf)", ad->win.port_w, ad->win.h, ELM_SCALE_SIZE(ad->win.port_w), ELM_SCALE_SIZE(ad->win.h));
-
-	evas_object_resize(ad->win.win, ad->win.port_w, ad->win.h);
-	evas_object_move(ad->win.win, 0, 0);
+	_create_layout(ad, EDJ_FILE0, GRP_MAIN);
 
 	_create_box(&(ad->win));
 
 	ad->win.data = data;
 
-	evas_object_show(ad->win.layout);
 	evas_object_show(ad->win.win);
 
 	return;
 }
 
-
-
-static void create_overlay_win(void* data)
-{
-	struct appdata *ad = data;
-
-	Evas_Object *eo;
-	int w, h;
-	int indi_h;
-//	int id = -1;
-	Ecore_X_Window xwin;
-//	Ecore_X_Window zone;
-//	Ecore_X_Window_State states[2];
-//	Ecore_X_Atom ATOM_MV_INDICATOR_GEOMETRY = 0;
-
-	indi_h = (int)ELM_SCALE_SIZE(INDICATOR_HEIGHT);
-
-	ad->active_indi_win = -1;
-
-	eo = elm_win_add(NULL, "INDICATOR", ELM_WIN_BASIC);
-	/*id = elm_win_aux_hint_add(eo, "wm.policy.win.user.geometry", "1");
-	if(id == -1) {
-		_E("Cannot add user.geometry");
-		return;
-	}*/
-	elm_win_title_set(eo, "INDICATOR");
-	elm_win_borderless_set(eo, EINA_TRUE);
-	//ecore_x_window_size_get(ecore_x_window_root_first_get(), &w, &h);
-
-	_D("win_size = Original(%d, %d), Scaled(%lf, %lf)", 2,2, ELM_SCALE_SIZE(2), ELM_SCALE_SIZE(2));
-	evas_object_resize(eo, ELM_SCALE_SIZE(2), ELM_SCALE_SIZE(2));
-
-	evas_object_move(eo , 0, 0);
-	elm_win_alpha_set(eo, EINA_TRUE);
-
-	xwin = elm_win_xwindow_get(eo);
-//	ecore_x_icccm_hints_set(xwin, 0, 0, 0, 0, 0, 0, 0);
-//	states[0] = ECORE_X_WINDOW_STATE_SKIP_TASKBAR;
-//	states[1] = ECORE_X_WINDOW_STATE_SKIP_PAGER;
-//	ecore_x_netwm_window_state_set(xwin, states, 2);
-
-//	ecore_x_icccm_name_class_set(xwin, "INDICATOR", "INDICATOR");
-
-//	ecore_x_netwm_window_type_set(xwin, ECORE_X_WINDOW_TYPE_DOCK);
-
-	unsigned int ind_gio_val[16] = { 0, 0, w, indi_h,    /* angle 0 (x,y,w,h) */
-				  						0, 0, indi_h, h,   /* angle 90 (x,y,w,h) */
-				  						0, h-indi_h, w, indi_h, /* angle 180 (x,y,w,h) */
-				  						w-indi_h, 0, indi_h, h /* angle 270 (x,y,w,h) */  };
-
-//	ATOM_MV_INDICATOR_GEOMETRY = ecore_x_atom_get(STR_ATOM_MV_INDICATOR_GEOMETRY);
-
-//	ecore_x_window_prop_card32_set(xwin, ATOM_MV_INDICATOR_GEOMETRY, ind_gio_val, 16);
-
-//	zone = ecore_x_e_illume_zone_get(xwin);
-//	ecore_x_event_mask_set(zone, ECORE_X_EVENT_MASK_WINDOW_CONFIGURE);
-//	evas_object_show(eo);
-
-	ad->win_overlay = eo;
-//	ad->atom_active = ecore_x_atom_get("_E_ACTIVE_INDICATOR_WIN");
-
-	return ;
-}
-
-
-
 static void _init_win_info(void * data)
 {
 	struct appdata *ad = data;
-	retif(data == NULL, , "Invalid parameter!");
+
+	ret_if(!ad);
 
 	memset(&(ad->win),0x00,sizeof(win_info));
 
-	ad->win_overlay = NULL;
+	//ad->win_overlay = NULL;
 }
-
-
 
 static void _init_tel_info(void * data)
 {
@@ -791,11 +730,9 @@ static void _init_tel_info(void * data)
 	memset(&(ad->tel_info), 0x00, sizeof(telephony_info));
 }
 
-
-
 static int _window_new(void *data)
 {
-	retif(data == NULL, FAIL, "Invalid parameter!");
+	retv_if(!data, NULL);
 
 	_init_win_info(data);
 	_init_tel_info(data);
@@ -805,8 +742,6 @@ static int _window_new(void *data)
 
 	return INDICATOR_ERROR_NONE;
 }
-
-
 
 static int _window_del(void *data)
 {
@@ -1107,7 +1042,6 @@ static void app_service(app_control_h service, void *data)
 
 	_D("INDICATOR IS STARTED");
 
-	//create_overlay_win(data);
 	register_event_handler(ad);
 	modules_init(data);
 #ifdef _SUPPORT_SCREEN_READER

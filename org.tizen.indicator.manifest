@@ -1,5 +1,8 @@
 <manifest>
-        <request>
-                <domain name="_"/>
-        </request>
+	<request>
+		<domain name="_"/>
+	</request>
+	<assign>
+		<filesystem path="/usr/apps/org.tizen.indicator/bin/indicator" exec_label="User::App::org.tizen.indicator" />
+	</assign>
 </manifest>

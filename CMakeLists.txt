@@ -78,6 +78,7 @@ pkg_check_modules(pkgs REQUIRED
 	pkgmgr-info
 	efl-assist
 	tapi
+	tzsh-quickpanel-service
 )
 
 FOREACH(flag ${pkgs_CFLAGS})
