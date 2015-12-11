@@ -21,7 +21,6 @@
 #include <app.h>
 #include <vconf.h>
 #include <unistd.h>
-#include <privilege-control.h>
 #include <app_manager.h>
 #include <signal.h>
 #include <minicontrol-monitor.h>
@@ -29,7 +28,7 @@
 #include <notification.h>
 #include <app_preference.h>
 #include <wifi.h>
-#include <tzsh.h>
+#include <tzsh_indicator_service.h>
 #if 0
 #include <app_manager_product.h>
 #endif
@@ -48,7 +47,7 @@
 #include "indicator.h"
 #include "ticker.h"
 
-#define GRP_MAIN "indicator"
+#define GRP_NAME "indicator"
 #define WIN_TITLE "Illume Indicator"
 #define VCONF_PHONE_STATUS "memory/startapps/sequence"
 
@@ -100,8 +99,9 @@ static struct _s_info {
 };
 
 
-static int _window_new(void *data);
-static int _window_del(void *data);
+static indicator_error_e _start_indicator(void *data);
+static indicator_error_e _terminate_indicator(void *data);
+
 static void _indicator_low_bat_cb(app_event_info_h event_info, void *data);
 static void _indicator_lang_changed_cb(app_event_info_h event_info, void *data);
 static void _indicator_region_changed_cb(app_event_info_h event_info, void *data);
@@ -130,7 +130,7 @@ static void _indicator_window_delete_cb(void *data, Evas_Object * obj, void *eve
 {
 	ret_if(!data);
 
-	_window_del((struct appdata *)data);
+	_terminate_indicator((struct appdata *)data);
 }
 
 static void _indicator_notify_pm_state_cb(keynode_t * node, void *data)
@@ -530,6 +530,12 @@ static void _register_event_handler_both(win_info *win, void *data)
 	ecore_evas_data_set(ee,"indicator_app_data",data);
 }
 
+/* FIXME */
+static void _indicator_service_cb(void *data, tzsh_indicator_service_h service, int angle, int opacity)
+{
+	_D("Indicator service callback");
+}
+
 static void register_event_handler(void *data)
 {
 	struct appdata *ad = data;
@@ -541,6 +547,11 @@ static void register_event_handler(void *data)
 	//ecore_x_window_sniff(ecore_x_window_root_first_get());
 
 	_register_event_handler_both(&(ad->win),data);
+
+	/* FIXME */
+	if (ad->indicator_service) {
+		tzsh_indicator_service_property_change_cb_set(ad->indicator_service, _indicator_service_cb, NULL);
+	}
 
 #if 0
 	hdl = ecore_event_handler_add(ECORE_X_EVENT_CLIENT_MESSAGE, _indicator_client_message_cb, (void *)ad);
@@ -610,28 +621,11 @@ static void _create_layout(struct appdata *ad, const char *file, const char *gro
 	}
 
 	evas_object_size_hint_min_set(ad->win.layout, ad->win.w, ad->win.h);
-	//evas_object_size_hint_weight_set(ad->win.layout, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+	/* FIXME */
+	evas_object_size_hint_weight_set(ad->win.layout, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
 	elm_win_resize_object_add(ad->win.win, ad->win.layout);
 	evas_object_move(ad->win.layout, 0, 0);
 	evas_object_show(ad->win.layout);
-}
-
-static Eina_Bool _indicator_listen_timer_cb(void* data)
-{
-	win_info *win = data;
-
-	retv_if(!win, ECORE_CALLBACK_CANCEL);
-
-	//win = (win_info*)data;
-
-	if (!elm_win_socket_listen(win->win , INDICATOR_SERVICE_NAME, 0, EINA_FALSE)) {
-		_E("faile to elm_win_socket_listen() %x", win->win);
-		return ECORE_CALLBACK_RENEW;
-	} else {
-		_D("listen success");
-		s_info.listen_timer = NULL;
-		return ECORE_CALLBACK_CANCEL;
-	}
 }
 
 static void _create_box(win_info *win)
@@ -646,17 +640,74 @@ static void _create_box(win_info *win)
 	return;
 }
 
-#define INDICATOR_HEIGHT_N4 96
-static void _create_win(void* data)
+static indicator_error_e _tzsh_set(struct appdata* ad)
 {
-	struct appdata *ad = data;
-	Evas_Object *dummy_win = NULL;
+	tzsh_window tz_win;
 
+	retv_if(!ad, INDICATOR_ERROR_INVALID_PARAMETER);
+	retv_if(!ad->win.win, INDICATOR_ERROR_INVALID_PARAMETER);
+
+	ad->tzsh = tzsh_create(TZSH_TOOLKIT_TYPE_EFL);
+	retv_if(!ad->tzsh, INDICATOR_ERROR_FAIL);
+
+	tz_win = elm_win_window_id_get(ad->win.win);
+	if (!tz_win) {
+		tzsh_destroy(ad->tzsh);
+		_E("Failed to get Tizen window");
+		/* FIXME */
+		//return INDICATOR_ERROR_FAIL;
+		return INDICATOR_ERROR_NONE;
+	}
+
+	ad->indicator_service = tzsh_indicator_service_create(ad->tzsh, tz_win);
+	if (!ad->indicator_service) {
+		tzsh_destroy(ad->tzsh);
+		_E("Failed to create Tizen window indicator service");
+		return INDICATOR_ERROR_FAIL;
+	}
+
+	return INDICATOR_ERROR_NONE;
+}
+
+static void _tzsh_unset(struct appdata *ad)
+{
 	ret_if(!ad);
 
-	_D("Window created");
+	if (ad->indicator_service) {
+		tzsh_indicator_service_destroy(ad->indicator_service);
+		ad->indicator_service = NULL;
+	}
 
-	/* Create socket window */
+	if (ad->tzsh) {
+		tzsh_destroy(ad->tzsh);
+		ad->tzsh = NULL;
+	}
+}
+
+static Eina_Bool _indicator_listen_timer_cb(void* data)
+{
+	win_info *win = data;
+
+	retv_if(!win, ECORE_CALLBACK_CANCEL);
+
+	//win = (win_info*)data;
+
+	if (!elm_win_socket_listen(win->win , INDICATOR_SERVICE_NAME, 0, EINA_FALSE)) {
+		_E("failed to elm_win_socket_listen() %x", win->win);
+		return ECORE_CALLBACK_RENEW;
+	} else {
+		_D("listen success");
+		s_info.listen_timer = NULL;
+		return ECORE_CALLBACK_CANCEL;
+	}
+}
+
+static void _create_window(struct appdata *ad)
+{
+	Evas_Object *dummy_win = NULL;
+
+	_D("Create window");
+
 	ad->win.win = elm_win_add(NULL, "indicator", ELM_WIN_SOCKET_IMAGE);
 	ret_if(!(ad->win.win));
 
@@ -668,7 +719,7 @@ static void _create_win(void* data)
 		evas_object_del(dummy_win);
 		_D("Dummy window w, h (%d, %d)", ad->win.port_w, ad->win.land_w);
 	} else {
-		_E("Critical error. Cannot create window");
+		_E("Critical error. Cannot create dummy window");
 	}
 
 	if (!elm_win_socket_listen(ad->win.win , INDICATOR_SERVICE_NAME, 0, EINA_FALSE)) {
@@ -681,31 +732,53 @@ static void _create_win(void* data)
 		s_info.listen_timer = ecore_timer_add(3, _indicator_listen_timer_cb, &(ad->win));
 	}
 
-	/* FIXME */
-	ad->win.h = INDICATOR_HEIGHT_N4;
-	ad->win.w = ad->win.port_w;
-	ad->win.evas = evas_object_evas_get(ad->win.win);
-
-	_D("win_size = Original(%d, %d), Scaled(%lf, %lf)", ad->win.port_w, ad->win.h, ELM_SCALE_SIZE(ad->win.port_w), ELM_SCALE_SIZE(ad->win.h));
-#if 0 /* For test */
 	elm_win_alpha_set(ad->win.win , EINA_TRUE);
+	/* FIXME */
 	elm_win_borderless_set(ad->win.win , EINA_TRUE);
 	evas_object_size_hint_fill_set(ad->win.win , EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
 	evas_object_size_hint_align_set(ad->win.win , 1.0, 0.5);
 
-	Evas_Object *rect = evas_object_rectangle_add(ad->win.evas);
-	evas_object_resize(rect, 1440, 96);
-	evas_object_color_set(rect, 0, 0, 255, 255);
-	evas_object_show(rect);
-	evas_object_layer_set(rect, -256);
-#endif
-	_create_layout(ad, EDJ_FILE0, GRP_MAIN);
+	evas_object_show(ad->win.win);
+
+}
+
+#define INDICATOR_HEIGHT_TM1 52
+static void _create_base_gui(void* data)
+{
+	struct appdata *ad = data;
+	Evas_Object *dummy_win = NULL;
+
+	ret_if(!ad);
+
+	_D("Start to create base gui");
+
+	_create_window(ad);
+
+	if (INDICATOR_ERROR_NONE != _tzsh_set(ad)) {
+		_E("Failed to set tzsh");
+	}
+
+	/* FIXME */
+	ad->win.h = INDICATOR_HEIGHT_TM1;
+	ad->win.w = ad->win.port_w;
+	ad->win.evas = evas_object_evas_get(ad->win.win);
+
+	//_D("win_size = Original(%d, %d), Scaled(%lf, %lf)", ad->win.port_w, ad->win.h, ELM_SCALE_SIZE(ad->win.port_w), ELM_SCALE_SIZE(ad->win.h));
+
+	_create_layout(ad, EDJ_FILE, GRP_NAME);
 
 	_create_box(&(ad->win));
 
 	ad->win.data = data;
 
-	evas_object_show(ad->win.win);
+#if 0 /* For test */
+	Evas_Object *rect = evas_object_rectangle_add(ad->win.evas);
+	ret_if(!rect);
+	evas_object_resize(rect, 720, 52);
+	evas_object_color_set(rect, 0, 0, 255, 255);
+	evas_object_show(rect);
+	evas_object_layer_set(rect, -256);
+#endif
 
 	return;
 }
@@ -717,8 +790,6 @@ static void _init_win_info(void * data)
 	ret_if(!ad);
 
 	memset(&(ad->win),0x00,sizeof(win_info));
-
-	//ad->win_overlay = NULL;
 }
 
 static void _init_tel_info(void * data)
@@ -730,43 +801,51 @@ static void _init_tel_info(void * data)
 	memset(&(ad->tel_info), 0x00, sizeof(telephony_info));
 }
 
-static int _window_new(void *data)
+static indicator_error_e _start_indicator(void *data)
 {
-	retv_if(!data, NULL);
+	retv_if(!data, INDICATOR_ERROR_INVALID_PARAMETER);
 
 	_init_win_info(data);
 	_init_tel_info(data);
 
 	/* Create indicator window */
-	_create_win(data);
+	_create_base_gui(data);
 
 	return INDICATOR_ERROR_NONE;
 }
 
-static int _window_del(void *data)
+static indicator_error_e _terminate_indicator(void *data)
 {
-	struct appdata *ad = (struct appdata *)data;
+	struct appdata *ad = data;
 
-	retif(data == NULL, FAIL, "Invalid parameter!");
+	retv_if(!ad, INDICATOR_ERROR_INVALID_PARAMETER);
 
 	modules_fini(data);
 	unregister_event_handler(ad);
 
 	box_fini(&(ad->win));
-	evas_image_cache_flush(ad->win.evas);
-	evas_object_del(ad->win.layout);
-	ad->win.layout = NULL;
 
-	evas_object_del(ad->win.win);
-	ad->win.win = NULL;
+	if (ad->win.evas)
+		evas_image_cache_flush(ad->win.evas);
 
-	evas_object_del(ad->win_overlay);
-	ad->win_overlay = NULL;
+	if (ad->win.layout) {
+		evas_object_del(ad->win.layout);
+		ad->win.layout = NULL;
+	}
 
-	if (ad) free(ad);
+	if (ad->win.win) {
+		evas_object_del(ad->win.win);
+		ad->win.win = NULL;
+	}
+
+	_tzsh_unset(ad);
+
+	if (ad)
+		free(ad);
 
 	elm_exit();
-	return OK;
+
+	return INDICATOR_ERROR_NONE;
 }
 
 static void __indicator_set_showhide_press(int value, int line)
@@ -964,32 +1043,33 @@ static void _signal_handler(int signum, siginfo_t *info, void *unused)
 
 static bool app_create(void *data)
 {
-	struct appdata *ad = NULL;
+	struct appdata *ad = data;
 	int ret;
 
-	ad = data;
-	elm_app_base_scale_set(1.7);
+	retv_if(!ad, false);
+
+	elm_app_base_scale_set(2.6);
 
 	/* Signal handler */
 	struct sigaction act;
-	memset(&act,0x00,sizeof(struct sigaction));
+	memset(&act, 0x00, sizeof(struct sigaction));
 	act.sa_sigaction = _signal_handler;
 	act.sa_flags = SA_SIGINFO;
 
 	ret = sigemptyset(&act.sa_mask);
 	if (ret < 0) {
-		ERR("Failed to sigemptyset[%s]", strerror(errno));
+		_E("Failed to sigemptyset[%s]", strerror(errno));
 	}
 	ret = sigaddset(&act.sa_mask, SIGTERM);
 	if (ret < 0) {
-		ERR("Failed to sigaddset[%s]", strerror(errno));
+		_E("Failed to sigaddset[%s]", strerror(errno));
 	}
 	ret = sigaction(SIGTERM, &act, NULL);
 	if (ret < 0) {
-		ERR("Failed to sigaction[%s]", strerror(errno));
+		_E("Failed to sigaction[%s]", strerror(errno));
 	}
 
-	ret = _window_new(ad);
+	ret = _start_indicator(ad);
 	if (ret != INDICATOR_ERROR_NONE) {
 		_D("Failed to create a new window!");
 	}
@@ -1071,11 +1151,6 @@ int main(int argc, char *argv[])
 	int ret = 0;
 
 	_D("Start indicator");
-
-	ret = perm_app_set_privilege("org.tizen.", NULL, NULL);
-	if (ret != PC_OPERATION_SUCCESS) {
-		_E("[INDICATOR] Failed to set privilege (%d)", ret);
-	}
 
 	event_callback.create = app_create;
 	event_callback.terminate = app_terminate;

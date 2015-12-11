@@ -41,7 +41,6 @@ BuildRequires: pkgconfig(edje)
 BuildRequires: pkgconfig(evas)
 BuildRequires: pkgconfig(eina)
 BuildRequires: pkgconfig(vconf)
-BuildRequires: pkgconfig(libprivilege-control)
 BuildRequires: pkgconfig(notification)
 BuildRequires: pkgconfig(minicontrol-monitor)
 BuildRequires: pkgconfig(icu-io)
@@ -51,7 +50,7 @@ BuildRequires: pkgconfig(edbus)
 BuildRequires: pkgconfig(efl-assist)
 BuildRequires: pkgconfig(tapi)
 BuildRequires: pkgconfig(message-port)
-BuildRequires: pkgconfig(tzsh-quickpanel-service)
+BuildRequires: pkgconfig(tzsh-indicator-service)
 
 BuildRequires: cmake
 BuildRequires: edje-tools

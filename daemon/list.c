@@ -83,7 +83,8 @@ static Eina_List *_insert_icon_to_list(Eina_List *list, icon_s *icon)
 	Eina_List *l;
 	icon_s *data;
 
-	retv_if(!list, NULL);
+	/* FIXME */
+	//retv_if(!list, NULL);
 	retv_if(!icon, NULL);
 
 	/* Insert icon to list */

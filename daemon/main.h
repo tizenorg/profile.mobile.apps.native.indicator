@@ -24,6 +24,7 @@
 #include <Elementary.h>
 //#include <Ecore_X.h>
 #include <efl_assist.h>
+#include <tzsh_indicator_service.h>
 #include "indicator.h"
 
 #if !defined(PACKAGE)
@@ -50,8 +51,7 @@
 #  define CHANGEABLEDIR "/usr/apps/org.tizen.indicator/shared/res/tables"
 #endif
 
-#define EDJ_FILE0 EDJDIR"/"PACKAGE"_port.edj"
-#define EDJ_FILE1 EDJDIR"/"PACKAGE"_land.edj"
+#define EDJ_FILE EDJDIR"/"PACKAGE"_port.edj"
 #define ICON_THEME_FILE EDJDIR"/"PACKAGE"_icon_theme.edj"
 #define ICON_NONFIXED_THEME_FILE EDJDIR"/"PACKAGE"_icon_nonfixed_theme.edj"
 #define ICON_NONFIXED_THEME_ANI_FILE EDJDIR"/"PACKAGE"_icon_animation.edj"
@@ -125,6 +125,10 @@ struct appdata {
 	telephony_info tel_info;
 	int prefered_data;	// Data prefered
 	Evas_Object* win_overlay;
+
+	/* FIXME */
+	tzsh_h tzsh;
+	tzsh_indicator_service_h indicator_service;
 
 	double scale;
 	int angle;

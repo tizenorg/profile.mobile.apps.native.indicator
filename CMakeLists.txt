@@ -69,7 +69,6 @@ pkg_check_modules(pkgs REQUIRED
 	evas
 	eina
 	edbus
-	libprivilege-control
 	notification
 #	utilX
 	vconf
@@ -78,7 +77,7 @@ pkg_check_modules(pkgs REQUIRED
 	pkgmgr-info
 	efl-assist
 	tapi
-	tzsh-quickpanel-service
+	tzsh-indicator-service
 )
 
 FOREACH(flag ${pkgs_CFLAGS})

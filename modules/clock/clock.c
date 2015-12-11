@@ -256,7 +256,7 @@ static void indicator_clock_changed_cb(void *data)
 	}
 
 	_D("[CLOCK MODULE] Timer Status : %d Time: %s", clock_timer, result);
-	util_part_text_emit(data,"elm.text.clock", result);
+	util_part_text_emit(data, "elm.text.clock", result);
 
 	return;
 }
