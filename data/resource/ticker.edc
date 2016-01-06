@@ -22,7 +22,7 @@
  
 collections
 {
-	base_scale: 2.6;
+	base_scale: 1.7;
 
 	group {
 		name: "quickpanel/tickernoti/text";

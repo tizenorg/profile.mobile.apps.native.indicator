@@ -22,7 +22,7 @@
 #include "indicator_common.edc"
 
 collections {
-	base_scale: 1.7;
+	base_scale: 2.6;
 
 	group {
 		name: "elm/indicator/icon/base";

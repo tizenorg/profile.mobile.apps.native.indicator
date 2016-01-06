@@ -702,6 +702,7 @@ static Eina_Bool _indicator_listen_timer_cb(void* data)
 	}
 }
 
+#define INDICATOR_HEIGHT_TM1 52
 static void _create_window(struct appdata *ad)
 {
 	Evas_Object *dummy_win = NULL;
@@ -738,11 +739,13 @@ static void _create_window(struct appdata *ad)
 	evas_object_size_hint_fill_set(ad->win.win , EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
 	evas_object_size_hint_align_set(ad->win.win , 1.0, 0.5);
 
+	evas_object_resize(ad->win.win, ad->win.port_w, INDICATOR_HEIGHT_TM1);
+	_D("w,h(%d,%d)", ad->win.port_w, INDICATOR_HEIGHT_TM1);
+
 	evas_object_show(ad->win.win);
 
 }
 
-#define INDICATOR_HEIGHT_TM1 52
 static void _create_base_gui(void* data)
 {
 	struct appdata *ad = data;
@@ -763,13 +766,11 @@ static void _create_base_gui(void* data)
 	ad->win.w = ad->win.port_w;
 	ad->win.evas = evas_object_evas_get(ad->win.win);
 
-	//_D("win_size = Original(%d, %d), Scaled(%lf, %lf)", ad->win.port_w, ad->win.h, ELM_SCALE_SIZE(ad->win.port_w), ELM_SCALE_SIZE(ad->win.h));
+	_D("win_size = Original(%d, %d), Scaled(%lf, %lf)", ad->win.port_w, ad->win.h, ELM_SCALE_SIZE(ad->win.port_w), ELM_SCALE_SIZE(ad->win.h));
 
 	_create_layout(ad, EDJ_FILE, GRP_NAME);
-
 	_create_box(&(ad->win));
 
-	ad->win.data = data;
 
 #if 0 /* For test */
 	Evas_Object *rect = evas_object_rectangle_add(ad->win.evas);
@@ -779,6 +780,7 @@ static void _create_base_gui(void* data)
 	evas_object_show(rect);
 	evas_object_layer_set(rect, -256);
 #endif
+	ad->win.data = data;
 
 	return;
 }
