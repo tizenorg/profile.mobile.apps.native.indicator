@@ -215,9 +215,9 @@ static void _indicator_lock_status_cb(keynode_t * node, void *data)
 		else util_signal_emit(data,"clock.font.24","indicator.prog");
 		break;
 	case VCONFKEY_IDLE_LOCK:
-	/*case VCONFKEY_IDLE_LAUNCHING_LOCK:
+	case VCONFKEY_IDLE_LAUNCHING_LOCK:
 		util_signal_emit(data,"clock.invisible","indicator.prog");
-		break;*/
+		break;
 	default:
 		break;
 	}
@@ -1137,7 +1137,7 @@ static void app_service(app_control_h service, void *data)
 #ifdef _SUPPORT_SCREEN_READER2
 	indicator_service_tts_init(data);
 #endif
-	_indicator_lock_status_cb(NULL,data);
+	_indicator_lock_status_cb(NULL, data);
 #if 0
 	register_app_terminate_cb(data);
 #endif

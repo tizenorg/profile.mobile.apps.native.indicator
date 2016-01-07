@@ -198,17 +198,14 @@ void util_launch_search(void* data)
 	app_control_h service;
 	int ret = APP_CONTROL_ERROR_NONE;
 
-	lock_ret = vconf_get_int(VCONFKEY_IDLE_LOCK_STATE,
-			&lock_state);
+	lock_ret = vconf_get_int(VCONFKEY_IDLE_LOCK_STATE, &lock_state);
 
 	/* In Lock Screen, home button don't have to do */
-	if (lock_ret == 0 && lock_state == VCONFKEY_IDLE_LOCK)
-	{
+	if (lock_ret == 0 && lock_state == VCONFKEY_IDLE_LOCK) {
 		return;
 	}
 
-	if (util_check_system_status() == FAIL)
-	{
+	if (util_check_system_status() == FAIL) {
 		DBG("util_check_system_status failed");
 		return;
 	}
@@ -219,13 +216,11 @@ void util_launch_search(void* data)
 
 	ret = app_control_send_launch_request(service, NULL, NULL);
 
-	if(ret != APP_CONTROL_ERROR_NONE)
-	{
+	if(ret != APP_CONTROL_ERROR_NONE) {
 		ERR("Cannot launch app");
 	}
 
 	app_control_destroy(service);
-
 }
 
 
