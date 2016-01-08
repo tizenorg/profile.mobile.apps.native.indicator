@@ -4,8 +4,8 @@ After=launchpad-preload.service wm_ready.service
 
 [Service]
 EnvironmentFile=/run/tizen-system-env
-#ExecStart=/usr/apps/org.tizen.indicator/bin/indicator
-ExecStart=/usr/bin/app_launcher -s org.tizen.indicator
+ExecStart=/usr/apps/org.tizen.indicator/bin/indicator
+#ExecStart=/usr/bin/app_launcher -s org.tizen.indicator
 Restart=always
 RestartSec=0
 OOMScoreAdjust=200
