@@ -1,11 +1,12 @@
 [Unit]
 Description=Start the indicator
-After=launchpad-preload.service wm_ready.service
+Requires=ac.service
+After=launchpad-preload.service wm_ready.service ac.service
 
 [Service]
 EnvironmentFile=/run/tizen-system-env
-ExecStart=/usr/apps/org.tizen.indicator/bin/indicator
-#ExecStart=/usr/bin/app_launcher -s org.tizen.indicator
+#ExecStart=/usr/apps/org.tizen.indicator/bin/indicator
+ExecStart=/usr/bin/app_launcher -s org.tizen.indicator __LAUNCH_APP_MODE__ SYNC
 Restart=always
 RestartSec=0
 OOMScoreAdjust=200
