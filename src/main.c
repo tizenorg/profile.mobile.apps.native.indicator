@@ -28,7 +28,10 @@
 #include <notification.h>
 #include <app_preference.h>
 #include <wifi.h>
+//FIXME
+#if 0
 #include <tzsh_indicator_service.h>
+#endif
 #if 0
 #include <app_manager_product.h>
 #endif
@@ -531,10 +534,12 @@ static void _register_event_handler_both(win_info *win, void *data)
 }
 
 /* FIXME */
+#if 0
 static void _indicator_service_cb(void *data, tzsh_indicator_service_h service, int angle, int opacity)
 {
 	_D("Indicator service callback");
 }
+#endif
 
 static void register_event_handler(void *data)
 {
@@ -549,9 +554,11 @@ static void register_event_handler(void *data)
 	_register_event_handler_both(&(ad->win),data);
 
 	/* FIXME */
+#if 0
 	if (ad->indicator_service) {
 		tzsh_indicator_service_property_change_cb_set(ad->indicator_service, _indicator_service_cb, NULL);
 	}
+#endif
 
 #if 0
 	hdl = ecore_event_handler_add(ECORE_X_EVENT_CLIENT_MESSAGE, _indicator_client_message_cb, (void *)ad);
@@ -640,6 +647,8 @@ static void _create_box(win_info *win)
 	return;
 }
 
+//FIXME
+#if 0
 static indicator_error_e _tzsh_set(struct appdata* ad)
 {
 	tzsh_window tz_win;
@@ -683,6 +692,7 @@ static void _tzsh_unset(struct appdata *ad)
 		ad->tzsh = NULL;
 	}
 }
+#endif
 
 static Eina_Bool _indicator_listen_timer_cb(void* data)
 {
@@ -757,9 +767,12 @@ static void _create_base_gui(void* data)
 
 	_create_window(ad);
 
+	//FIXME
+#if 0
 	if (INDICATOR_ERROR_NONE != _tzsh_set(ad)) {
 		_E("Failed to set tzsh");
 	}
+#endif
 
 	/* FIXME */
 	ad->win.h = INDICATOR_HEIGHT_TM1;
@@ -840,7 +853,10 @@ static indicator_error_e _terminate_indicator(void *data)
 		ad->win.win = NULL;
 	}
 
+	//FIXME
+#if 0
 	_tzsh_unset(ad);
+#endif
 
 	if (ad)
 		free(ad);

@@ -24,7 +24,10 @@
 #include <Elementary.h>
 //#include <Ecore_X.h>
 #include <efl_assist.h>
+//FIXME
+#if 0
 #include <tzsh_indicator_service.h>
+#endif
 #include "indicator.h"
 
 #if !defined(PACKAGE)
@@ -127,8 +130,10 @@ struct appdata {
 	Evas_Object* win_overlay;
 
 	/* FIXME */
+#if 0
 	tzsh_h tzsh;
 	tzsh_indicator_service_h indicator_service;
+#endif
 
 	double scale;
 	int angle;
