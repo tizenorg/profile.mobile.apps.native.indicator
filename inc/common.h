@@ -28,8 +28,7 @@
 #define OK		(0)
 #define FAIL	(-1)
 
-#ifdef _DLOG_USED
-//#define LOG_TAG "INDICATOR"
+#define LOG_TAG "INDICATOR"
 #include <dlog.h>
 
 #define ERR(str, args...)	LOGE("%s[%d]\t " #str "\n", \
@@ -73,5 +72,3 @@
 		goto target;\
 	} \
 } while (0);
-
-#endif
