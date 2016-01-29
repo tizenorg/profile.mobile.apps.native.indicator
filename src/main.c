@@ -249,7 +249,6 @@ static void _rotate_window(struct appdata *ad, int new_angle)
 	}
 }
 
-#ifdef INDICATOR_SUPPORT_OPACITY_MODE
 static void _change_opacity(void *data, enum indicator_opacity_mode mode)
 {
 	struct appdata *ad = NULL;
@@ -293,7 +292,6 @@ static void _indicator_quickpanel_changed(void *data, int is_open)
 	if (val == VCONFKEY_IDLE_LOCK) return;
 }
 #endif
-#endif /* INDICATOR_SUPPORT_OPACITY_MODE */
 
 #if 0
 static Eina_Bool _indicator_client_message_cb(void *data, int type, void *event)
