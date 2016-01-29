@@ -23,7 +23,6 @@
 
 #include <Elementary.h>
 //#include <Ecore_X.h>
-#include <efl_assist.h>
 //FIXME
 #if 0
 #include <tzsh_indicator_service.h>
