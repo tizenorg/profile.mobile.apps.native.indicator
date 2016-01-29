@@ -35,8 +35,8 @@
 #include "main.h"
 #include "indicator_gui.h"
 #include "util.h"
-#include "connection/connection.h"
-#include "processing/call_divert.h"
+#include "modules/connection/connection.h"
+#include "modules/processing/call_divert.h"
 #include "log.h"
 
 #define VCONFKEY_TELEPHONY_PREFERRED_VOICE_SUBSCRIPTION	"db/telephony/dualsim/preferred_voice_subscription"
