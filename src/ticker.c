@@ -17,7 +17,6 @@
 
 #include <Elementary.h>
 //#include <Ecore_X.h>
-#include <appcore-common.h>
 #include <vconf.h>
 #include <app_control.h>
 //#include <notification_internal.h>
