@@ -16,7 +16,7 @@
  */
 
 #include "color_classes.edc"
-#include "indicator_gui.h"
+#include "../../inc/indicator_gui.h"
 
 #define TICKERNOTI_MAIN_TEXT_HEIGHT_INC 1
  

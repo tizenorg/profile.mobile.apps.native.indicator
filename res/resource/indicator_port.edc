@@ -18,7 +18,7 @@
  */
 
 
-#include "indicator_gui.h"
+#include "../../inc/indicator_gui.h"
 #include "indicator_common.edc"
 
 
