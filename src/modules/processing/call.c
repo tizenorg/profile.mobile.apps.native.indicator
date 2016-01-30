@@ -99,11 +99,11 @@ static void icon_animation_set(enum indicator_icon_ani type)
 	icon_ani_set(&call, type);
 }
 
-static void __bt_ag_sco_state_changed_cb(int result, bool opened, void *user_data)
+static void __bt_ag_sco_state_changed_cb(int result, bool connected, const char *remote_address, bt_audio_profile_type_e type, void *user_data)
 {
 	int status = 0;
 
-	if (opened) bt_state=1;
+	if (connected) bt_state=1;
 	else bt_state=0;
 
 	vconf_get_int(VCONFKEY_CALL_STATE, &status);
@@ -121,7 +121,7 @@ static void register_bt_state( void *data)
 	error = bt_audio_initialize();
 	if (error != BT_ERROR_NONE) _E("bt_audio_initialize return [%d]", error);
 
-	error = bt_ag_set_sco_state_changed_cb(__bt_ag_sco_state_changed_cb, data);   // callback µî·Ï
+	error = bt_audio_set_connection_state_changed_cb(__bt_ag_sco_state_changed_cb, data);   // callback µî·Ï
 	if (error != BT_ERROR_NONE) _E("bt_ag_set_sco_state_changed_cb return [%d]", error);
 
 }
@@ -130,7 +130,7 @@ static void unregister_bt_state( void )
 {
 	int error = -1;
 
-	error = bt_ag_unset_sco_state_changed_cb();
+	error = bt_audio_unset_connection_state_changed_cb();
 	if (error != BT_ERROR_NONE) _E("bt_ag_unset_sco_state_changed_cb return [%d]", error);
 
 	error = bt_audio_deinitialize();
@@ -177,7 +177,6 @@ static void indicator_call_change_cb(keynode_t *node, void *data)
 {
 	int status = 0;
 	int ret = 0;
-	int error = 0;
 	bool bt_opened = 0;
 
 	ret_if(!data);
@@ -187,12 +186,6 @@ static void indicator_call_change_cb(keynode_t *node, void *data)
 		_E("Failed to get VCONFKEY_CALL_STATE!");
 		return;
 	}
-
-	error = bt_ag_is_sco_opened(&bt_opened);	 // ÇöÀç SCO status checkÇÔ¼ö.
-	if (error != BT_ERROR_NONE) _E("bt_ag_is_sco_opened return [%d]", error);
-
-	if (bt_opened == 1) bt_state=1;
-	else bt_state=0;
 
 	switch (status) {
 	case VCONFKEY_CALL_VOICE_CONNECTING:
