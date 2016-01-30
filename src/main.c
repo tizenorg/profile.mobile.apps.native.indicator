@@ -623,7 +623,7 @@ static void _create_layout(struct appdata *ad, const char *file, const char *gro
 	if (EINA_FALSE == elm_layout_file_set(ad->win.layout, file, group)) {
 		_E("Failed to set file of layout");
 		evas_object_del(ad->win.layout);
-		return NULL;
+		return;
 	}
 
 	evas_object_size_hint_min_set(ad->win.layout, ad->win.w, ad->win.h);
