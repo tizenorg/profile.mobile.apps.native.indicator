@@ -25,7 +25,7 @@
 #include <notification.h>
 #include <notification_list.h>
 //#include <notification_internal.h>
-#include <pkgmgr-info.h>
+#include <app_manager.h>
 #include <app_preference.h>
 
 #include "common.h"
@@ -143,32 +143,29 @@ static void insert_icon_list(struct noti_status *data)
 
 char* __indicator_ui_get_pkginfo_icon(const char *pkgid)
 {
-	int ret = 0;
+	int ret;
 	char *icon_path = NULL;
-	char *icon_ret = NULL;
+	app_info_h app_info;
+
 	retif(pkgid == NULL, NULL, "invalid parameter");
 
-	pkgmgrinfo_appinfo_h appinfo_h = NULL;
-
-	ret = pkgmgrinfo_appinfo_get_appinfo(pkgid, &appinfo_h);
-	if (ret < 0) {
-		ERR("pkgmgrinfo_appinfo_get_appinfo is failed %d %s", ret,pkgid);
+	ret = app_info_create(pkgid, &app_info);
+	if (ret != APP_MANAGER_ERROR_NONE) {
+		ERR("app_info_create for %s failed %d", pkgid, ret);
+		return NULL;
 	}
 
 	/* Icon path */
-	ret = pkgmgrinfo_appinfo_get_icon(appinfo_h, &icon_path);
-
-	if (ret < 0) {
-		ERR("pkgmgrinfo_appinfo_get_icon is failed %d", ret);
-	}
-	if(icon_path) {
-		icon_ret = (char*)strdup(icon_path);
-	}
-	if (appinfo_h) {
-		pkgmgrinfo_appinfo_destroy_appinfo(appinfo_h);
+	ret = app_info_get_icon(app_info, &icon_path);
+	if (ret != APP_MANAGER_ERROR_NONE) {
+		app_info_destroy(app_info);
+		ERR("app_info_get_icon failed %d", ret);
+		return NULL;
 	}
 
-	return icon_ret;
+	app_info_destroy(app_info);
+
+	return icon_path;
 }
 
 
