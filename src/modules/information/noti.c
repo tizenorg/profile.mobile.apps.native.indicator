@@ -24,7 +24,7 @@
 #include <vconf.h>
 #include <notification.h>
 #include <notification_list.h>
-//#include <notification_internal.h>
+#include <notification_internal.h>
 #include <app_manager.h>
 #include <app_preference.h>
 

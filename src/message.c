@@ -20,7 +20,7 @@
 
 
 #include <notification.h>
-//#include <notification_status_internal.h>
+#include <notification_status_internal.h>
 
 #include "main.h"
 #include "common.h"

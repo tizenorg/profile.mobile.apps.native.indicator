@@ -19,14 +19,14 @@
 //#include <Ecore_X.h>
 #include <vconf.h>
 #include <app_control.h>
-//#include <notification_internal.h>
+#include <notification_internal.h>
 #include <feedback.h>
 #include <system_settings.h>
 #include <player.h>
 #include <sound_manager.h>
 #include <metadata_extractor.h>
 #include <notification.h>
-//#include <notification_text_domain.h>
+#include <notification_text_domain.h>
 #include <app_manager.h>
 
 #include "common.h"
