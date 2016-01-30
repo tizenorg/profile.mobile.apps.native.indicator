@@ -35,6 +35,7 @@
 #if 0
 #include <app_manager_product.h>
 #endif
+#include <vconf/vconf-internal-idle-lock-keys.h>
 
 #include "common.h"
 #include "box.h"
@@ -974,6 +975,7 @@ static void _indicator_mouse_up_cb(void *data, Evas * e, Evas_Object * obj, void
 #else /* HOME_REMOVE_LONGPRESS */
 	int mouse_up_prio = -1;
 	int mouse_down_prio = -1;
+	int lock_state;
 
 	if (home_button_pressed == EINA_TRUE) {
 		home_button_pressed = EINA_FALSE;
@@ -989,7 +991,7 @@ static void _indicator_mouse_up_cb(void *data, Evas * e, Evas_Object * obj, void
 		&& mouse_down_prio == mouse_up_prio) {
 		switch (mouse_down_prio) {
 		case INDICATOR_PRIORITY_FIXED1:
-			int lock_state = VCONFKEY_IDLE_UNLOCK;
+			lock_state = VCONFKEY_IDLE_UNLOCK;
 			int lock_ret = -1;
 
 			lock_ret = vconf_get_int(VCONFKEY_IDLE_LOCK_STATE,
