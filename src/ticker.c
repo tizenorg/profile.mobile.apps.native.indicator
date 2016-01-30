@@ -98,7 +98,7 @@ static int _check_is_noti_from_email(char *pkgname)
 {
 	retv_if(!pkgname, 0);
 
-	if (strcmp(pkgname, VENDOR".email") == 0 || strcmp(pkgname, "/usr/bin/eas-engine") == 0) {
+	if (strcmp(pkgname, TIZEN_EMAIL_PACKAGE) == 0 || strcmp(pkgname, "/usr/bin/eas-engine") == 0) {
 		return 1;
 	} else {
 		return 0;
@@ -109,7 +109,7 @@ static int _check_is_noti_from_message(char *pkgname)
 {
 	retv_if(!pkgname, 0);
 
-	if (strcmp(pkgname, VENDOR".message") == 0 || strcmp(pkgname, "/usr/bin/msg-server") == 0) {
+	if (strcmp(pkgname, TIZEN_MESSAGE_PACKAGE) == 0 || strcmp(pkgname, "/usr/bin/msg-server") == 0) {
 		return 1;
 	} else {
 		return 0;

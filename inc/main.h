@@ -75,6 +75,8 @@
 #define MENUSCREEN_PKG_NAME "org.tizen.menuscreen"
 #define APP_TRAY_PKG_NAME "org.tizen.app-tray"
 #define SEARCH_PKG_NAME "org.tizen.sfinder"
+#define TIZEN_EMAIL_PACKAGE "org.tizen.email"
+#define TIZEN_MESSAGE_PACKAGE "org.tizen.message"
 
 #define MSG_DOMAIN_CONTROL_INDICATOR 0x10001
 #define MSG_ID_INDICATOR_REPEAT_EVENT 0x10002
