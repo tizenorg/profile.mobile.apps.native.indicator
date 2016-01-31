@@ -18,10 +18,6 @@
 #include <Elementary.h>
 //#include <Ecore_X.h>
 //#include <utilX.h>
-#include <unicode/uloc.h>
-#include <unicode/udat.h>
-#include <unicode/udatpg.h>
-#include <unicode/ustring.h>
 #include <runtime_info.h>
 #include <system_settings.h>
 #include <efl_util.h>
