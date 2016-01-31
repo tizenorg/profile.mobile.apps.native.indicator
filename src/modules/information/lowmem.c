@@ -27,20 +27,13 @@
 #include "main.h"
 #include "modules.h"
 #include "icon.h"
-#include <E_DBus.h>
 #include <sys/statvfs.h>
+#include <app_event.h>
 
-#define BUS_NAME       "org.tizen.system.deviced"
-#define PATH_NAME    "/Org/Tizen/System/DeviceD/Lowmem"
-#define INTERFACE_NAME BUS_NAME".lowmem"
-#define MEMBER_NAME	"ChangeState"
-
-static E_DBus_Connection *edbus_conn=NULL;
-static E_DBus_Signal_Handler *edbus_handler=NULL;
+static event_handler_h handler;
 
 #define ICON_PRIORITY	INDICATOR_PRIORITY_NOTI_2
 #define MODULE_NAME		"lowmem"
-#define TIMER_INTERVAL	0.3
 
 static int register_lowmem_module(void *data);
 static int unregister_lowmem_module(void);
@@ -119,91 +112,71 @@ static int wake_up_cb(void *data)
 
 
 
-static void on_changed_receive(void *data, DBusMessage *msg)
+static void on_changed_receive(const char *event_name, bundle *event_data, void *user_data)
 {
-	DBusError err;
 	int response;
-	int r;
+	char *val = NULL;
 
-	DBG("edbus signal Received");
-
-	r = dbus_message_is_signal(msg, INTERFACE_NAME, MEMBER_NAME);
-	if (!r) {
-		ERR("dbus_message_is_signal error");
+	if (!event_name || strcmp(event_name, SYSTEM_EVENT_LOW_MEMORY)) {
+		DBG("Invalid event: %s", event_name);
 		return;
 	}
 
-	SECURE_ERR("%s - %s", INTERFACE_NAME, MEMBER_NAME);
+	DBG("lowmem signal Received");
 
-	dbus_error_init(&err);
-	r = dbus_message_get_args(msg, &err, DBUS_TYPE_INT32, &response, DBUS_TYPE_INVALID);
-	if (!r) {
-		ERR("dbus_message_get_args error");
+	int ret = bundle_get_str(event_data, EVENT_KEY_LOW_MEMORY, &val);
+	if (ret != BUNDLE_ERROR_NONE) {
+		ERR("bundle_get_str failed for %s: %d", EVENT_KEY_LOW_MEMORY, ret);
 		return;
 	}
 
-	SECURE_ERR("receive data : %d", response);
+	if (!val) {
+		ERR("Empty bundle value for %s", EVENT_KEY_LOW_MEMORY);
+		return;
+	}
 
-	if(response==1)
-	{
+	if (strcmp(val, EVENT_VAL_MEMORY_NORMAL)) {
+		hide_image_icon();
+	}
+	else if (strcmp(val, EVENT_VAL_MEMORY_HARD_WARNING)) {
 		show_image_icon();
 	}
-	else
-	{
-		hide_image_icon();
+	else if (strcmp(val, EVENT_VAL_MEMORY_SOFT_WARNING)) {
+		show_image_icon();
+	}
+	else {
+		ERR("Unrecognized %s value %s", EVENT_KEY_LOW_MEMORY, val);
 	}
 }
 
 
 
-static void edbus_cleaner(void)
+static void event_cleaner(void)
 {
-	if(edbus_conn==NULL)
-	{
+	if (!handler) {
 		DBG("already unregistered");
 		return;
 	}
 
-	if (edbus_handler)
-	{
-		e_dbus_signal_handler_del(edbus_conn, edbus_handler);
-		edbus_handler = NULL;
-	}
-	if (edbus_conn)
-	{
-		e_dbus_connection_close(edbus_conn);
-		edbus_conn = NULL;
-	}
-	e_dbus_shutdown();
+	event_remove_event_handler(handler);
+	handler = NULL;
 }
 
 
 
-static int edbus_listener(void)
+static int event_listener(void)
 {
-	if(edbus_conn!=NULL)
-	{
+	if (handler) {
 		DBG("alreay exist");
 		return -1;
 	}
-	// Init
-	e_dbus_init();
 
-	edbus_conn = e_dbus_bus_get(DBUS_BUS_SYSTEM);
-	if (edbus_conn == NULL) {
-		ERR("e_dbus_bus_get error");
+	int ret = event_add_event_handler(SYSTEM_EVENT_LOW_MEMORY, on_changed_receive, NULL, &handler);
+	if (ret != EVENT_ERROR_NONE) {
+		ERR("event_add_event_handler failed on %s: %d", SYSTEM_EVENT_LOW_MEMORY, ret);
 		return -1;
 	}
-	edbus_handler = e_dbus_signal_handler_add(edbus_conn, NULL, PATH_NAME,
-								INTERFACE_NAME, MEMBER_NAME,
-								on_changed_receive, NULL);
-	if (edbus_handler == NULL) {
-		ERR("e_dbus_signal_handler_add error");
-		return -1;
-	}
-	DBG("dbus listener run");
 	return 0;
-
 }
 
 
@@ -220,7 +193,7 @@ static int register_lowmem_module(void *data)
 						indicator_lowmem_pm_state_change_cb, data);
 
 	check_storage();
-	edbus_listener();
+	event_listener();
 
 	return ret;
 }
@@ -235,7 +208,7 @@ static int unregister_lowmem_module(void)
 	ret = vconf_ignore_key_changed(VCONFKEY_PM_STATE,
 						indicator_lowmem_pm_state_change_cb);
 
-	edbus_cleaner();
+	event_cleaner();
 
 	return ret;
 }
