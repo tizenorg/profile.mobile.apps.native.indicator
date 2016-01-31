@@ -7,5 +7,7 @@
     </ui-application>
     <privileges>
         <privilege>http://tizen.org/privilege/packagemanager.info</privilege>
+        <privilege>http://tizen.org/privilege/bluetooth</privilege>
+        <privilege>http://tizen.org/privilege/network.get</privilege>
     </privileges>
 </manifest>
