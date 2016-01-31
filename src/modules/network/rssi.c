@@ -447,6 +447,7 @@ static void _default_network_cb(TapiHandle *handle_obj, const char *noti_id, voi
 	_on_noti(handle_obj, noti_id, data, user_data);
 }
 
+#ifdef DEVICE_BUILD
 static void _call_forward_cb(TapiHandle *handle_obj, const char *noti_id, void *data, void *user_data)
 {
 	int *call_forward = data;
@@ -460,6 +461,7 @@ static void _call_forward_cb(TapiHandle *handle_obj, const char *noti_id, void *
 
 	call_forward_on_noti(handle_obj, noti_id,data, user_data);
 }
+#endif
 
 /* Initialize TAPI */
 static void _init_tel(void *data)
