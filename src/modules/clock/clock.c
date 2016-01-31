@@ -86,7 +86,9 @@ static int register_clock_tts(void *data,int win_type);
 static void indicator_get_apm_by_region(char* output, void* data);
 static void indicator_get_time_by_region(char* output, void* data);
 
+#ifdef _SUPPORT_SCREEN_READER
 static void ICU_set_timezone(const char *timezone);
+#endif
 
 icon_s sysclock = {
 	.type = INDICATOR_TXT_ICON,
@@ -98,7 +100,6 @@ icon_s sysclock = {
 	.exist_in_view = EINA_FALSE,
 	.init = register_clock_module,
 	.fini = unregister_clock_module,
-	.lang_changed = NULL,
 	.region_changed = region_changed_cb,
 	.lang_changed = language_changed_cb,
 	.wake_up = wake_up_cb,
@@ -440,7 +441,7 @@ static int register_clock_module(void *data)
 
 static int unregister_clock_module(void)
 {
-	int ret;
+	int ret = VCONF_OK;
 
 	//ret = system_settings_unset_changed_cb(SYSTEM_SETTINGS_KEY_TIME_CHANGED);
 	ret = ret | vconf_ignore_key_changed(VCONFKEY_REGIONFORMAT_TIME1224, regionformat_changed);
@@ -821,7 +822,7 @@ void indicator_get_time_by_region(char* output,void *data)
 }
 
 
-
+#ifdef _SUPPORT_SCREEN_READER
 static void ICU_set_timezone(const char *timezone)
 {
 	i18n_timezone_h tmz;
@@ -844,6 +845,7 @@ static void ICU_set_timezone(const char *timezone)
 
 	i18n_timezone_destroy(tmz);
 }
+#endif
 
 
 
