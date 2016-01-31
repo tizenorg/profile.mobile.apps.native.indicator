@@ -247,14 +247,11 @@ static void _wifi_device_state_changed_cb(wifi_device_state_e state, void *user_
 		_E("wifi_is_activated error. ret is [%d]", ret);
 	}
 
-	switch(wifi_state) {
-	case WIFI_DEVICE_STATE_ACTIVATED:
+	if (wifi_state) {
 		show_wifi_transfer_icon(user_data);
 		show_image_icon(user_data, strength-1);
-		break;
-	case WIFI_DEVICE_STATE_DEACTIVATED:
+	} else {
 		hide_image_icon();
-		break;
 	}
 
 	return;
