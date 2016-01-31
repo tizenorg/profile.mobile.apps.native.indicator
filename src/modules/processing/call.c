@@ -177,7 +177,6 @@ static void indicator_call_change_cb(keynode_t *node, void *data)
 {
 	int status = 0;
 	int ret = 0;
-	bool bt_opened = 0;
 
 	ret_if(!data);
 
