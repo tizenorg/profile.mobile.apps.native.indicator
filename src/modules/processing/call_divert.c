@@ -174,11 +174,6 @@ static void _flight_mode(keynode_t *key, void *data)
 	_on_noti(NULL, NULL, NULL, data);
 }
 
-static void _sim_icon_update(keynode_t *key, void *data)
-{
-	_on_noti(NULL, NULL, NULL, data);
-}
-
 static int register_call_divert_module(void *data)
 {
 	gboolean state = FALSE;
