@@ -116,7 +116,7 @@ static void hide_downloading_icon(void)
 
 static void indicator_downloading_change_cb(keynode_t *node, void *data)
 {
-	int status = 0;
+	/*int status = 0;*/
 	int result = 0;
 
 	retif(data == NULL, , "Invalid parameter!");
