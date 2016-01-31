@@ -72,4 +72,6 @@ extern void util_icon_access_register(icon_s *icon);
 extern void util_icon_access_unregister(icon_s *icon);
 #endif /* _SUPPORT_SCREEN_READER */
 
+#define ARRAY_SIZE(x) (sizeof(x)/sizeof(x[0]))
+
 #endif /* __INDICATOR_UTIL_H__ */
