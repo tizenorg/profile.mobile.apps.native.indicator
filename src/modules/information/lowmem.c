@@ -114,7 +114,6 @@ static int wake_up_cb(void *data)
 
 static void on_changed_receive(const char *event_name, bundle *event_data, void *user_data)
 {
-	int response;
 	char *val = NULL;
 
 	if (!event_name || strcmp(event_name, SYSTEM_EVENT_LOW_MEMORY)) {
