@@ -20,8 +20,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <vconf.h>
 #include <system_settings.h>
+#include <runtime_info.h>
 
 #include "common.h"
 #include "indicator.h"
@@ -101,116 +101,81 @@ static void hide_image_icon(void)
 	prevIndex = -1;
 }
 
-
-
-static void _silent_change_cb(keynode_t *node, void *data)
+static bool _get_sound_profile(bool *silent_mode, bool *vib_status)
 {
-	bool silent_mode = 0;
-	int vib_status = 0;
 	int ret;
 
-	retif(data == NULL, , "Invalid parameter!");
+	ret = system_settings_get_value_bool(SYSTEM_SETTINGS_KEY_SOUND_SILENT_MODE, silent_mode);
+	retvm_if(ret != SYSTEM_SETTINGS_ERROR_NONE, false, "Failed to get silent mode status.");
 
-//	ret = system_settings_get_value_bool(SYSTEM_SETTINGS_KEY_SOUND_SILENT_MODE, &silent_mode);
-	ret = vconf_get_bool(VCONFKEY_SETAPPL_VIBRATION_STATUS_BOOL, &vib_status);
+	ret = runtime_info_get_value_bool(RUNTIME_INFO_KEY_VIBRATION_ENABLED, vib_status);
+	retvm_if(ret != RUNTIME_INFO_ERROR_NONE, false, "Failed to get vibration status.");
 
-	if (ret == OK)
-	{
-		DBG("CURRENT Sound Status: %d vib_status: %d", silent_mode, vib_status);
+	DBG("CURRENT Sound Status: %d, Vibration Status: %d", (int)(*silent_mode), (int)(*vib_status));
 
-		if(silent_mode == TRUE && vib_status==FALSE)
-		{
-			/* Mute Mode */
-			show_image_icon(PROFILE_MUTE);
-		}
-		else if(silent_mode == FALSE && vib_status==TRUE)
-		{
-			/* Vibration Only Mode */
-			show_image_icon(PROFILE_VIBRATION);
-		}
-		else
-		{
-			hide_image_icon();
-		}
-	}
-	else
-	{
-		ERR("Failed to get current profile!");
-	}
-
-	return;
+	return true;
 }
 
+static void _set_sound_profile(bool silent_mode, bool vib_status)
+{
+	if (silent_mode && !vib_status) {
+		/* Mute Mode */
+		show_image_icon(PROFILE_MUTE);
+	} else if (!silent_mode && vib_status) {
+		/* Vibration Only Mode */
+		show_image_icon(PROFILE_VIBRATION);
+	} else {
+		hide_image_icon();
+	}
+}
 
+static void _display_sound_profile(void)
+{
+	bool silent_mode = false;
+	bool vib_status = false;
+
+	if (_get_sound_profile(&silent_mode, &vib_status))
+		_set_sound_profile(silent_mode, vib_status);
+}
 
 static void _system_setting_silent_change_cb(system_settings_key_e key, void *user_data)
 {
-	bool silent_mode = 0;
-	int vib_status = 0;
-	int ret;
-
-//	ret = system_settings_get_value_bool(SYSTEM_SETTINGS_KEY_SOUND_SILENT_MODE, &silent_mode);
-	ret = vconf_get_bool(VCONFKEY_SETAPPL_VIBRATION_STATUS_BOOL, &vib_status);
-
-	if (ret == OK)
-	{
-		DBG("CURRENT Sound Status: %d vib_status: %d", silent_mode, vib_status);
-
-		if(silent_mode == TRUE && vib_status==FALSE)
-		{
-			/* Mute Mode */
-			show_image_icon(PROFILE_MUTE);
-		}
-		else if(silent_mode == FALSE && vib_status==TRUE)
-		{
-			/* Vibration Only Mode */
-			show_image_icon(PROFILE_VIBRATION);
-		}
-		else
-		{
-			hide_image_icon();
-		}
-	}
-	else
-	{
-		ERR("Failed to get current profile!");
-	}
-
-	return;
+	_display_sound_profile();
 }
 
+static void _runtime_info_vibration_change_cb(runtime_info_key_e key, void *user_data)
+{
+	_display_sound_profile();
+}
 
 #ifdef _SUPPORT_SCREEN_READER
 static char *access_info_cb(void *data, Evas_Object *obj)
 {
 	char *tmp = NULL;
 	char buf[256] = {0,};
-	int slient_mode = 0;
-	int vib_status = 0;
-//	system_settings_get_value_bool(SYSTEM_SETTINGS_KEY_SOUND_SILENT_MODE, &slient_mode);
-	vconf_get_bool(VCONFKEY_SETAPPL_VIBRATION_STATUS_BOOL, &vib_status);
+	bool silent_mode = false;
+	bool vib_status = false;
 
-	if(slient_mode == TRUE && vib_status==FALSE)
-	{
+	if (!_get_sound_profile(&silent_mode, &vib_status))
+		return NULL;
+
+	if (silent_mode && !vib_status) {
 		/* Mute Mode */
 		snprintf(buf, sizeof(buf), "%s, %s, %s", _("IDS_IDLE_BODY_MUTE"),_("Sound profile"),_("IDS_IDLE_BODY_STATUS_BAR_ITEM"));
-	}
-	else if(slient_mode == FALSE && vib_status==TRUE)
-	{
+	} else if (!silent_mode && vib_status) {
 		/* Vibration Only Mode */
 		snprintf(buf, sizeof(buf), "%s, %s, %s", _("IDS_IDLE_BODY_VIBRATE"),_("Sound profile"),_("IDS_IDLE_BODY_STATUS_BAR_ITEM"));
-	}
-	else
-	{
+	} else {
 		//do nothing;
 	}
+
 	tmp = strdup(buf);
-	if (!tmp) return NULL;
+	if (!tmp)
+		return NULL;
+
 	return tmp;
 }
 #endif
-
-
 
 static int register_silent_module(void *data)
 {
@@ -220,22 +185,37 @@ static int register_silent_module(void *data)
 
 	set_app_state(data);
 
-//	ret = system_settings_set_changed_cb(SYSTEM_SETTINGS_KEY_SOUND_SILENT_MODE, _system_setting_silent_change_cb, data);
-	ret = vconf_notify_key_changed(VCONFKEY_SETAPPL_VIBRATION_STATUS_BOOL, _silent_change_cb, data);
+	ret = system_settings_set_changed_cb(SYSTEM_SETTINGS_KEY_SOUND_SILENT_MODE, _system_setting_silent_change_cb, data);
+	retvm_if(ret != SYSTEM_SETTINGS_ERROR_NONE, ret, "Failed to set silent mode change callback function.");
 
-	_silent_change_cb(NULL, data);
+	ret = runtime_info_set_changed_cb(RUNTIME_INFO_KEY_VIBRATION_ENABLED, _runtime_info_vibration_change_cb, data);
+	if (ret != RUNTIME_INFO_ERROR_NONE)
+		system_settings_unset_changed_cb(SYSTEM_SETTINGS_KEY_SOUND_SILENT_MODE);
+
+	retvm_if(ret != RUNTIME_INFO_ERROR_NONE, ret, "Failed to set vibration change callback function.");
+
+	/* It is sufficient to call only one callback function responsible for sound profile display,
+	 * as both functions:
+	 * 		- _system_setting_silent_change_cb()
+	 * 		- _runtime_info_vibration_change_cb()
+	 * does the same but in different context.
+	 */
+	_system_setting_silent_change_cb(SYSTEM_SETTINGS_KEY_SOUND_SILENT_MODE, data);
 
 	return ret;
 }
-
-
 
 static int unregister_silent_module(void)
 {
 	int ret;
 
-//	ret = system_settings_unset_changed_cb(SYSTEM_SETTINGS_KEY_SOUND_SILENT_MODE);
-	ret = ret | vconf_ignore_key_changed(VCONFKEY_SETAPPL_VIBRATION_STATUS_BOOL, _silent_change_cb);
+	ret = system_settings_unset_changed_cb(SYSTEM_SETTINGS_KEY_SOUND_SILENT_MODE);
+	if (ret != SYSTEM_SETTINGS_ERROR_NONE)
+		ERR("Failed to unset silent mode change callback function.");
+
+	ret = runtime_info_unset_changed_cb(RUNTIME_INFO_KEY_VIBRATION_ENABLED);
+	if (ret != RUNTIME_INFO_ERROR_NONE)
+		ERR("Failed to unset vibration change callback function.");
 
 	return ret;
 }
