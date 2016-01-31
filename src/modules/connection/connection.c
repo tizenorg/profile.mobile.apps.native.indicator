@@ -344,7 +344,7 @@ static void indicator_conn_change_cb(keynode_t *node, void *data)
 {
 	struct appdata* ad = NULL;
 	int svc_type = VCONFKEY_TELEPHONY_SVCTYPE_NONE;
-	int status = 0;
+	wifi_connection_state_e status = WIFI_CONNECTION_STATE_FAILURE;
 	int ret = 0;
 	int ps_type = VCONFKEY_TELEPHONY_PSTYPE_NONE;
 
@@ -367,7 +367,7 @@ static void indicator_conn_change_cb(keynode_t *node, void *data)
 	if (ret == WIFI_ERROR_NONE) {
 		INFO("CONNECTION WiFi Status: %d", status);
 
-		if ((status == WIFI_CONNECTION_STATE_CONNECTED))
+		if (status == WIFI_CONNECTION_STATE_CONNECTED)
 		{
 			int mms_state = 0;
 			vconf_get_int(VCONFKEY_DNET_STATE, &mms_state);
