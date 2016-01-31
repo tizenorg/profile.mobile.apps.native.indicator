@@ -94,7 +94,9 @@ Ecore_Timer *clock_timer;
 int is_transparent = 0;
 int current_angle = 0;
 int current_state = 0;
+#if 0
 static int bFirst_opacity = 1;
+#endif
 
 static struct _s_info {
 	Ecore_Timer *listen_timer;
@@ -228,6 +230,7 @@ static void _indicator_lock_status_cb(keynode_t * node, void *data)
 
 }
 
+#if 0
 static void _rotate_window(struct appdata *ad, int new_angle)
 {
 	ret_if(!ad);
@@ -249,7 +252,9 @@ static void _rotate_window(struct appdata *ad, int new_angle)
 			break;
 	}
 }
+#endif
 
+#if 0
 static void _change_opacity(void *data, enum indicator_opacity_mode mode)
 {
 	struct appdata *ad = NULL;
@@ -282,6 +287,8 @@ static void _change_opacity(void *data, enum indicator_opacity_mode mode)
 	}
 	util_signal_emit_by_win(&(ad->win),signal, "indicator.prog");
 }
+#endif
+
 #if 0
 static void _indicator_quickpanel_changed(void *data, int is_open)
 {
@@ -322,6 +329,8 @@ static Eina_Bool _indicator_client_message_cb(void *data, int type, void *event)
 }
 #endif
 
+/* this function will be reused */
+#if 0
 static Eina_Bool _active_indicator_handle(void* data,int type)
 {
 	int trans_mode = 0;
@@ -334,7 +343,6 @@ static Eina_Bool _active_indicator_handle(void* data,int type)
 	switch (type) {
 	/* Opacity */
 	case 1:
-#if 0
 		illume_opacity = ecore_x_e_illume_indicator_opacity_get(ad->active_indi_win);
 
 		switch(illume_opacity) {
@@ -351,7 +359,7 @@ static Eina_Bool _active_indicator_handle(void* data,int type)
 			trans_mode = INDICATOR_OPACITY_OPAQUE;
 			break;
 		}
-#endif
+
 		_change_opacity(ad, trans_mode);
 		break;
 	/* Rotate */
@@ -365,10 +373,12 @@ static Eina_Bool _active_indicator_handle(void* data,int type)
 
 	return EINA_TRUE;
 }
+#endif
 
+/* this function will be reused */
+#if 0
 static Eina_Bool _property_changed_cb(void *data, int type, void *event)
 {
-#if 0
 	struct appdata *ad = data;
 	Ecore_X_Event_Window_Property *ev = event;
 
@@ -407,9 +417,10 @@ static Eina_Bool _property_changed_cb(void *data, int type, void *event)
 		_active_indicator_handle(data, 1);
 		_active_indicator_handle(data, 2);
 	}
-#endif
+
 	return ECORE_CALLBACK_PASS_ON;
 }
+#endif
 
 #if 0
 static void _mctrl_monitor_cb(minicontrol_action_e action, const char *name, unsigned int width, unsigned int height, minicontrol_priority_e priority, void *data)
@@ -758,7 +769,6 @@ static void _create_window(struct appdata *ad)
 static void _create_base_gui(void* data)
 {
 	struct appdata *ad = data;
-	Evas_Object *dummy_win = NULL;
 
 	ret_if(!ad);
 
@@ -1000,8 +1010,6 @@ static void _indicator_mouse_up_cb(void *data, Evas * e, Evas_Object * obj, void
 			/* In Lock Screen, home button don't have to do */
 			if (lock_ret == 0 && lock_state == VCONFKEY_IDLE_LOCK)
 				break;
-
-			char *top_win_name = NULL;
 
 			if (util_check_system_status() == FAIL)
 				break;
