@@ -632,10 +632,8 @@ void indicator_get_apm_by_region(char* output,void *data)
 			u_best_pattern, (int32_t)ARRAY_SIZE(u_best_pattern), &best_pattern_len);
 	if (ret != I18N_ERROR_NONE) {
 		_E("i18n_udatepg_get_best_pattern failed: %d", ret);
-		i18n_udatepg_destroy(pattern_generator);
 		return;
 	}
-	i18n_udatepg_destroy(pattern_generator);
 
 	i18n_ustring_copy_au(s_best_pattern, u_best_pattern);
 	i18n_ustring_copy_ua(u_best_pattern, "a");
@@ -747,11 +745,8 @@ void indicator_get_time_by_region(char* output,void *data)
 				u_best_pattern, ARRAY_SIZE(u_best_pattern), &best_pattern_len);
 	if (ret != I18N_ERROR_NONE) {
 		_E("i18n_udatepg_get_best_pattern failed: %d", ret);
-		i18n_udatepg_destroy(pattern_generator);
 		return;
 	}
-
-	i18n_udatepg_destroy(pattern_generator);
 
 	char a_best_pattern[64] = {0,};
 	i18n_ustring_copy_au(a_best_pattern, u_best_pattern);
