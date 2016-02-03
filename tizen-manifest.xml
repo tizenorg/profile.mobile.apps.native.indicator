@@ -6,8 +6,10 @@
         <icon>indicator-win.png</icon>
     </ui-application>
     <privileges>
+        <privilege>http://tizen.org/privilege/display</privilege>
         <privilege>http://tizen.org/privilege/packagemanager.info</privilege>
         <privilege>http://tizen.org/privilege/bluetooth</privilege>
         <privilege>http://tizen.org/privilege/network.get</privilege>
+        <privilege>http://tizen.org/privilege/wifidirect</privilege>
     </privileges>
 </manifest>
