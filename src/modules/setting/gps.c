@@ -20,8 +20,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <vconf.h>
 #include <runtime_info.h>
+#include <device/display.h>
 
 #include "common.h"
 #include "indicator.h"
@@ -87,9 +87,7 @@ static void show_image_icon(void *data, int index)
 		index = LEVEL_GPS_SEARCHING;
 
 	if(prevIndex == index)
-	{
 		return;
-	}
 
 	gps.img_obj.data = icon_path[index];
 	icon_show(&gps);
@@ -111,27 +109,21 @@ static void icon_animation_set(enum indicator_icon_ani type)
 
 static int indicator_gps_state_get(void)
 {
-	int gps_status = 0;
+	runtime_info_gps_status_e gps_status = 0;
 	int status = 0;
 
-	if (runtime_info_get_value_int(RUNTIME_INFO_KEY_GPS_STATUS, &gps_status) < 0)
+	if (runtime_info_get_value_int(RUNTIME_INFO_KEY_GPS_STATUS, (int *)&gps_status) < 0)
 	{
 		ERR("Error getting RUNTIME_INFO_KEY_GPS_STATUS value");
 		return 0;
 	}
 
-	if(gps_status == VCONFKEY_LOCATION_GPS_CONNECTED)
-	{
+	if(gps_status == RUNTIME_INFO_GPS_STATUS_CONNECTED)
 		status = IND_POSITION_STATE_CONNECTED;
-	}
-	else if(gps_status == VCONFKEY_LOCATION_GPS_SEARCHING)
-	{
+	else if(gps_status == RUNTIME_INFO_GPS_STATUS_SEARCHING)
 		status = IND_POSITION_STATE_SEARCHING;
-	}
 	else
-	{
 		status = IND_POSITION_STATE_OFF;
-	}
 
 	return status;
 }
@@ -139,19 +131,33 @@ static int indicator_gps_state_get(void)
 static void _gps_state_icon_set(int status, void *data)
 {
 	DBG("GPS STATUS: %d", status);
+	int ret;
+	display_state_e display_state = DISPLAY_STATE_NORMAL;
 
 	switch (status) {
 	case IND_POSITION_STATE_OFF:
 		hide_image_icon();
 		break;
+
 	case IND_POSITION_STATE_CONNECTED:
 		show_image_icon(data, LEVEL_GPS_ON);
 		icon_animation_set(ICON_ANI_NONE);
 		break;
+
 	case IND_POSITION_STATE_SEARCHING:
-		show_image_icon(data, LEVEL_GPS_SEARCHING);
-		icon_animation_set(ICON_ANI_BLINK);
+		ret = device_display_get_state(&display_state);
+		retm_if(ret != DEVICE_ERROR_NONE, "device_display_get_state failed[%s]", get_error_message(ret));
+
+		if(display_state == DISPLAY_STATE_SCREEN_OFF) {
+			show_image_icon(data, LEVEL_GPS_SEARCHING);
+			icon_animation_set(ICON_ANI_NONE);
+		}
+		else {
+			show_image_icon(data, LEVEL_GPS_SEARCHING);
+			icon_animation_set(ICON_ANI_BLINK);
+		}
 		break;
+
 	default:
 		hide_image_icon();
 		ERR("Invalid value!");
@@ -160,8 +166,6 @@ static void _gps_state_icon_set(int status, void *data)
 
 	return;
 }
-
-
 
 void _gps_status_changed_cb(runtime_info_key_e key, void *data)
 {
@@ -178,59 +182,21 @@ void _gps_status_changed_cb(runtime_info_key_e key, void *data)
 	return;
 }
 
-
-
-static void indicator_gps_pm_state_change_cb(keynode_t *node, void *data)
-{
-	int status = 0;
-	retif(data == NULL, , "Invalid parameter!");
-
-	if (vconf_get_int(VCONFKEY_PM_STATE, &status) < 0)
-	{
-		ERR("Error getting VCONFKEY_PM_STATE value");
-		return;
-	}
-
-	if(status == VCONFKEY_PM_STATE_LCDOFF)
-	{
-		int gps_status = 0;
-		if (runtime_info_get_value_int(RUNTIME_INFO_KEY_GPS_STATUS, &gps_status) < 0)
-		{
-			ERR("Error getting RUNTIME_INFO_KEY_GPS_STATUS value");
-			return;
-		}
-
-		switch (gps_status) {
-		case IND_POSITION_STATE_SEARCHING:
-			show_image_icon(data, LEVEL_GPS_SEARCHING);
-			icon_animation_set(ICON_ANI_NONE);
-			break;
-		case IND_POSITION_STATE_OFF:
-		case IND_POSITION_STATE_CONNECTED:
-		default:
-			break;
-		}
-	}
-}
-
-
-
 static int _wake_up_cb(void *data)
 {
-	if (updated_while_lcd_off == 0 && gps.obj_exist == EINA_FALSE) {
+	if (updated_while_lcd_off == 0 && gps.obj_exist == EINA_FALSE)
 		return OK;
-	}
 
 	if (updated_while_lcd_off == 0 && gps.obj_exist == EINA_TRUE) {
 		int gps_status = 0;
 		runtime_info_get_value_int(RUNTIME_INFO_KEY_GPS_STATUS, &gps_status);
 
 		switch (gps_status) {
-		case IND_POSITION_STATE_SEARCHING:
+		case RUNTIME_INFO_GPS_STATUS_SEARCHING:
 			icon_animation_set(ICON_ANI_BLINK);
 			break;
-		case IND_POSITION_STATE_OFF:
-		case IND_POSITION_STATE_CONNECTED:
+		case RUNTIME_INFO_GPS_STATUS_DISABLED:
+		case RUNTIME_INFO_GPS_STATUS_CONNECTED:
 		default:
 			break;
 		}
@@ -242,8 +208,6 @@ static int _wake_up_cb(void *data)
 	return OK;
 }
 
-
-
 static int register_gps_module(void *data)
 {
 	int ret;
@@ -253,9 +217,6 @@ static int register_gps_module(void *data)
 	set_app_state(data);
 
 	ret = runtime_info_set_changed_cb(RUNTIME_INFO_KEY_GPS_STATUS, _gps_status_changed_cb, data);
-
-	ret = vconf_notify_key_changed(VCONFKEY_PM_STATE,
-					indicator_gps_pm_state_change_cb, data);
 
 	_gps_state_icon_set(indicator_gps_state_get(), data);
 
@@ -267,9 +228,6 @@ static int unregister_gps_module(void)
 	int ret;
 
 	ret = runtime_info_unset_changed_cb(RUNTIME_INFO_KEY_GPS_STATUS);
-
-	ret = ret | vconf_ignore_key_changed(VCONFKEY_PM_STATE,
-					indicator_gps_pm_state_change_cb);
 
 	return ret;
 }
