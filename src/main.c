@@ -942,7 +942,7 @@ static void _indicator_mouse_move_cb(void *data, Evas * e, Evas_Object * obj, vo
 
 	if (home_button_pressed) {
 		if (!box_check_home_icon_area(win,ev->cur.canvas.x,ev->cur.canvas.y)) {
-			home_button_pressed = FALSE;
+			home_button_pressed = false;
 		}
 
 	}

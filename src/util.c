@@ -369,7 +369,7 @@ char* util_get_timezone_str(void)
 		ERR("NO TIMEZONEINFO");
 		return _get_timezone_from_vconf();
 	}
-	return (char*)g_strdup(buf+20);	// Asia/Seoul
+	return (char*)strdup(buf+20);	// Asia/Seoul
 }
 
 
@@ -524,8 +524,8 @@ void util_char_replace(char *text, char s, char t)
 static bool _is_empty_str(const char *str)
 {
 	if (NULL == str || '\0' == str[0])
-		return TRUE;
-	return FALSE;
+		return true;
+	return false;
 }
 
 

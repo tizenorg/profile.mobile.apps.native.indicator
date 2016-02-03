@@ -164,7 +164,7 @@ static void show_wifi_transfer_icon(void* data)
 
 static void _wifi_changed_cb(keynode_t *node, void *data)
 {
-	bool wifi_state = FALSE;
+	bool wifi_state = false;
 	int status, strength;
 	int ret;
 
@@ -216,7 +216,7 @@ static void _wifi_changed_cb(keynode_t *node, void *data)
 
 static void _wifi_device_state_changed_cb(wifi_device_state_e state, void *user_data)
 {
-	bool wifi_state = FALSE;
+	bool wifi_state = false;
 	int ret, strength;
 
 	ret_if(!user_data);
@@ -283,10 +283,10 @@ static bool _wifi_init(void)
 	ret = wifi_initialize();
 	if (ret != WIFI_ERROR_NONE) {
 		_E("wifi_initialize is fail : %d", ret);
-		return FALSE;
+		return false;
 	}
 
-	return TRUE;
+	return true;
 }
 
 static void _wifi_fini(void)

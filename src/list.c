@@ -73,7 +73,7 @@ extern int list_free_all(void)
 	_list_free(noti_icon_list);
 	_list_free(alarm_icon_list);
 
-	return TRUE;
+	return true;
 }
 
 

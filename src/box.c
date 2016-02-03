@@ -1000,33 +1000,33 @@ extern Eina_Bool box_exist_icon(icon_s *obj)
 
 int box_handle_animated_gif(icon_s *icon)
 {
-	int bPlay = TRUE;
+	int bPlay = true;
 	int val = 0;
 	Evas_Object *icon_eo = evas_object_data_get(icon->img_obj.obj, DATA_KEY_IMG_ICON);
 
 	retif(icon == NULL, FAIL, "Invalid parameter!");
 
 	if (elm_image_animated_available_get(icon_eo) == EINA_FALSE) {
-		return FALSE;
+		return false;
 	}
 
 	if (vconf_get_int(VCONFKEY_PM_STATE, &val) < 0) {
-		return FALSE;
+		return false;
 	}
 
 	switch (val) {
 	case VCONFKEY_PM_STATE_LCDOFF :	//LCD OFF
-		bPlay = FALSE;
+		bPlay = false;
 		break;
 	case VCONFKEY_PM_STATE_NORMAL :	//LCD ON
-		bPlay = TRUE;
+		bPlay = true;
 		break;
 	default:
-		bPlay = TRUE;
+		bPlay = true;
 		break;
 	}
 
-	if (bPlay == TRUE) {
+	if (bPlay == true) {
 		if (elm_image_animated_get(icon_eo)==EINA_FALSE) {
 			elm_image_animated_set(icon_eo,EINA_TRUE);
 		}
@@ -1040,7 +1040,7 @@ int box_handle_animated_gif(icon_s *icon)
 		}
 	}
 
-	return TRUE;
+	return true;
 }
 
 

@@ -191,7 +191,7 @@ static Eina_Bool _msg_timeout_cb(void *data)
 
 static Eina_Bool _retry_timeout_cb(void *data)
 {
-	retif(data == NULL,TRUE , "Invalid parameter!");
+	retif(data == NULL, EINA_TRUE , "Invalid parameter!");
 
 	if(message_buf!=NULL)
 	{
@@ -204,7 +204,7 @@ static Eina_Bool _retry_timeout_cb(void *data)
 		ecore_timer_del(retry_timer);
 		retry_timer = NULL;
 	}
-	return TRUE;
+	return EINA_TRUE;
 
 }
 

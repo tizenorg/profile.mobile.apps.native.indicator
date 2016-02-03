@@ -25,7 +25,7 @@
 //#include <Ecore_X.h>
 #include <Ecore_File.h>
 #include <Eina.h>
-#include <glib-object.h>
+#include <stdbool.h>
 
 #define VCONFKEY_APPTRAY_STATE "file/private/org.tizen.app-tray/is_top"
 
