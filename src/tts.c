@@ -22,7 +22,6 @@
 #ifdef _SUPPORT_SCREEN_READER2
 
 #include <tts.h>
-#include <tts_setting.h>
 #include <vconf.h>
 #include <vconf-keys.h>
 #include "main.h"

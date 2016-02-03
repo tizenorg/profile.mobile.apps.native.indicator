@@ -21,9 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <vconf.h>
-//#include <Ecore_X.h>
 #include <bluetooth.h>
-//#include <bluetooth_extention.h>
 
 #include "common.h"
 #include "indicator.h"
