@@ -790,7 +790,7 @@ static void _create_base_gui(void* data)
 
 	_D("win_size = Original(%d, %d), Scaled(%lf, %lf)", ad->win.port_w, ad->win.h, ELM_SCALE_SIZE(ad->win.port_w), ELM_SCALE_SIZE(ad->win.h));
 
-	_create_layout(ad, EDJ_FILE, GRP_NAME);
+	_create_layout(ad, util_get_res_file_path(EDJ_FILE), GRP_NAME);
 	_create_box(&(ad->win));
 
 

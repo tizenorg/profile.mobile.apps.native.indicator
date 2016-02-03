@@ -38,29 +38,21 @@
 #endif
 
 #if !defined(LOCALEDIR)
-#  define LOCALEDIR "/usr/apps/org.tizen.indicator/res/locale"
+#  define LOCALEDIR "locale"
 #endif
 
 #if !defined(EDJDIR)
-#  define EDJDIR "/usr/apps/org.tizen.indicator/res/edje"
+#  define EDJDIR "resource/"
 #endif
 
 #if !defined(ICONDIR)
-#  define ICONDIR "/usr/apps/org.tizen.indicator/res/icons"
-#endif
-
-#if !defined(CHANGEABLEDIR)
-#  define CHANGEABLEDIR "/usr/apps/org.tizen.indicator/shared/res/tables"
+#  define ICONDIR EDJDIR"icons"
 #endif
 
 #define EDJ_FILE EDJDIR"/"PACKAGE"_port.edj"
 #define ICON_THEME_FILE EDJDIR"/"PACKAGE"_icon_theme.edj"
 #define ICON_NONFIXED_THEME_FILE EDJDIR"/"PACKAGE"_icon_nonfixed_theme.edj"
 #define ICON_NONFIXED_THEME_ANI_FILE EDJDIR"/"PACKAGE"_icon_animation.edj"
-#define ICON_NONFIXED_THEME_SYNC_FILE EDJDIR"/"PACKAGE"_icon_activesync.edj"
-
-#define CHANGEABLE_COLOR_FILE CHANGEABLEDIR"/"PACKAGEID"_ChangeableColorInfo.xml"
-#define CHANGEABLE_FONT_FILE CHANGEABLEDIR"/"PACKAGEID"_ChangeableFontInfo.xml"
 
 
 #define _S(str)	dgettext("sys_string", str)

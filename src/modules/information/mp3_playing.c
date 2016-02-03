@@ -34,7 +34,7 @@
 #define ICON_PRIORITY	INDICATOR_PRIORITY_MINICTRL2
 #define MODULE_NAME		"MP3_PLAY"
 #define MINICONTROL_NAME	"[musicplayer-mini]"
-#define MUSIC_STATUS_FILE_PATH	"/opt/usr/apps/org.tizen.music-player-lite/shared/data/MusicPlayStatus.ini"
+#define MUSIC_STATUS_FILE_PATH	"MusicPlayStatus.ini"
 #define MAX_NAM_LEN 640
 #define MP_APP_ID "org.tizen.music-player-lite"
 
@@ -105,7 +105,7 @@ static void hide_image_icon(void)
 
 static void show_mp_icon(void* data)
 {
-	FILE* fp = fopen(MUSIC_STATUS_FILE_PATH, "r");
+	FILE* fp = fopen(util_get_data_file_path(MUSIC_STATUS_FILE_PATH), "r");
 	char line[MAX_NAM_LEN+1];
 
 	retif(data == NULL, , "Invalid parameter!");
@@ -175,7 +175,7 @@ static int wake_up_cb(void *data)
 		return OK;
 	}
 
-	indicator_mp3_play_change_cb(data, pFileMonitor, (Ecore_File_Event)NULL, MUSIC_STATUS_FILE_PATH);
+	indicator_mp3_play_change_cb(data, pFileMonitor, (Ecore_File_Event)NULL, util_get_data_file_path(MUSIC_STATUS_FILE_PATH));
 	return OK;
 }
 
@@ -189,7 +189,7 @@ static int register_mp3_play_module(void *data)
 	set_app_state(data);
 
 	ECORE_FILE_MONITOR_DELIF(pFileMonitor);
-	pFileMonitor = util_file_monitor_add(MUSIC_STATUS_FILE_PATH, (Ecore_File_Monitor_Cb)indicator_mp3_play_change_cb, data);
+	pFileMonitor = util_file_monitor_add(util_get_data_file_path(MUSIC_STATUS_FILE_PATH), (Ecore_File_Monitor_Cb)indicator_mp3_play_change_cb, data);
 	retif(pFileMonitor == NULL, FAIL, "util_file_monitor_add return NULL!!");
 
 	return OK;

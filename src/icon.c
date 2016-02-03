@@ -183,9 +183,9 @@ static void _fixed_icon_layout_file_set(icon_s *icon, Evas_Object *ly)
 	ret_if(!ly);
 
 	if(icon->type == INDICATOR_DIGIT_ICON && icon->digit_area == DIGIT_DOZENS) {
-		elm_layout_file_set(ly, ICON_THEME_FILE,"elm/indicator/icon/dozen_digit");
+		elm_layout_file_set(ly, util_get_res_file_path(ICON_THEME_FILE), "elm/indicator/icon/dozen_digit");
 	} else {
-		elm_layout_file_set(ly, ICON_THEME_FILE,"elm/indicator/icon/base");
+		elm_layout_file_set(ly, util_get_res_file_path(ICON_THEME_FILE), "elm/indicator/icon/base");
 	}
 }
 
@@ -197,9 +197,9 @@ static void _noti_ani_icon_layout_file_set(int noti_is_ani, Evas_Object *ly)
 
 	if (noti_is_ani) {
 		evas_object_data_set(ly, PRIVATE_DATA_KEY_ICON_B_ANI, (void *) 1);
-		elm_layout_file_set(ly, ICON_NONFIXED_THEME_ANI_FILE, "elm/indicator/icon/base");
+		elm_layout_file_set(ly, util_get_res_file_path(ICON_NONFIXED_THEME_ANI_FILE), "elm/indicator/icon/base");
 	} else {
-		elm_layout_file_set(ly, ICON_NONFIXED_THEME_FILE, "elm/indicator/icon/base");
+		elm_layout_file_set(ly, util_get_res_file_path(ICON_NONFIXED_THEME_FILE), "elm/indicator/icon/base");
 	}
 }
 
@@ -210,7 +210,7 @@ static Evas_Object *_img_icon_add(win_info *win, icon_s *icon)
 	char path[PATH_MAX];
 	Evas_Object *evas_icon;
 	Evas_Object *ly;
-	char *imgpath = NULL;
+	const char *imgpath = NULL;
 	int noti_is_ani = 0;
 	int b_ani = 0;
 
@@ -497,15 +497,15 @@ static int _icon_update(icon_s *icon)
 	if (icon->type == INDICATOR_IMG_ICON || icon->type == INDICATOR_TXT_WITH_IMG_ICON || icon->type == INDICATOR_DIGIT_ICON) {
 		if (icon->area== INDICATOR_ICON_AREA_FIXED) {
 			if(icon->type == INDICATOR_DIGIT_ICON && icon->digit_area == DIGIT_DOZENS) {
-				elm_layout_file_set(icon->img_obj.obj, ICON_THEME_FILE,"elm/indicator/icon/dozen_digit");
+				elm_layout_file_set(icon->img_obj.obj, util_get_res_file_path(ICON_THEME_FILE), "elm/indicator/icon/dozen_digit");
 			} else {
-				elm_layout_file_set(icon->img_obj.obj, ICON_THEME_FILE,"elm/indicator/icon/base");
+				elm_layout_file_set(icon->img_obj.obj, util_get_res_file_path(ICON_THEME_FILE), "elm/indicator/icon/base");
 			}
 		} else {
 			if(util_check_noti_ani(icon->img_obj.data)) {
-				elm_layout_file_set(icon->img_obj.obj, ICON_NONFIXED_THEME_ANI_FILE,"elm/indicator/icon/base");
+				elm_layout_file_set(icon->img_obj.obj, util_get_res_file_path(ICON_NONFIXED_THEME_ANI_FILE), "elm/indicator/icon/base");
 			} else{
-				elm_layout_file_set(icon->img_obj.obj, ICON_NONFIXED_THEME_FILE,"elm/indicator/icon/base");
+				elm_layout_file_set(icon->img_obj.obj, util_get_res_file_path(ICON_NONFIXED_THEME_FILE), "elm/indicator/icon/base");
 			}
 		}
 

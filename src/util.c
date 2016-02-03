@@ -21,6 +21,7 @@
 
 #include <vconf.h>
 #include <app.h>
+#include <app_common.h>
 
 #include "common.h"
 #include "indicator.h"
@@ -36,9 +37,6 @@
 #define DEFAULT_DIR	ICONDIR
 #define DIR_PREFIX	"Theme_%02d_"
 #define LABEL_STRING	"<color=#%02x%02x%02x%02x>%s</color>"
-
-static char *_icondir;
-
 
 
 char *util_set_label_text_color(const char *txt)
@@ -64,10 +62,7 @@ char *util_set_label_text_color(const char *txt)
 
 const char *util_get_icon_dir(void)
 {
-	if (_icondir == NULL)
-		_icondir = DEFAULT_DIR;
-
-	return (const char *)_icondir;
+	return util_get_res_file_path(DEFAULT_DIR);
 }
 
 
@@ -572,5 +567,52 @@ void util_file_monitor_remove(Ecore_File_Monitor* pFileMonitor)
 
 	ecore_file_monitor_del(pFileMonitor);
 	pFileMonitor = NULL;
+}
+
+const char *util_get_file_path(enum app_subdir dir, const char *relative)
+{
+	static char buf[PATH_MAX];
+	char *prefix;
+
+	switch (dir) {
+	case APP_DIR_DATA:
+		prefix = app_get_data_path();
+		break;
+	case APP_DIR_CACHE:
+		prefix = app_get_cache_path();
+		break;
+	case APP_DIR_RESOURCE:
+		prefix = app_get_resource_path();
+		break;
+	case APP_DIR_SHARED_DATA:
+		prefix = app_get_shared_data_path();
+		break;
+	case APP_DIR_SHARED_RESOURCE:
+		prefix = app_get_shared_resource_path();
+		break;
+	case APP_DIR_SHARED_TRUSTED:
+		prefix = app_get_shared_trusted_path();
+		break;
+	case APP_DIR_EXTERNAL_DATA:
+		prefix = app_get_external_data_path();
+		break;
+	case APP_DIR_EXTERNAL_CACHE:
+		prefix = app_get_external_cache_path();
+		break;
+	case APP_DIR_EXTERNAL_SHARED_DATA:
+		prefix = app_get_external_shared_data_path();
+		break;
+	default:
+		LOGE("Not handled directory type.");
+		return NULL;
+	}
+	size_t res = eina_file_path_join(buf, sizeof(buf), prefix, relative);
+	free(prefix);
+	if (res > sizeof(buf)) {
+		LOGE("Path exceeded PATH_MAX");
+		return NULL;
+	}
+
+	return &buf[0];
 }
 /* End of file */
