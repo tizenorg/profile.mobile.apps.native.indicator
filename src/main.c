@@ -23,7 +23,6 @@
 #include <unistd.h>
 #include <app_manager.h>
 #include <signal.h>
-#include <minicontrol-monitor.h>
 #include <feedback.h>
 #include <notification.h>
 #include <app_preference.h>
@@ -31,9 +30,6 @@
 //FIXME
 #if 0
 #include <tzsh_indicator_service.h>
-#endif
-#if 0
-#include <app_manager_product.h>
 #endif
 #include <vconf/vconf-internal-idle-lock-keys.h>
 

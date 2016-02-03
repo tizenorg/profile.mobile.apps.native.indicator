@@ -22,7 +22,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <vconf.h>
-#include <minicontrol-monitor.h>
 
 #include "common.h"
 #include "modules.h"

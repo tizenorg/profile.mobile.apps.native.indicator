@@ -22,7 +22,6 @@
 #include <stdlib.h>
 #include <vconf.h>
 //#include <Ecore_X.h>
-#include <minicontrol-monitor.h>
 #include <bluetooth.h>
 //#include <bluetooth_extention.h>
 
