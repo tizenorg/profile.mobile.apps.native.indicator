@@ -310,7 +310,7 @@ static int register_wifi_module(void *data)
 	ret = wifi_set_device_state_changed_cb(_wifi_device_state_changed_cb, data);
 	if (ret != WIFI_ERROR_NONE) r = ret;
 
-	ret = wifi_set_connection_state_changed_cb(_wifi_connection_state_changed_cb, data);
+	ret = util_wifi_set_connection_state_changed_cb(_wifi_connection_state_changed_cb, data);
 	if (ret != WIFI_ERROR_NONE) r = ret;
 
 	ret = vconf_notify_key_changed(VCONFKEY_WIFI_STRENGTH, _wifi_changed_cb, data);
@@ -328,8 +328,8 @@ static int unregister_wifi_module(void)
 {
 	int ret;
 
+	util_wifi_unset_connection_state_changed_cb(_wifi_connection_state_changed_cb);
 	ret = wifi_unset_device_state_changed_cb();
-	ret = wifi_unset_connection_state_changed_cb();
 	ret = ret | vconf_ignore_key_changed(VCONFKEY_WIFI_STRENGTH, _wifi_changed_cb);
 	ret = ret | vconf_ignore_key_changed(VCONFKEY_WIFI_TRANSFER_STATE, _wifi_changed_cb);
 

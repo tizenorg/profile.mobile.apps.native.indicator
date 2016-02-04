@@ -22,6 +22,7 @@
 #include <vconf.h>
 #include <app.h>
 #include <app_common.h>
+#include <Eina.h>
 
 #include "common.h"
 #include "indicator.h"
@@ -38,6 +39,12 @@
 #define DIR_PREFIX	"Theme_%02d_"
 #define LABEL_STRING	"<color=#%02x%02x%02x%02x>%s</color>"
 
+typedef struct {
+	wifi_connection_state_changed_cb cb;
+	void *data;
+} wifi_handler_t;
+
+static Eina_List *wifi_callbacks;
 
 char *util_set_label_text_color(const char *txt)
 {
@@ -615,4 +622,52 @@ const char *util_get_file_path(enum app_subdir dir, const char *relative)
 
 	return &buf[0];
 }
+
+static void _wifi_state_cb(wifi_connection_state_e state, wifi_ap_h ap, void *user_data)
+{
+	Eina_List *l;
+	wifi_handler_t *hdl;
+
+	EINA_LIST_FOREACH(wifi_callbacks, l, hdl) {
+		if (hdl->cb) hdl->cb(state, ap, hdl->data);
+	}
+}
+
+int util_wifi_set_connection_state_changed_cb(wifi_connection_state_changed_cb cb, void *data)
+{
+	wifi_handler_t *hdl = malloc(sizeof(wifi_handler_t));
+	if (!hdl) {
+		return -1;
+	}
+
+	if (!wifi_callbacks) {
+		int err = wifi_set_connection_state_changed_cb(_wifi_state_cb, NULL);
+		if (err != WIFI_ERROR_NONE) {
+			free(hdl);
+			return -1;
+		}
+	}
+
+	hdl->cb = cb;
+	hdl->data = data;
+	wifi_callbacks = eina_list_append(wifi_callbacks, cb);
+
+	return 0;
+}
+
+void util_wifi_unset_connection_state_changed_cb(wifi_connection_state_changed_cb cb)
+{
+	Eina_List *l, *l2;
+	wifi_handler_t *hdl;
+
+	EINA_LIST_FOREACH_SAFE(wifi_callbacks, l, l2, hdl) {
+		if (hdl->cb == cb) {
+			wifi_callbacks = eina_list_remove_list(wifi_callbacks, l);
+			free(hdl);
+		}
+	}
+	if (!wifi_callbacks)
+		wifi_unset_connection_state_changed_cb();
+}
+
 /* End of file */

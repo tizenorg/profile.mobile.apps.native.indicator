@@ -21,13 +21,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <tapi_common.h>
-#include <TelNetwork.h>
-#include <TelSim.h>
-#include <ITapiNetwork.h>
-#include <TelCall.h>
-#include <vconf.h>
 #include <wifi.h>
+#include <telephony.h>
+#include <system_settings.h>
+#include <runtime_info.h>
+#include <vconf.h>
 
 #include "common.h"
 #include "indicator.h"
@@ -40,15 +38,15 @@
 
 #define ICON_PRIORITY	INDICATOR_PRIORITY_FIXED5
 #define MODULE_NAME		"connection"
-#define TIMER_INTERVAL	0.3
-#define TAPI_HANDLE_MAX  2
 
 static int register_conn_module(void *data);
 static int unregister_conn_module(void);
 static int wake_up_cb(void *data);
+static void __deinit_tel(void);
+
 static int transfer_state = -1;
 int isBTIconShowing = 0;
-extern TapiHandle *tapi_handle[TAPI_HANDLE_MAX+1];
+static telephony_handle_list_s tel_list;
 static int updated_while_lcd_off = 0;
 static int prevIndex = -1;
 
@@ -66,7 +64,7 @@ icon_s conn = {
 	.wake_up = wake_up_cb
 };
 
-enum {
+typedef enum {
 	LEVEL_MIN = 0,
 	LEVEL_2G = LEVEL_MIN,
 	LEVEL_EDGE,
@@ -77,10 +75,10 @@ enum {
 	LEVEL_LTE,
 	LEVEL_4G,
 	LEVEL_BT_TETHERING,
-	LEVEL_MAX
-};
+	LEVEL_LAST
+} icon_e;
 
-static const char *icon_path[LEVEL_MAX] = {
+static const char *icon_path[LEVEL_LAST] = {
 	[LEVEL_2G] = "Connection/B03_connection_G.png",
 	[LEVEL_EDGE] = "Connection/B03_connection_E.png",
 	[LEVEL_3G] = "Connection/B03_connection_3G.png",
@@ -186,100 +184,138 @@ static void hide_image_icon(void)
 	prevIndex = -1;
 }
 
-
-
-static void _show_proper_icon(int svc_type,int ps_type, void *data)
+static icon_e _icon_level_for_network_type(telephony_network_type_e net_type)
 {
-	retif(data == NULL, , "Invalid parameter!");
-
-	if (ps_type != TAPI_NETWORK_PS_TYPE_UNKNOWN) {
-		switch (ps_type) {
-		case TAPI_NETWORK_PS_TYPE_HSDPA:
-		case TAPI_NETWORK_PS_TYPE_HSUPA:
-		case TAPI_NETWORK_PS_TYPE_HSPA:
-			show_image_icon(LEVEL_H);
-			show_connection_transfer_icon(data);
-			break;
-		case TAPI_NETWORK_PS_TYPE_HSPAP:
-			show_image_icon(LEVEL_H_PLUS);
-			show_connection_transfer_icon(data);
-			break;
-		default:
-			hide_image_icon();
-			break;
-		}
-	} else {
-		switch (svc_type) {
-		case TAPI_NETWORK_SERVICE_TYPE_UNKNOWN:
-		case TAPI_NETWORK_SERVICE_TYPE_NO_SERVICE:
-		case TAPI_NETWORK_SERVICE_TYPE_EMERGENCY:
-		case TAPI_NETWORK_SERVICE_TYPE_SEARCH:
-			hide_image_icon();
-			break;
-		case TAPI_NETWORK_SERVICE_TYPE_2G:
-		case TAPI_NETWORK_SERVICE_TYPE_2_5G:
-			show_image_icon(LEVEL_2G);
-			show_connection_transfer_icon(data);
-			break;
-		case TAPI_NETWORK_SERVICE_TYPE_2_5G_EDGE:
-			show_image_icon(LEVEL_EDGE);
-			show_connection_transfer_icon(data);
-			break;
-		case TAPI_NETWORK_SERVICE_TYPE_3G:
-			show_image_icon(LEVEL_3G);
-			show_connection_transfer_icon(data);
-			break;
-		case TAPI_NETWORK_SERVICE_TYPE_HSDPA:
-			show_image_icon(LEVEL_H_PLUS);
-			show_connection_transfer_icon(data);
-			break;
-		case TAPI_NETWORK_SERVICE_TYPE_LTE:
-			show_image_icon(LEVEL_LTE);
-			show_connection_transfer_icon(data);
-			break;
-		default:
-			hide_image_icon();
-			break;
-		}
+	switch (net_type) {
+	case TELEPHONY_NETWORK_TYPE_GSM:
+	case TELEPHONY_NETWORK_TYPE_GPRS:
+		return LEVEL_2G;
+	case TELEPHONY_NETWORK_TYPE_EDGE:
+		return LEVEL_EDGE;
+	case TELEPHONY_NETWORK_TYPE_UMTS:
+		return LEVEL_3G;
+	case TELEPHONY_NETWORK_TYPE_HSDPA:
+		return LEVEL_H;
+	case TELEPHONY_NETWORK_TYPE_LTE:
+		return LEVEL_LTE;
+	default:
+		return LEVEL_LAST;
 	}
 }
 
-
-
-static void on_noti(TapiHandle *handle_obj, const char *noti_id, void *data, void *user_data)
+static icon_e _icon_level_for_ps_network_type(telephony_network_ps_type_e net_type)
 {
-	DBG("On noti function");
-	TelNetworkDefaultDataSubs_t default_subscription = TAPI_NETWORK_DEFAULT_DATA_SUBS_UNKNOWN;
+	switch (net_type) {
+	case TELEPHONY_NETWORK_PS_TYPE_HSDPA:
+	case TELEPHONY_NETWORK_PS_TYPE_HSUPA:
+	case TELEPHONY_NETWORK_PS_TYPE_HSPA:
+		return LEVEL_H;
+	case TELEPHONY_NETWORK_PS_TYPE_HSPAP:
+		return LEVEL_H_PLUS;
+	default:
+		return LEVEL_LAST;
+	}
+}
+
+static void _view_icon_update_ps_network(telephony_network_ps_type_e ps_type, void *data)
+{
+	icon_e icon = _icon_level_for_ps_network_type(ps_type);
+	if (icon != LEVEL_LAST) {
+		show_image_icon(icon);
+		show_connection_transfer_icon(data);
+	}
+	else {
+		hide_image_icon();
+	}
+}
+
+static void _view_icon_update_network(telephony_network_service_state_e state, telephony_network_type_e network_type, void *data)
+{
+	icon_e icon;
+
+	switch (state) {
+		case TELEPHONY_NETWORK_SERVICE_STATE_IN_SERVICE:
+			icon = _icon_level_for_network_type(network_type);
+			if (icon != LEVEL_LAST) {
+				show_image_icon(icon);
+				show_connection_transfer_icon(data);
+			}
+			else {
+				hide_image_icon();
+			}
+			break;
+		case TELEPHONY_NETWORK_SERVICE_STATE_OUT_OF_SERVICE:
+		case TELEPHONY_NETWORK_SERVICE_STATE_EMERGENCY_ONLY:
+		default:
+			hide_image_icon();
+			break;
+	}
+}
+
+static void _view_icon_update(telephony_h handle, void *data)
+{
+	telephony_network_ps_type_e ps_type;
+	telephony_network_service_state_e service_state;
+	telephony_network_type_e network_type;
+
+	retif(data == NULL, , "Invalid parameter!");
+
+	int ret = telephony_network_get_ps_type(handle, &ps_type);
+	retm_if(ret != TELEPHONY_ERROR_NONE, "telephony_network_get_ps_type failed %s", get_error_message(ret));
+
+	ret = telephony_network_get_type(handle, &network_type);
+	retm_if(ret != TELEPHONY_ERROR_NONE, "telephony_network_get_type failed %s", get_error_message(ret));
+
+	ret = telephony_network_get_service_state(handle, &service_state);
+	retm_if(ret != TELEPHONY_ERROR_NONE, "telephony_network_get_service_state failed %s", get_error_message(ret));
+
+	if (ps_type != TELEPHONY_NETWORK_PS_TYPE_UNKNOWN) {
+		_view_icon_update_ps_network(ps_type, data);
+	}
+	else {
+		_view_icon_update_network(service_state, network_type, data);
+	}
+}
+
+static void on_noti(telephony_h handle, const char *noti_id, void *data, void *user_data)
+{
+	telephony_network_default_data_subs_e default_subscription;
+	wifi_connection_state_e state;
+
 	int ret = 0;
-	int val = 0;
-	int ps_type = 0;
-	struct appdata *ad = (struct appdata *)user_data;
+	bool val;
 	retif(user_data == NULL, , "invalid parameter!!");
 
-	ret = wifi_get_connection_state(&val);
-	DBG("WIFI Status : %d", val);
-	if (ret == WIFI_ERROR_NONE && val == WIFI_CONNECTION_STATE_CONNECTED) {
+	ret = wifi_get_connection_state(&state);
+	DBG("WIFI Status : %d", state);
+	retm_if(ret != WIFI_ERROR_NONE, "wifi_get_connection_state failed: %s", get_error_message(ret));
+
+	if (state == WIFI_CONNECTION_STATE_CONNECTED) {
 		DBG("WIFI connected, so hide connection icon");
 		hide_image_icon();
 		return;
 	}
 
-	ret = vconf_get_bool(VCONFKEY_TELEPHONY_FLIGHT_MODE, &val);
-	if (ret == OK && val == TRUE) {
+	ret = system_settings_get_value_bool(SYSTEM_SETTINGS_KEY_NETWORK_FLIGHT_MODE, &val);
+	retm_if(ret != SYSTEM_SETTINGS_ERROR_NONE, "system_settings_get_value_bool failed: %s", get_error_message(ret));
+
+	if (val) {
 		DBG("FLIGHT MODE ON");
 		hide_image_icon();
 		return;
 	}
 
-	ret = vconf_get_int(VCONFKEY_NETWORK_STATUS, &val);
-	if (ret == OK && val == VCONFKEY_NETWORK_BLUETOOTH) {
+	ret = runtime_info_get_value_bool(RUNTIME_INFO_KEY_BLUETOOTH_TETHERING_ENABLED, &val);
+	retm_if(ret != RUNTIME_INFO_ERROR_NONE, "runtime_info_get_value_bool failed: %s", get_error_message(ret));
+
+	if (val) {
 		DBG("bluetooth tethering On");
 		isBTIconShowing = 1;
 		show_image_icon(LEVEL_BT_TETHERING);
 		util_signal_emit(conn.ad,"indicator.connection.updown.hide","indicator.prog");
 		return;
 	}
-	else if (ret == OK && val != VCONFKEY_NETWORK_BLUETOOTH) {
+	else {
 		DBG("bluetooth tethering Off");
 		if(isBTIconShowing == 1)
 		{
@@ -288,254 +324,20 @@ static void on_noti(TapiHandle *handle_obj, const char *noti_id, void *data, voi
 		}
 	}
 
-	default_subscription = ad->tel_info.prefered_data;
-	if(default_subscription == TAPI_NETWORK_DEFAULT_DATA_SUBS_UNKNOWN)
-	{
-		hide_image_icon();
-	}
-	else if(default_subscription == TAPI_NETWORK_DEFAULT_DATA_SUBS_SIM1)
-	{
-		int ret = 0;
-		ret = vconf_get_int(VCONFKEY_DNET_STATE, &val);
-		if (ret == OK) {
-			if (val == VCONFKEY_DNET_OFF)
-			{
-				DBG("CONNECTION DNET Status: %d", val);
-				hide_image_icon();
-				return;
-			}
-		}
+	ret = telephony_network_get_default_data_subscription(handle, &default_subscription);
+	retm_if(ret != TELEPHONY_ERROR_NONE, "telephony_network_get_default_data_subscription failed %s", get_error_message(ret));
 
-		val = ad->tel_info.network_service_type;
-		ps_type = ad->tel_info.network_ps_type;
-
-		DBG("TAPI_NETWORK_DEFAULT_DATA_SUBS_SIM1 %d",val);
-		DBG("TAPI_NETWORK_DEFAULT_DATA_SUBS_SIM1 %d",ps_type);
-		_show_proper_icon(val,ps_type, user_data);
-	}
-	/* FIXME : remove? */
-#if 0
-	else
-	{
-		int ret = 0;
-//		ret = vconf_get_int(VCONFKEY_DNET_STATE2, &val);
-		if (ret == OK) {
-			if (val == VCONFKEY_DNET_OFF)
-			{
-				DBG("CONNECTION DNET Status: %d", val);
-				hide_image_icon();
-				return;
-			}
-		}
-
-		val = ad->tel_info[1].network_service_type;
-		ps_type = ad->tel_info[1].network_ps_type;
-
-		DBG("TAPI_NETWORK_DEFAULT_DATA_SUBS_SIM2 %d",val);
-		DBG("TAPI_NETWORK_DEFAULT_DATA_SUBS_SIM2 %d",ps_type);
-		_show_proper_icon(val,ps_type, user_data);
-	}
-#endif
-}
-
-
-
-static void indicator_conn_change_cb(keynode_t *node, void *data)
-{
-	struct appdata* ad = NULL;
-	int svc_type = VCONFKEY_TELEPHONY_SVCTYPE_NONE;
-	wifi_connection_state_e status = WIFI_CONNECTION_STATE_FAILURE;
-	int ret = 0;
-	int ps_type = VCONFKEY_TELEPHONY_PSTYPE_NONE;
-
-	ret_if(!data);
-
-	ad = (struct appdata*)data;
-
-	if(icon_get_update_flag()==0)
-	{
-		updated_while_lcd_off = 1;
-		DBG("need to update %d",updated_while_lcd_off);
-		return;
-	}
-	updated_while_lcd_off = 0;
-
-	retif(data == NULL, , "Invalid parameter!");
-
-	/* check wifi status */
-	ret = wifi_get_connection_state(&status);
-	if (ret == WIFI_ERROR_NONE) {
-		INFO("CONNECTION WiFi Status: %d", status);
-
-		if (status == WIFI_CONNECTION_STATE_CONNECTED)
-		{
-			int mms_state = 0;
-			vconf_get_int(VCONFKEY_DNET_STATE, &mms_state);
-			box_update_display(&(ad->win));
-
-			if(mms_state!=VCONFKEY_DNET_SECURE_CONNECTED)
-			{
-				hide_image_icon();
-				return;
-			}
-		}
-	}
-
-	/* get dnet status */
-	ret = vconf_get_int(VCONFKEY_DNET_STATE, &status);
-	if (ret == OK) {
-		if (status == VCONFKEY_DNET_OFF)
-		{
-			DBG("CONNECTION DNET Status: %d", status);
+	switch (default_subscription) {
+		case TELEPHONY_NETWORK_DEFAULT_DATA_SUBS_SIM1:
+			_view_icon_update(handle, user_data);
+			break;
+		case TELEPHONY_NETWORK_DEFAULT_DATA_SUBS_SIM2:
+		case TELEPHONY_NETWORK_DEFAULT_DATA_SUBS_UNKNOWN:
+		default:
 			hide_image_icon();
-		}
-		else
-		{
-			ret = vconf_get_int(VCONFKEY_TELEPHONY_PSTYPE, &ps_type);
-			if (ret == OK)
-			{
-				INFO("Telephony packet service type: %d", ps_type);
-
-				switch (ps_type)
-				{
-
-				case VCONFKEY_TELEPHONY_PSTYPE_HSDPA:
-				case VCONFKEY_TELEPHONY_PSTYPE_HSUPA:
-				case VCONFKEY_TELEPHONY_PSTYPE_HSPA:
-					if(util_is_orf())
-					{
-						show_image_icon(LEVEL_3G_PLUS);
-					}
-					else
-					{
-						show_image_icon(LEVEL_H);
-					}
-					show_connection_transfer_icon(data);
-					return;
-				case VCONFKEY_TELEPHONY_PSTYPE_NONE:
-				default:
-					break;
-				}
-			}
-
-			/* check service type */
-			ret = vconf_get_int(VCONFKEY_TELEPHONY_SVCTYPE, &svc_type);
-			if (ret == OK) {
-				switch (svc_type) {
-				case VCONFKEY_TELEPHONY_SVCTYPE_2G:
-					/**< Network 2G. Show to LEVEL_2G icon */
-				case VCONFKEY_TELEPHONY_SVCTYPE_2_5G:
-					/**< Network 2.5G. Show to LEVEL_2G icon  */
-					show_image_icon(LEVEL_2G);
-					show_connection_transfer_icon(data);
-					break;
-				case VCONFKEY_TELEPHONY_SVCTYPE_2_5G_EDGE:
-					/**< Network EDGE */
-					show_image_icon(LEVEL_EDGE);
-					show_connection_transfer_icon(data);
-					break;
-				case VCONFKEY_TELEPHONY_SVCTYPE_3G:
-					/**< Network UMTS */
-					show_image_icon(LEVEL_3G);
-					show_connection_transfer_icon(data);
-					break;
-				case VCONFKEY_TELEPHONY_SVCTYPE_LTE:
-					/**< Network LTE */
-					show_image_icon(LEVEL_4G);
-					show_connection_transfer_icon(data);
-					break;
-
-				default:
-					hide_image_icon();
-					break;
-				}
-
-				return;
-			}
-		}
+			break;
 	}
-
-//	ret = vconf_get_int(VCONFKEY_DNET_STATE2, &status);
-	if (ret == OK) {
-		if (status == VCONFKEY_DNET_OFF)
-		{
-			DBG("CONNECTION DNET Status: %d", status);
-			hide_image_icon();
-		}
-		else
-		{
-
-			ret = vconf_get_int(VCONFKEY_TELEPHONY_PSTYPE, &ps_type);
-			if (ret == OK)
-			{
-				switch (ps_type)
-				{
-
-				case VCONFKEY_TELEPHONY_PSTYPE_HSDPA:
-				case VCONFKEY_TELEPHONY_PSTYPE_HSUPA:
-					if(util_is_orf())
-					{
-						show_image_icon(LEVEL_3G_PLUS);
-					}
-					else
-					{
-						show_image_icon(LEVEL_H);
-					}
-					show_connection_transfer_icon(data);
-					return;
-				case VCONFKEY_TELEPHONY_PSTYPE_HSPA:
-					show_image_icon(LEVEL_H_PLUS);
-					show_connection_transfer_icon(data);
-					return;
-
-				case VCONFKEY_TELEPHONY_PSTYPE_NONE:
-				default:
-					break;
-				}
-			}
-
-			/* check service type */
-			ret = vconf_get_int(VCONFKEY_TELEPHONY_SVCTYPE, &svc_type);
-			if (ret == OK) {
-				switch (svc_type) {
-				case VCONFKEY_TELEPHONY_SVCTYPE_2G:
-					/**< Network 2G. Show to LEVEL_2G icon */
-				case VCONFKEY_TELEPHONY_SVCTYPE_2_5G:
-					/**< Network 2.5G. Show to LEVEL_2G icon  */
-					show_image_icon(LEVEL_2G);
-					show_connection_transfer_icon(data);
-					break;
-				case VCONFKEY_TELEPHONY_SVCTYPE_2_5G_EDGE:
-					/**< Network EDGE */
-					show_image_icon(LEVEL_EDGE);
-					show_connection_transfer_icon(data);
-					break;
-				case VCONFKEY_TELEPHONY_SVCTYPE_3G:
-					/**< Network UMTS */
-					show_image_icon(LEVEL_3G);
-					show_connection_transfer_icon(data);
-					break;
-				case VCONFKEY_TELEPHONY_SVCTYPE_LTE:
-					/**< Network LTE */
-					show_image_icon(LEVEL_4G);
-					show_connection_transfer_icon(data);
-					break;
-
-				default:
-					hide_image_icon();
-					break;
-				}
-
-				return;
-			}
-		}
-	}
-	hide_image_icon();
-
-	return;
 }
-
-
 
 static int wake_up_cb(void *data)
 {
@@ -543,58 +345,17 @@ static int wake_up_cb(void *data)
 	{
 		return OK;
 	}
-	on_noti(tapi_handle[0], NULL, NULL, data);
+	on_noti(tel_list.handle[0], NULL, NULL, data);
 	return OK;
 }
 
 
-#if 0
-static void svc_type_callback(keynode_t *node, void *data)
-{
-	int type = 0;
 
-	vconf_get_int(VCONFKEY_TELEPHONY_SVCTYPE, &type);
-	DBG("svc_type_callback %d",type);
-	indicator_conn_change_cb(node,data);
+
+static void _update_status_ri(runtime_info_key_e key, void *user_data)
+{
+	on_noti(tel_list.handle[0], NULL, NULL, user_data);
 }
-#endif
-
-
-static void ps_type_callback(keynode_t *node, void *data)
-{
-	int type = 0;
-
-	vconf_get_int(VCONFKEY_TELEPHONY_PSTYPE, &type);
-
-	DBG("ps_type_callback %d",type);
-	indicator_conn_change_cb(node,data);
-}
-
-
-
-static void dnet_state_callback(keynode_t *node, void *data)
-{
-	DBG("dnet_state_callback");
-	on_noti(tapi_handle[0], NULL, NULL, data);
-}
-
-
-
-/*static void dnet2_state_callback(keynode_t *node, void *data)
-{
-	DBG("dnet_state_callback");
-	on_noti(tapi_handle[1], NULL, NULL, data);
-}*/
-
-
-
-static void packet_state_callback(keynode_t *node, void *data)
-{
-	DBG("packet_state_callback");
-	on_noti(tapi_handle[0], NULL, NULL, data);
-}
-
-
 
 static void _wifi_status_changed_cb(wifi_connection_state_e state, wifi_ap_h ap, void *user_data)
 {
@@ -602,160 +363,148 @@ static void _wifi_status_changed_cb(wifi_connection_state_e state, wifi_ap_h ap,
 	int ret = 0;
 
 	ret = wifi_get_connection_state(&status);
-	if (ret == WIFI_ERROR_NONE)
-	{
+	if (ret == WIFI_ERROR_NONE) {
 		INFO("[CB] WIFI Status: %d", status);
-		if(status == WIFI_CONNECTION_STATE_CONNECTED)
-		{
+		if(status == WIFI_CONNECTION_STATE_CONNECTED) {
 			DBG("[CB] WIFI connected, so hide connection icon");
 			hide_image_icon();
 		}
-		else
-		{
-			on_noti(tapi_handle[0], NULL, NULL, user_data);
+		else {
+			on_noti(tel_list.handle[0], NULL, NULL, user_data);
 		}
 	}
 }
 
 
 
-static void _flight_mode(keynode_t *key, void *data)
+static void _flight_mode(system_settings_key_e key, void *user_data)
 {
-	on_noti(tapi_handle[0], NULL, NULL, data);
+	on_noti(tel_list.handle[0], NULL, NULL, user_data);
 }
 
 
 
-static void _bt_tethering(keynode_t *key, void *data)
+static void _update_status(telephony_h handle, telephony_noti_e noti_id, void *data, void *user_data)
 {
-	on_noti(tapi_handle[0], NULL, NULL, data);
+	on_noti(tel_list.handle[0], NULL, NULL, data);
 }
-
-
-
-void connection_icon_on_noti(TapiHandle *handle_obj, const char *noti_id, void *data, void *user_data)
-{
-	DBG("");
-	on_noti(handle_obj, NULL, NULL, user_data);
-}
-
-
 
 /* Initialize TAPI */
-static void __init_tel(void *data)
+static int __init_tel(void *data)
 {
 	DBG("__init_tel");
-	int ret = FAIL;
+	int ret, i;
 
-	ret = vconf_notify_key_changed(VCONFKEY_DNET_STATE, dnet_state_callback, data);
-	if (ret != OK) {
-		ERR("Failed to register callback!");
+	ret = telephony_init(&tel_list);
+	if (ret != TELEPHONY_ERROR_NONE) {
+		ERR("telephony_init failed %d", ret);
+		return FAIL;
 	}
 
-/*	ret = vconf_notify_key_changed(VCONFKEY_DNET_STATE2, dnet2_state_callback, data);
-	if (ret != OK) {
-		ERR("Failed to register callback!");
-	}*/
-
-	ret = vconf_notify_key_changed(VCONFKEY_PACKET_STATE, packet_state_callback, data);
-	if (ret != OK) {
-		ERR("Failed to register callback!");
+	if (!tel_list.count) {
+		DBG("Not SIM handle returned by telephony_init");
+		__deinit_tel();
+		return FAIL;
 	}
 
-	ret = vconf_notify_key_changed(VCONFKEY_TELEPHONY_FLIGHT_MODE, _flight_mode, data);
-	if (ret != OK) {
-		ERR("Failed to register callback!");
+	telephony_noti_e events[] = { TELEPHONY_NOTI_NETWORK_DEFAULT_DATA_SUBSCRIPTION, TELEPHONY_NOTI_NETWORK_PS_TYPE, TELEPHONY_NOTI_NETWORK_SERVICE_STATE };
+	for (i = 0; i < ARRAY_SIZE(events); i++) {
+		/* Currently handle only first SIM */
+		ret = telephony_set_noti_cb(tel_list.handle[0], events[i], _update_status, data);
+		if (ret != TELEPHONY_ERROR_NONE) {
+			__deinit_tel();
+			return FAIL;
+		}
 	}
 
-	ret = vconf_notify_key_changed(VCONFKEY_NETWORK_STATUS, _bt_tethering, data);
-	if (ret != OK) {
-		ERR("Failed to register callback!");
+	ret = util_wifi_set_connection_state_changed_cb(_wifi_status_changed_cb, data);
+	if (ret != 0) {
+		ERR("util_wifi_set_connection_state_changed_cb");
+		__deinit_tel();
+		return FAIL;
 	}
 
-	on_noti(tapi_handle[0], NULL, NULL, data);
+	ret = system_settings_set_changed_cb(SYSTEM_SETTINGS_KEY_NETWORK_FLIGHT_MODE, _flight_mode, data);
+	if (ret != SYSTEM_SETTINGS_ERROR_NONE) {
+		ERR("system_settings_set_changed_cb %d", get_error_message(ret));
+		__deinit_tel();
+		return FAIL;
+	}
+
+	ret = runtime_info_set_changed_cb(RUNTIME_INFO_KEY_BLUETOOTH_TETHERING_ENABLED, _update_status_ri, data);
+	if (ret != RUNTIME_INFO_ERROR_NONE) {
+		ERR("runtime_info_set_changed_cb %d", get_error_message(ret));
+		__deinit_tel();
+		return FAIL;
+	}
+
+	on_noti(tel_list.handle[0], NULL, NULL, data);
+
+	return OK;
 }
 
-
-
-/* De-initialize TAPI */
+/* De-initialize telephony */
 static void __deinit_tel()
 {
 	DBG("__deinit_tel");
+
+	system_settings_unset_changed_cb(SYSTEM_SETTINGS_KEY_NETWORK_FLIGHT_MODE);
+	util_wifi_unset_connection_state_changed_cb(_wifi_status_changed_cb);
+	runtime_info_unset_changed_cb(RUNTIME_INFO_KEY_BLUETOOTH_TETHERING_ENABLED);
+
+	if (tel_list.count)
+		telephony_deinit(&tel_list);
+	tel_list.count = 0;
 }
 
-
-
-static void tel_ready_cb(keynode_t *key, void *data)
+static void tel_ready_cb(telephony_state_e state, void *user_data)
 {
-	gboolean status = FALSE;
-
-	status = vconf_keynode_get_bool(key);
-	if (status == TRUE) {    /* Telephony State - READY */
-		__init_tel(data);
+	if (state == TELEPHONY_STATE_READY) {    /* Telephony State - READY */
+		__init_tel(user_data);
 	}
-	else {                   /* Telephony State – NOT READY */
+	else if (state == TELEPHONY_STATE_NOT_READY) {                   /* Telephony State – NOT READY */
 		/* De-initialization is optional here (ONLY if required) */
 		__deinit_tel();
 	}
 }
 
-
-
 static int register_conn_module(void *data)
 {
-	int r = 0, ret = -1;
+	int ret;
+	telephony_state_e state;
 
 	retif(data == NULL, FAIL, "Invalid parameter!");
 
 	set_app_state(data);
 
-	ret = vconf_notify_key_changed(VCONFKEY_TELEPHONY_PSTYPE,
-					   ps_type_callback, data);
-	if (ret != OK) {
-		r = r | ret;
+	ret = telephony_get_state(&state);
+	if (ret != TELEPHONY_ERROR_NONE) {
+		ERR("telephony_get_state failed: %d", get_error_message(ret));
+		return FAIL;
 	}
 
-	ret = wifi_set_connection_state_changed_cb(_wifi_status_changed_cb, data);
-	if (ret != WIFI_ERROR_NONE) {
-		ERR("Failed to register wifi_set_connection_state_changed_cb!");
-		r = r | ret;
-	}
-	gboolean state = FALSE;
-
-	vconf_get_bool(VCONFKEY_TELEPHONY_READY, &state);
-
-	if(state)
-	{
+	if (state == TELEPHONY_STATE_READY) {
 		DBG("Telephony ready");
-		__init_tel(data);
+		if (__init_tel(data) != OK)
+			return FAIL;
 	}
-	else
-	{
+	else if (state == TELEPHONY_STATE_NOT_READY) {
 		DBG("Telephony not ready");
-		vconf_notify_key_changed(VCONFKEY_TELEPHONY_READY, tel_ready_cb, data);
 	}
 
-	return r;
+	ret = telephony_set_state_changed_cb(tel_ready_cb, data);
+	if (ret != TELEPHONY_ERROR_NONE) {
+		ERR("telephony_set_state_changed_cb failed %d", get_error_message(ret));
+		__deinit_tel();
+		return FAIL;
+	}
+	return OK;
 }
-
-
 
 static int unregister_conn_module(void)
 {
-	int ret = -1;
-
-	ret = ret | vconf_ignore_key_changed(VCONFKEY_TELEPHONY_PSTYPE, ps_type_callback);
-	ret = ret | vconf_ignore_key_changed(VCONFKEY_DNET_STATE, dnet_state_callback);
-//	ret = ret | vconf_ignore_key_changed(VCONFKEY_DNET_STATE2, dnet_state_callback);
-	ret = ret | wifi_unset_connection_state_changed_cb();
-	ret = ret | vconf_ignore_key_changed(VCONFKEY_PACKET_STATE, packet_state_callback);
-	ret = ret | vconf_ignore_key_changed(VCONFKEY_TELEPHONY_READY, tel_ready_cb);
-	ret = ret | vconf_ignore_key_changed(VCONFKEY_TELEPHONY_FLIGHT_MODE, _flight_mode);
-	ret = ret | vconf_ignore_key_changed(VCONFKEY_NETWORK_STATUS, _bt_tethering);
-	if (ret != OK)
-		ERR("Failed to unregister callback!");
-
+	telephony_unset_state_changed_cb(tel_ready_cb);
 	__deinit_tel();
 
-	return ret;
+	return OK;
 }

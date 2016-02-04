@@ -370,7 +370,7 @@ static void _sim_status_cb(TapiHandle *handle_obj, const char *noti_id, void *da
 	ad->tel_info.sim_status= *sim_status;
 
 	_on_noti(handle_obj, noti_id, data, user_data);
-	connection_icon_on_noti(handle_obj, noti_id, data, user_data);
+	//connection_icon_on_noti(handle_obj, noti_id, data, user_data);
 }
 
 static void _network_service_type_cb(TapiHandle *handle_obj, const char *noti_id, void *data, void *user_data)
@@ -385,7 +385,7 @@ static void _network_service_type_cb(TapiHandle *handle_obj, const char *noti_id
 	ad->tel_info.network_service_type= *service_type;
 
 	_on_noti(handle_obj, noti_id, data, user_data);
-	connection_icon_on_noti(handle_obj, noti_id, data, user_data);
+	//connection_icon_on_noti(handle_obj, noti_id, data, user_data);
 }
 
 static void _network_ps_type_cb(TapiHandle *handle_obj, const char *noti_id, void *data, void *user_data)
@@ -399,7 +399,7 @@ static void _network_ps_type_cb(TapiHandle *handle_obj, const char *noti_id, voi
 
 	ad->tel_info.network_ps_type= *ps_type;
 
-	connection_icon_on_noti(handle_obj, noti_id, data, user_data);
+	//connection_icon_on_noti(handle_obj, noti_id, data, user_data);
 }
 
 static void _roaming_status_cb(TapiHandle *handle_obj, const char *noti_id, void *data, void *user_data)
@@ -430,7 +430,7 @@ static void _preferred_data_cb(TapiHandle *handle_obj, const char *noti_id, void
 	ad->tel_info.prefered_data = noti->default_subs;
 	//data prefered is not controllered
 
-	connection_icon_on_noti(handle_obj, noti_id, data, user_data);
+	//connection_icon_on_noti(handle_obj, noti_id, data, user_data);
 }
 
 static void _default_network_cb(TapiHandle *handle_obj, const char *noti_id, void *data, void *user_data)

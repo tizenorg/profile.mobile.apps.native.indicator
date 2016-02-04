@@ -22,7 +22,7 @@
 #ifndef __INDICATOR_UTIL_H__
 #define __INDICATOR_UTIL_H__
 #include <Ecore.h>
-//#include <Ecore_X.h>
+#include <wifi.h>
 
 typedef enum {
 	INDICATOR_ERROR_NONE = 0,
@@ -111,5 +111,21 @@ const char *util_get_file_path(enum app_subdir dir, const char *relative);
 #define util_get_external_data_file_path(x) util_get_file_path(APP_DIR_EXTERNAL_DATA, (x))
 #define util_get_external_cache_file_path(x) util_get_file_path(APP_DIR_EXTERNAL_CACHE, (x))
 #define util_get_external_shared_data_file_path(x) util_get_file_path(APP_DIR_EXTERNAL_SHARED_DATA, (x))
+
+/**
+ * @brief Allows to set multiple callbacks using wifi_set_connection_state_changed_cb API
+ *
+ * @param cb callback
+ * @param data user_data passed to callback function.
+ * @return 0 on success, other value on failure
+ */
+int util_wifi_set_connection_state_changed_cb(wifi_connection_state_changed_cb, void *data);
+
+/**
+ * @brief Unregisters callback set with util_wifi_set_connection_state_changed_cb.
+ *
+ * @param cb callback
+ */
+void util_wifi_unset_connection_state_changed_cb(wifi_connection_state_changed_cb);
 
 #endif /* __INDICATOR_UTIL_H__ */
