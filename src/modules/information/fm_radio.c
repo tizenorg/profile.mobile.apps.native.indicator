@@ -17,10 +17,10 @@
  *
  */
 
+// TODO No possibility to be notified about radio status for now.
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <vconf.h>
 #include "common.h"
 #include "indicator.h"
 #include "icon.h"
@@ -75,7 +75,7 @@ static void hide_image_icon(void)
 
 
 
-static void indicator_fm_radio_change_cb(keynode_t *node, void *data)
+static void indicator_fm_radio_change_cb(void *data)
 {
 	int status = 0;
 	int ret = -1;
@@ -115,7 +115,7 @@ static int register_fm_radio_module(void *data)
 
 	set_app_state(data);
 
-	indicator_fm_radio_change_cb(NULL, data);
+	indicator_fm_radio_change_cb(data);
 
 	return ret;
 }
