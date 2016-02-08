@@ -20,12 +20,12 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <vconf.h>
+#include <wifi-direct.h>
 #include "common.h"
 #include "indicator.h"
 #include "icon.h"
-#include "modules.h"
 #include "main.h"
+#include "log.h"
 #include "util.h"
 
 #define ICON_PRIORITY	INDICATOR_PRIORITY_FIXED8
@@ -75,23 +75,18 @@ static const char *icon_path[WIFI_DIRECT_MAX] = {
 	[WIFI_DIRECT_CONNECTED] = WIFI_D_ICON_CONNECTED
 };
 
-
-
-static void set_app_state(void* data)
+static void set_app_state(void *data)
 {
 	wifi_direct.ad = data;
 }
-
-
 
 static void show_icon(void *data, int index)
 {
 	if (index < WIFI_DIRECT_CONNECTED || index >= WIFI_DIRECT_MAX)
 		index = WIFI_DIRECT_CONNECTED;
 
-	if(prevIndex == index) {
+	if(prevIndex == index)
 		return;
-	}
 
 	wifi_direct.img_obj.data = icon_path[index];
 	icon_show(&wifi_direct);
@@ -108,65 +103,62 @@ static void hide_icon(void)
 	util_signal_emit(wifi_direct.ad,"indicator.wifidirect.hide","indicator.prog");
 }
 
-static void indicator_wifi_direct_change_cb(keynode_t *node, void *data)
+static void indicator_wifi_direct_change_cb(int error_code, wifi_direct_connection_state_e connection_state,
+											const char *mac_address, void *data)
 {
-	int status;
 	int ret;
+	wifi_direct_state_e device_state;
 
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(!data, "Invalid parameter!");
 
-	if(icon_get_update_flag()==0)
-	{
+	if (error_code != WIFI_DIRECT_ERROR_NONE) {
+		hide_icon();
+		_E("indicator_wifi_direct_change_cb failed[%s]", get_error_message(error_code));
+		return;
+	}
+
+	if(icon_get_update_flag() == 0) {
 		updated_while_lcd_off = 1;
 		return;
 	}
 	updated_while_lcd_off = 0;
 
-	ret = vconf_get_int(VCONFKEY_WIFI_DIRECT_STATE, &status);
+	ret = wifi_direct_get_state(&device_state);
+	retm_if( ret != WIFI_DIRECT_ERROR_NONE, "wifi_direct_get_state failed[%s]", get_error_message(error_code));
 
-	if (ret == OK) {
-		DBG("wifi_direct STATUS: %d", status);
-
-		switch (status) {
-		case VCONFKEY_WIFI_DIRECT_GROUP_OWNER:
-		case VCONFKEY_WIFI_DIRECT_CONNECTED:
+	if(device_state == WIFI_DIRECT_STATE_CONNECTED || device_state == WIFI_DIRECT_STATE_GROUP_OWNER)
 			show_icon(data, WIFI_DIRECT_CONNECTED);
-			break;
-		default:
+	else
 			hide_icon();
-			break;
-		}
-		return;
-	}
 
-	hide_icon();
 	return;
 }
 
 static int wake_up_cb(void *data)
 {
-	if(updated_while_lcd_off==0)
-	{
+	if(updated_while_lcd_off == 0)
 		return OK;
-	}
 
-	indicator_wifi_direct_change_cb(NULL, data);
+	// Second parameter is not used. This is made to avoid creating two almost same functions
+	indicator_wifi_direct_change_cb(WIFI_DIRECT_ERROR_NONE, WIFI_DIRECT_DISCONNECTION_RSP, NULL, data);
 	return OK;
 }
 
 #ifdef _SUPPORT_SCREEN_READER
 static char *access_info_cb(void *data, Evas_Object *obj)
 {
+	wifi_direct_state_e device_state;
 	char *tmp = NULL;
 	char buf[256] = {0,};
 	int status = 0;
+	int ret;
 
-	vconf_get_int(VCONFKEY_WIFI_DIRECT_STATE, &status);
+	ret = wifi_direct_get_state(&device_state);
+	retm_if( ret != WIFI_DIRECT_ERROR_NONE, "wifi_direct_get_state failed[%s]", get_error_message(error_code));
 
-	switch (status)
-	{
-	case VCONFKEY_WIFI_DIRECT_GROUP_OWNER:
-	case VCONFKEY_WIFI_DIRECT_CONNECTED:
+	switch (device_state) {
+	case WIFI_DIRECT_STATE_GROUP_OWNER:
+	case WIFI_DIRECT_STATE_CONNECTED:
 		snprintf(buf, sizeof(buf), "%s, %s", _("Wi-Fi direct On and Connected"),_("IDS_IDLE_BODY_STATUS_BAR_ITEM"));
 		break;
 	default:
@@ -187,10 +179,11 @@ static int register_wifi_direct_module(void *data)
 
 	set_app_state(data);
 
-	ret = vconf_notify_key_changed(VCONFKEY_WIFI_DIRECT_STATE,
-					indicator_wifi_direct_change_cb, data);
+	ret = wifi_direct_set_connection_state_changed_cb(indicator_wifi_direct_change_cb, data);
+	retv_if(ret != WIFI_DIRECT_ERROR_NONE, FAIL);
 
-	indicator_wifi_direct_change_cb(NULL, data);
+	// Second parameter is not used. This is made to avoid creating two almost same functions
+	indicator_wifi_direct_change_cb(WIFI_DIRECT_ERROR_NONE, WIFI_DIRECT_DISCONNECTION_RSP, NULL, data);
 
 	return ret;
 }
@@ -199,8 +192,8 @@ static int unregister_wifi_direct_module(void)
 {
 	int ret;
 
-	ret = vconf_ignore_key_changed(VCONFKEY_WIFI_DIRECT_STATE,
-					indicator_wifi_direct_change_cb);
+	ret = wifi_direct_unset_connection_state_changed_cb();
+	retv_if(ret != WIFI_DIRECT_ERROR_NONE, FAIL);
 
 	return ret;
 }
