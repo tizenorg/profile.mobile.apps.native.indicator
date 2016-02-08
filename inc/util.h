@@ -23,6 +23,8 @@
 #define __INDICATOR_UTIL_H__
 #include <Ecore.h>
 #include <wifi.h>
+#include <system_settings.h>
+#include <runtime_info.h>
 
 typedef enum {
 	INDICATOR_ERROR_NONE = 0,
@@ -127,5 +129,43 @@ int util_wifi_set_connection_state_changed_cb(wifi_connection_state_changed_cb, 
  * @param cb callback
  */
 void util_wifi_unset_connection_state_changed_cb(wifi_connection_state_changed_cb);
+
+/**
+ * @brief Allows to register multiple callbacks using system_settings_changed_cb API.
+ *
+ * @param key key to monitor.
+ * @param cb callback.
+ * @param data user_data passed to callback function.
+ *
+ * @return 0 on success, other value on failure.
+ */
+int util_system_settings_set_changed_cb(system_settings_key_e key, system_settings_changed_cb cb, void *data);
+
+/**
+ * @brief Unregisters callback set with util_system_settings_set_changed_cb.
+ *
+ * @param key key to stop monitor.
+ * @param cb callback
+ */
+void util_system_settings_unset_changed_cb(system_settings_key_e key, system_settings_changed_cb cb);
+
+/**
+ * @brief Allows to register multiple callbacks using runtime_info_set_changed_cb API.
+ *
+ * @param key key to monitor.
+ * @param cb callback.
+ * @param data user data passed to callback function.
+ *
+ * @return 0 on success, other value on failure.
+ */
+int util_runtime_info_set_changed_cb(runtime_info_key_e key, runtime_info_changed_cb cb, void *data);
+
+/**
+ * @brief Unregisters callback set with util_runtime_info_set_changed_cb.
+ *
+ * @param key key to stop monitor.
+ * @param cb callback.
+ */
+void util_runtime_info_unset_changed_cb(runtime_info_key_e key, runtime_info_changed_cb cb);
 
 #endif /* __INDICATOR_UTIL_H__ */

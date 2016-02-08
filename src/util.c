@@ -44,7 +44,21 @@ typedef struct {
 	void *data;
 } wifi_handler_t;
 
+typedef struct {
+	system_settings_key_e key;
+	system_settings_changed_cb cb;
+	void *data;
+} system_settings_handler_t;
+
+typedef struct {
+	runtime_info_key_e key;
+	runtime_info_changed_cb cb;
+	void *data;
+} runtime_info_handler_t;
+
 static Eina_List *wifi_callbacks;
+static Eina_List *ss_callbacks;
+static Eina_List *ri_callbacks;
 
 char *util_set_label_text_color(const char *txt)
 {
@@ -668,6 +682,117 @@ void util_wifi_unset_connection_state_changed_cb(wifi_connection_state_changed_c
 	}
 	if (!wifi_callbacks)
 		wifi_unset_connection_state_changed_cb();
+}
+
+static void _system_settings_cb(system_settings_key_e key, void *data)
+{
+	Eina_List *l;
+	system_settings_handler_t *hdl;
+
+	EINA_LIST_FOREACH(ss_callbacks, l, hdl) {
+		if (hdl->key == key) {
+			if (hdl->cb) hdl->cb(key, hdl->data);
+		}
+	}
+}
+
+int util_system_settings_set_changed_cb(system_settings_key_e key, system_settings_changed_cb cb, void *data)
+{
+	system_settings_handler_t *handler = malloc(sizeof(system_settings_handler_t));
+	if (!handler) {
+		return -1;
+	}
+
+	int err = system_settings_set_changed_cb(key, _system_settings_cb, NULL);
+	if (err != SYSTEM_SETTINGS_ERROR_NONE) {
+		free(handler);
+		return -1;
+	}
+
+	handler->key = key;
+	handler->cb = cb;
+	handler->data = data;
+
+	ss_callbacks = eina_list_append(ss_callbacks, handler);
+
+	return 0;
+}
+
+void util_system_settings_unset_changed_cb(system_settings_key_e key, system_settings_changed_cb cb)
+{
+	Eina_List *l, *l2;
+	system_settings_handler_t *hdl;
+	Eina_Bool del_key_cb = EINA_TRUE;
+
+	EINA_LIST_FOREACH_SAFE(ss_callbacks, l, l2, hdl) {
+		if (hdl->key == key) {
+			if (hdl->cb == cb) {
+				ss_callbacks = eina_list_remove_list(ss_callbacks, l);
+				free(hdl);
+			}
+			else {
+				del_key_cb = EINA_FALSE;
+			}
+		}
+	}
+	if (del_key_cb)
+		system_settings_unset_changed_cb(key);
+}
+
+static void _runtime_info_cb(runtime_info_key_e key, void *data)
+{
+	Eina_List *l;
+	runtime_info_handler_t *hdl;
+
+	EINA_LIST_FOREACH(ri_callbacks, l, hdl) {
+		if (hdl->key == key) {
+			if (hdl->cb) hdl->cb(key, hdl->data);
+		}
+	}
+}
+
+int util_runtime_info_set_changed_cb(runtime_info_key_e key, runtime_info_changed_cb cb, void *data)
+{
+	runtime_info_handler_t *handler = malloc(sizeof(runtime_info_handler_t));
+	if (!handler) {
+		return -1;
+	}
+
+	int err = runtime_info_set_changed_cb(key, _runtime_info_cb, NULL);
+	if (err != RUNTIME_INFO_ERROR_NONE) {
+		free(handler);
+		return -1;
+	}
+
+	handler->key = key;
+	handler->cb = cb;
+	handler->data = data;
+
+	ri_callbacks = eina_list_append(ri_callbacks, handler);
+
+	return 0;
+}
+
+void util_runtime_info_unset_changed_cb(runtime_info_key_e key, runtime_info_changed_cb cb)
+{
+	Eina_List *l, *l2;
+	runtime_info_handler_t *hdl;
+	Eina_Bool del_key_cb = EINA_TRUE;
+
+	EINA_LIST_FOREACH_SAFE(ri_callbacks, l, l2, hdl) {
+		if (hdl->key == key) {
+			if (hdl->cb == cb) {
+				ri_callbacks = eina_list_remove_list(ri_callbacks, l);
+				free(hdl);
+			}
+			else {
+				del_key_cb = EINA_FALSE;
+			}
+		}
+	}
+	if (del_key_cb)
+		runtime_info_unset_changed_cb(key);
+
 }
 
 /* End of file */
