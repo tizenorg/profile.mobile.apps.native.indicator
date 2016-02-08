@@ -17,12 +17,6 @@
  *
  */
 
-#include <tapi_common.h>
-#include <TelNetwork.h>
-#include <TelSim.h>
-#include <ITapiSim.h>
-#include <TelCall.h>
-#include <ITapiCall.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <vconf.h>
@@ -37,11 +31,9 @@
 #define ICON_PRIORITY	INDICATOR_PRIORITY_SYSTEM_2
 #define MODULE_NAME		"call_divert"
 
-#define TAPI_HANDLE_MAX  2
-
 static int register_call_divert_module(void *data);
 static int unregister_call_divert_module(void);
-static void _on_noti(TapiHandle *handle_obj, const char *noti_id, void *data, void *user_data);
+static void _on_noti(void *user_data);
 #ifdef _SUPPORT_SCREEN_READER
 static char *access_info_cb(void *data, Evas_Object *obj);
 #endif
@@ -70,7 +62,7 @@ static void set_app_state(void* data)
 	call_divert.ad = data;
 }
 
-static void _show_image_icon(void *data)
+static void _show_image_icon()
 {
 	call_divert.img_obj.data = icon_path;
 	icon_show(&call_divert);
@@ -103,7 +95,7 @@ static char *access_info_cb(void *data, Evas_Object *obj)
 }
 #endif
 
-static void _on_noti(TapiHandle *handle_obj, const char *noti_id, void *data, void *user_data)
+static void _on_noti(void *user_data)
 {
 	int status = 0;
 	int ret = 0;
@@ -112,7 +104,7 @@ static void _on_noti(TapiHandle *handle_obj, const char *noti_id, void *data, vo
 	ret_if(!user_data);
 
 	ret = vconf_get_bool(VCONFKEY_TELEPHONY_FLIGHT_MODE, &status);
-	if (ret == OK && status == TRUE) {
+	if (ret == OK && status == true) {
 		_D("Flight Mode");
 		_hide_image_icon();
 		return;
@@ -125,7 +117,7 @@ static void _on_noti(TapiHandle *handle_obj, const char *noti_id, void *data, vo
 	/* FIXME */
 	if (call_divert_state == VCONFKEY_TELEPHONY_CALL_FORWARD_ON) {
 		_D("Show call divert icon");
-		_show_image_icon(data);
+		_show_image_icon();
 	} else { /* VCONFKEY_TELEPHONY_CALL_FORWARD_OFF */
 		_D("Hide call divert icon");
 		_hide_image_icon();
@@ -134,17 +126,10 @@ static void _on_noti(TapiHandle *handle_obj, const char *noti_id, void *data, vo
 	return;
 }
 
-void call_forward_on_noti(TapiHandle *handle_obj, const char *noti_id, void *data, void *user_data)
-{
-	_D("");
-	_on_noti(NULL, NULL, NULL, user_data);
-
-}
-
 /* Initialize TAPI */
 static void _init_tel(void *data)
 {
-	_on_noti(NULL, NULL, NULL, data);
+	_on_noti(data);
 }
 
 /* De-initialize TAPI */
@@ -155,10 +140,10 @@ static void _deinit_tel()
 
 static void _tel_ready_cb(keynode_t *key, void *data)
 {
-	gboolean status = FALSE;
+	bool status = false;
 
 	status = vconf_keynode_get_bool(key);
-	if (status == TRUE) { /* Telephony State - READY */
+	if (status == true) { /* Telephony State - READY */
 		_init_tel(data);
 	} else { /* Telephony State – NOT READY */
 		/*
@@ -171,12 +156,12 @@ static void _tel_ready_cb(keynode_t *key, void *data)
 
 static void _flight_mode(keynode_t *key, void *data)
 {
-	_on_noti(NULL, NULL, NULL, data);
+	_on_noti(data);
 }
 
 static int register_call_divert_module(void *data)
 {
-	gboolean state = FALSE;
+	int state = false;
 	int ret;
 
 	retv_if(!data, 0);
