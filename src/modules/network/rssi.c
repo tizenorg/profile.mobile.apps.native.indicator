@@ -17,16 +17,10 @@
  *
  */
 
-#include <tapi_common.h>
-#include <TelNetwork.h>
-#include <TelSim.h>
-#include <ITapiSim.h>
-#include <TelCall.h>
-#include <ITapiCall.h>
+#include <telephony.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <vconf.h>
-#include <ITapiNetwork.h>
+#include <system_settings.h>
 
 #include "common.h"
 #include "indicator.h"
@@ -35,11 +29,7 @@
 #include "main.h"
 #include "indicator_gui.h"
 #include "util.h"
-#include "modules/connection/connection.h"
-#include "modules/processing/call_divert.h"
 #include "log.h"
-
-#define VCONFKEY_TELEPHONY_PREFERRED_VOICE_SUBSCRIPTION	"db/telephony/dualsim/preferred_voice_subscription"
 
 #define RSSI1_ICON_PRIORITY		INDICATOR_PRIORITY_FIXED2
 #define RSSI2_ICON_PRIORITY		INDICATOR_PRIORITY_FIXED3
@@ -51,19 +41,17 @@
 #define ICON_SEARCH		_("IDS_COM_BODY_SEARCHING")
 #define ICON_NOSVC		_("IDS_CALL_POP_NOSERVICE")
 
-#define TAPI_HANDLE_MAX  2
-
 static int register_rssi_module(void *data);
 static int unregister_rssi_module(void);
 static int language_changed_cb(void *data);
 static int wake_up_cb(void *data);
-static void _on_noti(TapiHandle *handle_obj, const char *noti_id, void *data, void *user_data);
-static void _flight_mode(keynode_t *key, void *data);
+static void _view_update(void *user_data);
+static void _flight_mode(system_settings_key_e key, void *data);
 #ifdef _SUPPORT_SCREEN_READER
 static char *access_info_cb(void *data, Evas_Object *obj);
 #endif
 
-TapiHandle *tapi_handle[TAPI_HANDLE_MAX+1] = {0, };
+static telephony_handle_list_s tel_list;
 
 icon_s rssi = {
 	.type = INDICATOR_IMG_ICON,
@@ -84,7 +72,7 @@ icon_s rssi = {
 #endif
 };
 
-enum {
+typedef enum {
 	LEVEL_RSSI_MIN = 0,
 	LEVEL_FLIGHT,
 	LEVEL_NOSIM,
@@ -102,12 +90,10 @@ enum {
 	LEVEL_RSSI_ROAMING_3,
 	LEVEL_RSSI_ROAMING_4,
 	LEVEL_MAX
-};
+} rssi_icon_e;
 
 static int registered = 0;
 static int updated_while_lcd_off = 0;
-#ifdef _SUPPORT_SCREEN_READER
-#endif
 
 static const char *icon_path[LEVEL_MAX] = {
 	[LEVEL_FLIGHT] = "RSSI/B03_RSSI_Flightmode.png",
@@ -150,7 +136,7 @@ static void _show_image_icon(void *data, int index)
 
 static int language_changed_cb(void *data)
 {
-	_on_noti(NULL, NULL, NULL, data);
+	_view_update(data);
 
 	return INDICATOR_ERROR_NONE;
 }
@@ -159,7 +145,7 @@ static int wake_up_cb(void *data)
 {
 	if (!updated_while_lcd_off) return INDICATOR_ERROR_NONE;
 
-	_on_noti(NULL, NULL, NULL, data);
+	_view_update(data);
 
 	return INDICATOR_ERROR_NONE;
 }
@@ -167,33 +153,66 @@ static int wake_up_cb(void *data)
 #ifdef _SUPPORT_SCREEN_READER
 static char *access_info_cb(void *data, Evas_Object *obj)
 {
-	Evas_Object *item = data;
-	char *tmp = NULL;
 	char buf[256] = {0,};
-	char buf1[256] = {0,};
-	int status = 0;
+	telephony_network_rssi_e level;
 
-	vconf_get_int(VCONFKEY_TELEPHONY_RSSI, &status);
-	snprintf(buf1, sizeof(buf1), _("IDS_IDLE_BODY_PD_OUT_OF_4_BARS_OF_SIGNAL_STRENGTH"), status);
+	if (tel_list.count <= 0) {
+		return NULL;
+	}
 
-	snprintf(buf, sizeof(buf), "%s, %s", buf1,_("IDS_IDLE_BODY_STATUS_BAR_ITEM"));
+	int err = telephony_network_get_rssi(tel_list.handle[0], &level);
+	retvm_if(err != TELEPHONY_ERROR_NONE, NULL, "telephony_network_get_rssi failed: %s", get_error_message(err));
+
+	snprintf(buf, sizeof(buf), _("IDS_IDLE_BODY_PD_OUT_OF_4_BARS_OF_SIGNAL_STRENGTH"), level);
+
 	_D("buf: %s", buf);
 
-	tmp = strdup(buf);
-	retv_if(!tmp, NULL);
-
-	return tmp;
+	return strdup(buf);
 }
 #endif
 
-static void _on_noti(TapiHandle *handle_obj, const char *noti_id, void *data, void *user_data)
+static rssi_icon_e icon_enum_get(bool roaming_enabled, telephony_network_rssi_e rssi)
 {
-	int sim1_service = 0;
-	int status = 0;
+	switch (rssi) {
+		case TELEPHONY_NETWORK_RSSI_0:
+			return roaming_enabled ? LEVEL_RSSI_ROAMING_0 : LEVEL_RSSI_SIM1_0;
+		case TELEPHONY_NETWORK_RSSI_1:
+		case TELEPHONY_NETWORK_RSSI_2:
+			return roaming_enabled ? LEVEL_RSSI_ROAMING_1 : LEVEL_RSSI_SIM1_1;
+		case TELEPHONY_NETWORK_RSSI_3:
+			return roaming_enabled ? LEVEL_RSSI_ROAMING_2 : LEVEL_RSSI_SIM1_2;
+		case TELEPHONY_NETWORK_RSSI_4:
+		case TELEPHONY_NETWORK_RSSI_5:
+			return roaming_enabled ? LEVEL_RSSI_ROAMING_3 : LEVEL_RSSI_SIM1_3;
+		case TELEPHONY_NETWORK_RSSI_6:
+			return roaming_enabled ? LEVEL_RSSI_ROAMING_4 : LEVEL_RSSI_SIM1_4;
+		default:
+			_E("Unhandled rssi level");
+			return LEVEL_RSSI_MIN;
+	}
+}
+
+static void _rssi_icon_update(telephony_h handle, void *user_data)
+{
+	telephony_network_rssi_e signal;
+	bool roaming;
+
+	int ret = telephony_network_get_rssi(handle, &signal);
+	retm_if(ret != TELEPHONY_ERROR_NONE, "telephony_network_get_rssi failed %s", get_error_message(ret));
+
+	_D("SIM1 signal strength level: %d", signal);
+
+	ret = telephony_network_get_roaming_status(handle, &roaming);
+	retm_if(ret != TELEPHONY_ERROR_NONE, "telephony_network_get_roaming_status failed %s", get_error_message(ret));
+
+	_show_image_icon(user_data, icon_enum_get(roaming, signal));
+}
+
+static void _view_update(void *user_data)
+{
+	bool status;
 	int ret = 0;
-	int val = 0;
-	struct appdata *ad = (struct appdata *)user_data;
-	TelSimCardStatus_t sim_status_sim1 = 0x00;
+	telephony_sim_state_e status_sim1;
 
 	if (!icon_get_update_flag()) {
 		updated_while_lcd_off = 1;
@@ -202,307 +221,79 @@ static void _on_noti(TapiHandle *handle_obj, const char *noti_id, void *data, vo
 	}
 	updated_while_lcd_off = 0;
 
-	ret = vconf_get_bool(VCONFKEY_TELEPHONY_FLIGHT_MODE, &status);
-	if (ret == OK && status == TRUE) {
+	ret = system_settings_get_value_bool(SYSTEM_SETTINGS_KEY_NETWORK_FLIGHT_MODE, &status);
+	retm_if(ret != SYSTEM_SETTINGS_ERROR_NONE, "system_settings_get_value_bool failed: %s", get_error_message(ret));
+
+	if (status) {
 		_D("Flight mode");
 		_show_image_icon(user_data, LEVEL_FLIGHT);
 		return;
 	}
 
-	sim_status_sim1 = ad->tel_info.sim_status;
+	ret = telephony_sim_get_state(tel_list.handle[0], &status_sim1);
+	retm_if(ret != TELEPHONY_ERROR_NONE, "telephony_sim_get_state failed: %s", get_error_message(ret));
 
-	if (sim_status_sim1 != TAPI_SIM_STATUS_CARD_NOT_PRESENT) {
+	if (status_sim1 != TELEPHONY_SIM_STATE_UNAVAILABLE) {
+		telephony_network_service_state_e service_state;
 
-		val = ad->tel_info.network_service_type;
-		_D("Network service type : %d", val);
+		ret = telephony_network_get_service_state(tel_list.handle[0], &service_state);
+		retm_if(ret != TELEPHONY_ERROR_NONE, "telephony_network_get_service_state failed %s", get_error_message(ret));
 
-		switch (val) {
-		case TAPI_NETWORK_SERVICE_TYPE_NO_SERVICE:
+		switch (service_state) {
+		case TELEPHONY_NETWORK_SERVICE_STATE_OUT_OF_SERVICE:
 			_D("Service type : NO_SERVICE");
 			_show_image_icon(user_data, LEVEL_NOSVC);
 			break;
-		case TAPI_NETWORK_SERVICE_TYPE_EMERGENCY:
+		case TELEPHONY_NETWORK_SERVICE_STATE_EMERGENCY_ONLY:
 			_D("Service type : EMERGENCY");
-			val = ad->tel_info.signal_level;
-			if (ret != OK) {
-				_E("Can not get signal strength level");
-			}
-			_show_image_icon(user_data, LEVEL_RSSI_SIM1_0+val);
+			_rssi_icon_update(tel_list.handle[0], user_data);
 			break;
-		case TAPI_NETWORK_SERVICE_TYPE_SEARCH:
-			_D("Service type : SEARCH");
-			_show_image_icon(user_data, LEVEL_SEARCH);
+		case TELEPHONY_NETWORK_SERVICE_STATE_IN_SERVICE:
+			_D("Service type : IN SERVICE");
+			_rssi_icon_update(tel_list.handle[0], user_data);
 			break;
 		default:
-			_D("Service type : UNKNOWN (%d)", val);
-			sim1_service = 1;
+			_D("Unhandled service state %d", service_state);
 			break;
 		}
-
-		if (sim1_service) {
-			val = ad->tel_info.signal_level;
-			_D("get Sim1 signal strength level: %d", val);
-
-			int roaming = 0;
-			roaming = ad->tel_info.roaming_status;
-
-			if (roaming) {
-					_show_image_icon(user_data, LEVEL_RSSI_ROAMING_0+val);
-			} else {
-					_show_image_icon(user_data, LEVEL_RSSI_SIM1_0+val);
-			}
-		}
-	}
-
-	if (sim_status_sim1 == TAPI_SIM_STATUS_CARD_NOT_PRESENT) {
-		val = ad->tel_info.signal_level;
-		_D("No sim card : Signal-strength level : %d", val);
-		if (ret != OK) {
-			_E("Can not get signal strength level");
-		}
-		_show_image_icon(user_data, LEVEL_RSSI_SIM1_0+val);
 	}
 }
 
-static void _flight_mode(keynode_t *key, void *data)
+static void _flight_mode(system_settings_key_e key, void *data)
 {
-	_on_noti(NULL, NULL, NULL, data);
+	_view_update(data);
 }
 
-static void _init_tel_info(void* data)
+static void _status_changed_cb(telephony_h handle, telephony_noti_e noti_id, void *data, void *user_data)
 {
-	int ret = 0;
-	struct appdata *ad = (struct appdata *)data;
-	int i = 0;
-	int val = 0;
-	TelSimCardStatus_t sim_status;
-
-	ret_if(!ad);
-
-	/* FIXME : modem_num? */
-//	for (i = 0; i < 2; i++) {
-		if (!tapi_handle[i]) return;
-
-		ret = tel_get_property_int(tapi_handle[i], TAPI_PROP_NETWORK_ROAMING_STATUS, &val);
-		if (ret != OK) {
-			_E("Can not get %s",TAPI_PROP_NETWORK_ROAMING_STATUS);
-		}
-		ad->tel_info.roaming_status = val;
-
-		ret = tel_get_property_int(tapi_handle[i], TAPI_PROP_NETWORK_SIGNALSTRENGTH_LEVEL, &val);
-		if (ret != OK) {
-			_E("Can not get %s",TAPI_PROP_NETWORK_SIGNALSTRENGTH_LEVEL);
-		}
-		ad->tel_info.signal_level = val;
-
-		ret = tel_get_property_int(tapi_handle[i], TAPI_PROP_NETWORK_SERVICE_TYPE, &val);
-		if (ret != OK) {
-			_E("Can not get %s",TAPI_PROP_NETWORK_SERVICE_TYPE);
-		}
-		ad->tel_info.network_service_type = val;
-
-		ret = tel_get_property_int(tapi_handle[i], TAPI_PROP_NETWORK_PS_TYPE, &val);
-		if (ret != OK) {
-			_E("Can not get %s",TAPI_PROP_NETWORK_SERVICE_TYPE);
-		}
-		ad->tel_info.network_ps_type = val;
-
-		TelCallPreferredVoiceSubs_t preferred_sub = TAPI_CALL_PREFERRED_VOICE_SUBS_UNKNOWN;
-		ret = tel_get_call_preferred_voice_subscription(tapi_handle[i], &preferred_sub);
-		if (ret != OK) {
-			_E("Can not get %s",TAPI_NOTI_CALL_PREFERRED_VOICE_SUBSCRIPTION);
-		}
-		ad->tel_info.prefered_voice = preferred_sub;
-#ifdef DEVICE_BUILD
-		TelNetworkDefaultDataSubs_t preferred_data = TAPI_NETWORK_DEFAULT_DATA_SUBS_UNKNOWN;
-		ret = tel_get_network_default_data_subscription(tapi_handle[i], &preferred_data);
-		if (ret != OK) {
-			_E("Can not get %s",TAPI_NOTI_NETWORK_DEFAULT_DATA_SUBSCRIPTION);
-		}
-		ad->tel_info.prefered_data = preferred_data;
-
-		TelNetworkDefaultSubs_t default_subs = TAPI_NETWORK_DEFAULT_SUBS_UNKNOWN;
-		ret = tel_get_network_default_subscription(tapi_handle[i], &default_subs);
-		if (ret != OK) {
-			_E("Can not get %s",TAPI_NOTI_NETWORK_DEFAULT_SUBSCRIPTION);
-		}
-		ad->tel_info.default_network = default_subs;
-
-		ret = tel_get_property_int(tapi_handle[i], TAPI_PROP_SIM_CALL_FORWARD_STATE, &val);
-		if (ret != OK) {
-			_E("Can not get %s",TAPI_PROP_SIM_CALL_FORWARD_STATE);
-		}
-		ad->tel_info.call_forward = val;
-#endif
-
-		int changed = 0;
-		ret = tel_get_sim_init_info(tapi_handle[i], &sim_status, &changed);
-		if (ret != OK) {
-			_E("Can not get sim init info");
-		}
-		ad->tel_info.sim_status = sim_status;
-//	}
+	_D("Telephony handle status chagned %d", noti_id);
+	_view_update(user_data);
 }
-
-static void _signal_strength_cb(TapiHandle *handle_obj, const char *noti_id, void *data, void *user_data)
-{
-	int *sig_level = data;
-	struct appdata *ad = (struct appdata *)user_data;
-
-	ret_if(!ad);
-
-	_D("Signal level = %d", *sig_level);
-
-	ad->tel_info.signal_level= *sig_level;
-
-	_on_noti(handle_obj, noti_id, data, user_data);
-}
-
-static void _sim_status_cb(TapiHandle *handle_obj, const char *noti_id, void *data, void *user_data)
-{
-	int *sim_status = data;
-	struct appdata *ad = (struct appdata *)user_data;
-
-	ret_if(!ad);
-
-	_D("Sim status = %d ", *sim_status);
-
-	ad->tel_info.sim_status= *sim_status;
-
-	_on_noti(handle_obj, noti_id, data, user_data);
-	//connection_icon_on_noti(handle_obj, noti_id, data, user_data);
-}
-
-static void _network_service_type_cb(TapiHandle *handle_obj, const char *noti_id, void *data, void *user_data)
-{
-	int *service_type = data;
-	struct appdata *ad = (struct appdata *)user_data;
-
-	ret_if(!ad);
-
-	_D ("Network service type = %d", *service_type);
-
-	ad->tel_info.network_service_type= *service_type;
-
-	_on_noti(handle_obj, noti_id, data, user_data);
-	//connection_icon_on_noti(handle_obj, noti_id, data, user_data);
-}
-
-static void _network_ps_type_cb(TapiHandle *handle_obj, const char *noti_id, void *data, void *user_data)
-{
-	int *ps_type = data;
-	struct appdata *ad = (struct appdata *)user_data;
-
-	ret_if(!ad);
-
-	_D ("Network ps type = %d", *ps_type);
-
-	ad->tel_info.network_ps_type= *ps_type;
-
-	//connection_icon_on_noti(handle_obj, noti_id, data, user_data);
-}
-
-static void _roaming_status_cb(TapiHandle *handle_obj, const char *noti_id, void *data, void *user_data)
-{
-	int *roaming_status = data;
-	struct appdata *ad = (struct appdata *)user_data;
-
-	ret_if(!ad);
-
-	_D ("Roaming status = %d", *roaming_status);
-
-	ad->tel_info.roaming_status= *roaming_status;
-
-	_on_noti(handle_obj, noti_id, data, user_data);
-}
-/* FIXME : remove? */
-static void _preferred_data_cb(TapiHandle *handle_obj, const char *noti_id, void *data, void *user_data)
-{
-	struct tel_noti_network_default_data_subs *noti = data;
-	struct appdata *ad = (struct appdata *)user_data;
-
-	ret_if(!ad);
-
-	_D ("Preferred data = %d", noti->default_subs);
-
-	//Data preferred calback comes from only the sim handle which changed
-	//SIM1->SIM2 , callback comes only for SIM2 handle
-	ad->tel_info.prefered_data = noti->default_subs;
-	//data prefered is not controllered
-
-	//connection_icon_on_noti(handle_obj, noti_id, data, user_data);
-}
-
-static void _default_network_cb(TapiHandle *handle_obj, const char *noti_id, void *data, void *user_data)
-{
-	struct tel_noti_network_default_subs *noti = data;
-	struct appdata *ad = (struct appdata *)user_data;
-
-	ret_if(!ad);
-
-	_D ("Default network = %d", noti->default_subs);
-
-	ad->tel_info.default_network = noti->default_subs;
-
-	_on_noti(handle_obj, noti_id, data, user_data);
-}
-
-#ifdef DEVICE_BUILD
-static void _call_forward_cb(TapiHandle *handle_obj, const char *noti_id, void *data, void *user_data)
-{
-	int *call_forward = data;
-	struct appdata *ad = (struct appdata *)user_data;
-
-	ret_if(!ad);
-
-	_D ("Call forward = %d", *call_forward);
-
-	ad->tel_info.call_forward = *call_forward;
-
-	call_forward_on_noti(handle_obj, noti_id,data, user_data);
-}
-#endif
 
 /* Initialize TAPI */
 static void _init_tel(void *data)
 {
-	char **cp_list = NULL;
-	unsigned int modem_num = 0;
+	int ret, i, j;
 
-	_D("Initialize TAPI");
+	_D("Initialize telephony...");
 
-	if (registered) {
-		_E("TAPI Already registered");
-		return;
-	}
+	retm_if(registered, "Telephony already registered");
 
-	cp_list = tel_get_cp_name_list();
-	ret_if(!cp_list);
+	ret = telephony_init(&tel_list);
+	retm_if(ret != TELEPHONY_ERROR_NONE, "telephony_init failed %s", get_error_message(ret));
 
-	while (cp_list[modem_num]) {
-		tapi_handle[modem_num] = tel_init(cp_list[modem_num]);
-		if (!tapi_handle[modem_num]) {
-			_E("tapi_handle[%d] is NULL", modem_num);
-		} else {
-			tel_register_noti_event(tapi_handle[modem_num], TAPI_PROP_NETWORK_SIGNALSTRENGTH_LEVEL, _signal_strength_cb, data);
-			tel_register_noti_event(tapi_handle[modem_num], TAPI_NOTI_SIM_STATUS, _sim_status_cb, data);
-			tel_register_noti_event(tapi_handle[modem_num], TAPI_PROP_NETWORK_SERVICE_TYPE, _network_service_type_cb, data);
-			tel_register_noti_event(tapi_handle[modem_num], TAPI_PROP_NETWORK_PS_TYPE, _network_ps_type_cb, data);
-			tel_register_noti_event(tapi_handle[modem_num], TAPI_PROP_NETWORK_ROAMING_STATUS, _roaming_status_cb, data);
-			tel_register_noti_event(tapi_handle[modem_num], TAPI_NOTI_NETWORK_DEFAULT_DATA_SUBSCRIPTION, _preferred_data_cb, data);
-			tel_register_noti_event(tapi_handle[modem_num], TAPI_NOTI_NETWORK_DEFAULT_SUBSCRIPTION, _default_network_cb, data);
-#ifdef DEVICE_BUILD
-			tel_register_noti_event(tapi_handle[modem_num], TAPI_PROP_SIM_CALL_FORWARD_STATE , _call_forward_cb, data);
-#endif
+	telephony_noti_e events[] = { TELEPHONY_NOTI_NETWORK_SIGNALSTRENGTH_LEVEL, TELEPHONY_NOTI_SIM_STATUS, TELEPHONY_NOTI_NETWORK_SERVICE_STATE,
+		TELEPHONY_NOTI_NETWORK_PS_TYPE, TELEPHONY_NOTI_NETWORK_ROAMING_STATUS, TELEPHONY_NOTI_NETWORK_DEFAULT_DATA_SUBSCRIPTION,
+		TELEPHONY_NOTI_NETWORK_DEFAULT_SUBSCRIPTION};
+
+	for (i = 0; i < tel_list.count; i++) {
+		for (j = 0; j < ARRAY_SIZE(events); j++) {
+			ret = telephony_set_noti_cb(tel_list.handle[i], events[j], _status_changed_cb, data);
+			retm_if(ret != TELEPHONY_ERROR_NONE, "telephony_set_noti_cb failed for event %d: %s", events[j], get_error_message(ret));
 		}
-		modem_num++;
 	}
-	_D("modem num: %d", modem_num);
 
-	tapi_handle[modem_num] = NULL;
-	g_strfreev(cp_list);
-	_init_tel_info(data);
-	_on_noti(NULL, NULL, NULL, data);
+	_view_update(data);
 
 	registered = 1;
 }
@@ -511,69 +302,51 @@ static void _init_tel(void *data)
 static void _deinit_tel()
 {
 	_D("De-initialize TAPI");
-	unsigned int i = 0;
-
-	while (tapi_handle[i]) {
-		/* De-initialize TAPI handle */
-		if(tapi_handle[i])
-		{
-			tel_deregister_noti_event(tapi_handle[i], TAPI_PROP_NETWORK_SIGNALSTRENGTH_LEVEL);
-			tel_deregister_noti_event(tapi_handle[i], TAPI_NOTI_SIM_STATUS);
-			tel_deregister_noti_event(tapi_handle[i], TAPI_PROP_NETWORK_SERVICE_TYPE);
-			tel_deregister_noti_event(tapi_handle[i], TAPI_PROP_NETWORK_ROAMING_STATUS);
-			tel_deregister_noti_event(tapi_handle[i], TAPI_NOTI_NETWORK_DEFAULT_DATA_SUBSCRIPTION);
-			tel_deregister_noti_event(tapi_handle[i], TAPI_NOTI_NETWORK_DEFAULT_SUBSCRIPTION);
-#ifdef DEVICE_BUILD
-			tel_deregister_noti_event(tapi_handle[i], TAPI_PROP_SIM_CALL_FORWARD_STATE);
-#endif
-		}
-		tel_deinit(tapi_handle[i]);
-		tapi_handle[i] = NULL;
-
-		/* Move to next handle */
-		i++;
-	}
+	if (registered)
+		telephony_deinit(&tel_list);
 	registered = 0;
 }
 
-static void _tel_ready_cb(keynode_t *key, void *data)
+static void _tel_ready_cb(telephony_state_e state, void *user_data)
 {
-	gboolean status = FALSE;
-
-	status = vconf_keynode_get_bool(key);
-	if (status == TRUE) {    /* Telephony State - READY */
-		_init_tel(data);
-	}
-	else { /* Telephony State – NOT READY */
-		/* De-initialization is optional here (ONLY if required) */
+	if (state == TELEPHONY_STATE_READY)
+		_init_tel(user_data);
+	else if (state == TELEPHONY_STATE_NOT_READY)
 		_deinit_tel();
-	}
 }
 
 static int register_rssi_module(void *data)
 {
-	gboolean state = FALSE;
+	telephony_state_e state;
 	int ret;
 
 	retv_if(!data, 0);
 
 	set_app_state(data);
 
-	ret = vconf_notify_key_changed(VCONFKEY_TELEPHONY_FLIGHT_MODE, _flight_mode, data);
-	if (ret != OK) _E("Failed to register callback for VCONFKEY_TELEPHONY_FLIGHT_MODE");
+	ret = util_system_settings_set_changed_cb(SYSTEM_SETTINGS_KEY_NETWORK_FLIGHT_MODE, _flight_mode, data);
+	retvm_if(ret, FAIL, "util_system_settings_set_changed_cb failed: %s", get_error_message(ret));
 
-	ret = vconf_get_bool(VCONFKEY_TELEPHONY_READY, &state);
-	if (ret != OK) {
-		_E("Failed to get value for VCONFKEY_TELEPHONY_READY");
+	ret = telephony_set_state_changed_cb(_tel_ready_cb, data);
+	if (ret != TELEPHONY_ERROR_NONE) {
+		_E("telephony_set_state_changed_cb failed %s", get_error_message(ret));
+		util_system_settings_unset_changed_cb(SYSTEM_SETTINGS_KEY_NETWORK_FLIGHT_MODE, _flight_mode);
 		return ret;
 	}
 
-	if(state) {
+	ret = telephony_get_state(&state);
+	if (ret != TELEPHONY_ERROR_NONE) {
+		_E("telephony_get_state failed %s", get_error_message(ret));
+		util_system_settings_unset_changed_cb(SYSTEM_SETTINGS_KEY_NETWORK_FLIGHT_MODE, _flight_mode);
+		telephony_unset_state_changed_cb(_tel_ready_cb);
+		return ret;
+	}
+
+	if (state == TELEPHONY_STATE_READY) {
 		_D("Telephony ready");
 		_init_tel(data);
-	} else {
+	} else if (state == TELEPHONY_STATE_NOT_READY) {
 		_D("Telephony not ready");
-		vconf_notify_key_changed(VCONFKEY_TELEPHONY_READY, _tel_ready_cb, data);
 	}
 
 	return ret;
@@ -583,11 +356,10 @@ static int unregister_rssi_module(void)
 {
 	int ret;
 
-	ret = vconf_ignore_key_changed(VCONFKEY_TELEPHONY_READY, _tel_ready_cb);
-	if (ret != OK) _E("Failed to unregister callback for VCONFKEY_TELEPHONY_READY");
+	ret = telephony_unset_state_changed_cb(_tel_ready_cb);
+	if (ret != TELEPHONY_ERROR_NONE) _E("telephony_unset_state_changed_cb %s", get_error_message(ret));
 
-	ret = vconf_ignore_key_changed(VCONFKEY_TELEPHONY_FLIGHT_MODE, _flight_mode);
-	if (ret != OK) _E("Failed to unregister callback for VCONFKEY_TELEPHONY_FLIGHT_MODE");
+	util_system_settings_unset_changed_cb(SYSTEM_SETTINGS_KEY_NETWORK_FLIGHT_MODE, _flight_mode);
 
 	_deinit_tel();
 
