@@ -20,7 +20,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <vconf.h>
 #include <bluetooth.h>
 #include "common.h"
 #include "indicator.h"
@@ -28,6 +27,7 @@
 #include "modules.h"
 #include "main.h"
 #include "util.h"
+#include "log.h"
 
 #define ICON_PRIORITY	INDICATOR_PRIORITY_FIXED7
 #define MODULE_NAME		"bluetooth"
@@ -125,7 +125,8 @@ static void show_bluetooth_icon(void *data, int status)
 
 	if (status & HEADSET_CONNECTED) {
 		show_image_icon(data, LEVEL_BT_HEADSET);
-	} else if (status & DEVICE_CONNECTED) {
+	}
+	else if (status & DEVICE_CONNECTED) {
 		show_image_icon(data, LEVEL_BT_CONNECTED);
 	}
 	return;
@@ -141,10 +142,34 @@ static void indicator_bluetooth_adapter_state_changed_cb(int result, bt_adapter_
 	}
 }
 
-static void indicator_bluetooth_change_cb(keynode_t *node, void *data)
+static bool _connected_cb(bt_profile_e profile, void *user_data)
+{
+	int *result = (int *)user_data;
+
+	if (profile == BT_PROFILE_HSP) {
+		*result = (*result | HEADSET_CONNECTED);
+		DBG("BT_HEADSET_CONNECTED(%x)", result);
+	}
+	else {
+		*result = (*result | DEVICE_CONNECTED);
+		DBG("BT_DEVICE_CONNECTED(%x)", result);
+	}
+
+	return true;
+}
+
+static bool _bt_cb(bt_device_info_s *device_info, void *user_data)
+{
+	// For every paired device check if it's connected with any profile
+	int ret = bt_device_foreach_connected_profiles(device_info->remote_address, _connected_cb, user_data);
+	retif(ret != BT_ERROR_NONE, true, "bt_device_foreach_connected_profiles failed[%d]", ret);
+
+	return true;
+}
+
+static void indicator_bluetooth_change_cb(bool connected, bt_device_connection_info_s *conn_info, void *data)
 {
 	DBG("indicator_bluetooth_change_cb");
-	int dev = 0;
 	int ret = 0;
 	int result = NO_DEVICE;
 	bt_adapter_state_e adapter_state = BT_ADAPTER_DISABLED;
@@ -164,32 +189,12 @@ static void indicator_bluetooth_change_cb(keynode_t *node, void *data)
 		return;
 	}
 
-	ret = vconf_get_int(VCONFKEY_BT_DEVICE, &dev);
-	if (ret == OK) {
-		DBG("Show BT ICON (BT DEVICE: %d)", dev);
+	ret = bt_adapter_foreach_bonded_device(_bt_cb, (void *)&result);
+	retif(ret != BT_ERROR_NONE, , "bt_adapter_foreach_bonded_device failed");
+	show_bluetooth_icon(data, result);
 
-		if (dev == VCONFKEY_BT_DEVICE_NONE) {
-			show_bluetooth_icon(data, NO_DEVICE);
-			return;
-		}
-		if ((dev & VCONFKEY_BT_DEVICE_HEADSET_CONNECTED) ||
-		    (dev & VCONFKEY_BT_DEVICE_A2DP_HEADSET_CONNECTED)) {
-			result = (result | HEADSET_CONNECTED);
-			DBG("BT_HEADSET_CONNECTED(%x)", result);
-		}
-		if ((dev & VCONFKEY_BT_DEVICE_SAP_CONNECTED)
-		|| (dev & VCONFKEY_BT_DEVICE_PBAP_CONNECTED)
-		|| (dev & VCONFKEY_BT_DEVICE_HID_CONNECTED)
-		|| (dev & VCONFKEY_BT_DEVICE_PAN_CONNECTED)) {
-			result = (result | DEVICE_CONNECTED);
-			DBG("BT_DEVICE_CONNECTED(%x)", result);
-		}
-		show_bluetooth_icon(data, result);
-	}
 	return;
 }
-
-
 
 static int wake_up_cb(void *data)
 {
@@ -197,7 +202,7 @@ static int wake_up_cb(void *data)
 		return OK;
 	}
 
-	indicator_bluetooth_change_cb(NULL, data);
+	indicator_bluetooth_change_cb(false, NULL, data);
 	return OK;
 }
 
@@ -241,16 +246,14 @@ static int register_bluetooth_module(void *data)
 	ret = bt_adapter_set_state_changed_cb(indicator_bluetooth_adapter_state_changed_cb, data);
 	if(ret != BT_ERROR_NONE) ERR("bt_adapter_set_state_changed_cb failed");
 
-	ret = vconf_notify_key_changed(VCONFKEY_BT_DEVICE,
-					indicator_bluetooth_change_cb, data);
-	if (ret != OK) {
-		r = r | ret;
-	}
+	ret = bt_device_set_connection_state_changed_cb(indicator_bluetooth_change_cb, data);
+	if (ret != BT_ERROR_NONE)
+		r = -1;
 
 	ret = bt_adapter_get_state(&adapter_state);
 	retif(ret != BT_ERROR_NONE, -1, "bt_adapter_get_state failed");
 
-	indicator_bluetooth_change_cb(NULL, data);
+	indicator_bluetooth_change_cb(false, NULL, data);
 	indicator_bluetooth_adapter_state_changed_cb(0, adapter_state, data);
 
 	return r;
@@ -265,10 +268,6 @@ static int unregister_bluetooth_module(void)
 	if(ret != BT_ERROR_NONE) ERR("bt_adapter_unset_state_changed_cb failed");
 	ret = bt_deinitialize();
 	if(ret != BT_ERROR_NONE) ERR("bt_deinitialize failed");
-
-
-	ret = ret | vconf_ignore_key_changed(VCONFKEY_BT_DEVICE,
-					indicator_bluetooth_change_cb);
 
 	return ret;
 }
