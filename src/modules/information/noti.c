@@ -18,10 +18,8 @@
  */
 
 
-
 #include <stdio.h>
 #include <stdlib.h>
-#include <vconf.h>
 #include <notification.h>
 #include <notification_list.h>
 #include <notification_internal.h>
@@ -70,50 +68,43 @@ struct noti_status {
 };
 
 
-
-static void set_app_state(void* data)
+static void set_app_state(void *data)
 {
 	noti.ad = data;
 }
 
 
-
 static void show_icon_with_path(struct noti_status *data, char* icon_path)
 {
-	retif(data == NULL, , "Invalid parameter!");
-	DBG("%s",icon_path);
+	retm_if(data == NULL, "Invalid parameter!");
+	_D("%s", icon_path);
 
 	data->icon->img_obj.data = strdup(icon_path);
 	icon_show(data->icon);
 }
 
 
-
 static void hide_image_icon(struct noti_status *data)
 {
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 
 	icon_hide(data->icon);
 }
 
 
-
 static void free_image_icon(struct noti_status *data)
 {
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 
 	list_remove_icon(data->icon);
 
-	if (data->icon)
-	{
-		if (data->icon->img_obj.data)
-		{
-			free((char*)data->icon->img_obj.data);
+	if (data->icon) {
+		if (data->icon->img_obj.data) {
+			free((char *)data->icon->img_obj.data);
 			data->icon->img_obj.data = NULL;
 		}
 
-		if (data->icon->name)
-		{
+		if (data->icon->name) {
 			free(data->icon->name);
 			data->icon->name = NULL;
 		}
@@ -123,37 +114,33 @@ static void free_image_icon(struct noti_status *data)
 	}
 
 
-	if(data!=NULL)
-	{
+	if (data != NULL) {
 		free(data);
 		data = NULL;
 	}
 }
 
 
-
 static void insert_icon_list(struct noti_status *data)
 {
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 
 	list_insert_icon(data->icon);
 }
 
 
-
-char* __indicator_ui_get_pkginfo_icon(const char *pkgid)
+char *__indicator_ui_get_pkginfo_icon(const char *pkgid)
 {
 	int ret;
 	char *icon_path = NULL;
 	app_info_h app_info;
 
-	retif(pkgid == NULL, NULL, "invalid parameter");
+	retvm_if(pkgid == NULL, NULL, "invalid parameter");
 
 	ret = app_info_create(pkgid, &app_info);
-	if (ret != APP_MANAGER_ERROR_NONE) {
-		ERR("app_info_create for %s failed %d", pkgid, ret);
+
+	retvm_if(ret != APP_MANAGER_ERROR_NONE, NULL, "app_info_create for %s failed %d", pkgid, ret);
 		return NULL;
-	}
 
 	/* Icon path */
 	ret = app_info_get_icon(app_info, &icon_path);
@@ -169,12 +156,11 @@ char* __indicator_ui_get_pkginfo_icon(const char *pkgid)
 }
 
 
-
 static void show_image_icon(struct noti_status *data)
 {
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 
-	char* icon_path=NULL;
+	char *icon_path = NULL;
 
 	notification_h noti = NULL;
 
@@ -183,53 +169,36 @@ static void show_image_icon(struct noti_status *data)
 		if (noti) {
 			notification_get_image(noti, NOTIFICATION_IMAGE_TYPE_ICON_FOR_INDICATOR, &icon_path);
 
-			if (icon_path == NULL||!ecore_file_exists(icon_path))
-			{
-				if(icon_path != NULL&&util_check_noti_ani(icon_path))
-				{
+			if (icon_path == NULL || !ecore_file_exists(icon_path)) {
+				if (icon_path != NULL && util_check_noti_ani(icon_path)) {
 					show_icon_with_path(data, icon_path);
-				}
-				else
-				{
+				} else {
 					notification_get_image(noti, NOTIFICATION_IMAGE_TYPE_ICON, &icon_path);
 
-					if (icon_path == NULL||!ecore_file_exists(icon_path))
-					{
-						char* pkgname = NULL;
-						char* icon_path_second=NULL;
+					if (icon_path == NULL || !ecore_file_exists(icon_path)) {
+						char *pkgname = NULL;
+						char *icon_path_second = NULL;
 						notification_get_pkgname(noti, &pkgname);
 						icon_path_second = __indicator_ui_get_pkginfo_icon(pkgname);
 
-						if(icon_path_second==NULL || !ecore_file_exists(icon_path_second))
-						{
+						if (icon_path_second == NULL || !ecore_file_exists(icon_path_second))
 							data->icon->img_obj.data = NULL;
-						}
 						else
-						{
 							show_icon_with_path(data, icon_path_second);
-						}
 
-						if(icon_path_second!=NULL)
+						if (icon_path_second != NULL)
 							free(icon_path_second);
-					}
-					else
-					{
+					} else
 						show_icon_with_path(data, icon_path);
-					}
 				}
-			}
-			else
-			{
+			} else
 				show_icon_with_path(data, icon_path);
-			}
 		}
 	}
-
 }
 
 
-
-static void show_image_icon_all( void )
+static void show_image_icon_all(void)
 {
 	Eina_List *l = NULL;
 	struct noti_status *data = NULL;
@@ -242,10 +211,9 @@ static void show_image_icon_all( void )
 }
 
 
-
 static void _icon_add(struct noti_status *noti_data, const char *name, void *data)
 {
-	retif(noti_data == NULL || data == NULL, , "Invalid parameter!");
+	retm_if(noti_data == NULL || data == NULL, "Invalid parameter!");
 
 	icon_s *obj = NULL;
 	obj = calloc(1, sizeof(icon_s));
@@ -267,7 +235,6 @@ static void _icon_add(struct noti_status *noti_data, const char *name, void *dat
 }
 
 
-
 static void _remove_all_noti(void)
 {
 	Eina_List *l = NULL;
@@ -280,21 +247,18 @@ static void _remove_all_noti(void)
 		status_list = eina_list_remove_list(status_list, l);
 	}
 	eina_list_free(status_list);
-
 }
 
 
-
-static int _is_exist_by_privid(const char* privid)
+static int _is_exist_by_privid(const char *privid)
 {
 	Eina_List *l = NULL;
 	struct noti_status *n_data = NULL;
-	retif(privid == NULL ,0 , "Invalid parameter!");
+	retvm_if(privid == NULL, 0, "Invalid parameter!");
 
 	/* Clear List and objects in list */
 	EINA_LIST_FOREACH(status_list, l, n_data) {
-		if (!strcmp(n_data->icon->name, privid))
-		{
+		if (!strcmp(n_data->icon->name, privid)) {
 			return EINA_TRUE;
 			break;
 		}
@@ -303,24 +267,19 @@ static int _is_exist_by_privid(const char* privid)
 }
 
 
-
 static int _indicator_noti_display_check(notification_h noti)
 {
 	int applist = 0;
 	int noti_ret = 0;
 
 	noti_ret = notification_get_display_applist(noti, &applist);
-	if (noti_ret != NOTIFICATION_ERROR_NONE) {
-		return 0;
-	}
 
-	if (!(applist & NOTIFICATION_DISPLAY_APP_INDICATOR))
-	{
-		return 0;
-	}
+	retv_if(noti_ret != NOTIFICATION_ERROR_NONE, 0);
+
+	retv_if(!(applist & NOTIFICATION_DISPLAY_APP_INDICATOR), 0);
+
 	return 1;
 }
-
 
 
 static void _remove_noti_by_privid(int priv_id)
@@ -329,13 +288,12 @@ static void _remove_noti_by_privid(int priv_id)
 	struct noti_status *n_data = NULL;
 	char priv_id_str[256] = {0,};
 
-	snprintf(priv_id_str,sizeof(priv_id_str),"%d",priv_id);
+	snprintf(priv_id_str, sizeof(priv_id_str), "%d", priv_id);
 
 	EINA_LIST_FOREACH(status_list, l, n_data) {
 
-		if (strcmp(n_data->icon->name, priv_id_str)==0)
-		{
-			DBG("remove %s", priv_id_str);
+		if (strcmp(n_data->icon->name, priv_id_str) == 0) {
+			_D("remove %s", priv_id_str);
 			status_list = eina_list_remove(status_list, n_data);
 			hide_image_icon(n_data);
 			free_image_icon(n_data);
@@ -345,42 +303,36 @@ static void _remove_noti_by_privid(int priv_id)
 }
 
 
-
-static void _insert_noti_by_privid(notification_h noti,void* data)
+static void _insert_noti_by_privid(notification_h noti, void *data)
 {
 	int exist = 0;
 	struct noti_status *status = NULL;
 	int prev_id = -1;
-	char* pkgname = NULL;
+	char *pkgname = NULL;
 	char prev_id_str[256] = {0,};
 
-	retif(noti == NULL , , "Invalid parameter!");
+	retm_if(noti == NULL, "Invalid parameter!");
 
 	notification_get_pkgname(noti, &pkgname);
-	notification_get_id(noti,NULL,&prev_id);
+	notification_get_id(noti, NULL, &prev_id);
 
-	if(_indicator_noti_display_check(noti)==0)
-	{
-		return ;
-	}
+	ret_if(_indicator_noti_display_check(noti) == 0);
 
-	snprintf(prev_id_str,sizeof(prev_id_str),"%d",prev_id);
+	snprintf(prev_id_str, sizeof(prev_id_str), "%d", prev_id);
 
 	exist = _is_exist_by_privid(prev_id_str);
 
 	if (exist != EINA_TRUE) {
-		DBG("Make New Event Icon : %s %s", pkgname,prev_id_str);
+		_D("Make New Event Icon : %s %s", pkgname, prev_id_str);
 		status = calloc(1, sizeof(struct noti_status));
 		status->type = 0;
-		_icon_add(status,prev_id_str, data);
+		_icon_add(status, prev_id_str, data);
 		status->noti = noti;
 		insert_icon_list(status);
 		status_list = eina_list_append(status_list, status);
 		show_image_icon(status);
 	}
-
 }
-
 
 
 static void _update_noti_by_privid(notification_h noti)
@@ -389,62 +341,52 @@ static void _update_noti_by_privid(notification_h noti)
 	struct noti_status *n_data = NULL;
 	int priv_id = -1;
 	char priv_id_str[256] = {0,};
-	char* pkgname = NULL;
+	char *pkgname = NULL;
 
-	retif(noti == NULL , , "Invalid parameter!");
+	retm_if(noti == NULL, "Invalid parameter!");
 
 	notification_get_pkgname(noti, &pkgname);
-	notification_get_id(noti,NULL,&priv_id);
+	notification_get_id(noti, NULL, &priv_id);
 
-	if(_indicator_noti_display_check(noti)==0)
-	{
-		return ;
-	}
+	ret_if(_indicator_noti_display_check(noti) == 0);
 
-	snprintf(priv_id_str,sizeof(priv_id_str),"%d",priv_id);
+	snprintf(priv_id_str, sizeof(priv_id_str), "%d", priv_id);
 
-	char* indicator_path = NULL;
-	char* icon_path = NULL;
+	char *indicator_path = NULL;
+	char *icon_path = NULL;
+
 	notification_get_image(noti, NOTIFICATION_IMAGE_TYPE_ICON_FOR_INDICATOR, &indicator_path);
-	if(indicator_path==NULL||!ecore_file_exists(indicator_path))
-	{
-		char* noti_path = NULL;
+	if (indicator_path == NULL || !ecore_file_exists(indicator_path)) {
+		char *noti_path = NULL;
+
 		notification_get_image(noti, NOTIFICATION_IMAGE_TYPE_ICON, &noti_path);
 
-		if (noti_path == NULL||!ecore_file_exists(noti_path))
-		{
-			char* pkgname = NULL;
-			char* icon_path_second=NULL;
+		if (noti_path == NULL || !ecore_file_exists(noti_path)) {
+			char *pkgname = NULL;
+			char *icon_path_second = NULL;
 			notification_get_pkgname(noti, &pkgname);
 			icon_path_second = __indicator_ui_get_pkginfo_icon(pkgname);
-			if(icon_path_second!=NULL)
+			if (icon_path_second != NULL)
 				icon_path = strdup(icon_path_second);
-			if(icon_path_second!=NULL)
+			if (icon_path_second != NULL)
 				free(icon_path_second);
-		}
-		else
-		{
+		} else
 			icon_path = strdup(noti_path);
-		}
-	}
-	else
-	{
+	} else
 		icon_path = strdup(indicator_path);
-	}
 
 	EINA_LIST_FOREACH(status_list, l, n_data) {
 
-		if (strcmp(n_data->icon->name, priv_id_str)==0)
-		{
-			DBG("Update Event Icon : %s %s, %s", priv_id_str,pkgname,icon_path);
-			if(icon_path!=NULL)
-			{
-				if(n_data->icon->img_obj.data!=NULL)
-				{
-					if(strcmp(n_data->icon->img_obj.data,icon_path)==0)
-					{
-						DBG("same icon with exsting noti");
-						goto __CATCH;
+		if (strcmp(n_data->icon->name, priv_id_str) == 0) {
+			_D("Update Event Icon : %s %s, %s", priv_id_str, pkgname, icon_path);
+			if (icon_path != NULL) {
+				if (n_data->icon->img_obj.data != NULL) {
+					if (strcmp(n_data->icon->img_obj.data, icon_path) == 0) {
+						_D("same icon with exsting noti");
+						if (icon_path != NULL) {
+							free(icon_path);
+							icon_path = NULL;
+						}
 					}
 				}
 			}
@@ -452,15 +394,12 @@ static void _update_noti_by_privid(notification_h noti)
 			show_image_icon(n_data);
 		}
 	}
-__CATCH:
-	if(icon_path!=NULL)
-	{
+	if (icon_path != NULL) {
 		free(icon_path);
 		icon_path = NULL;
 	}
 	return;
 }
-
 
 
 static void _change_icon_status(void *data, notification_list_h noti_list)
@@ -504,7 +443,8 @@ static void _change_icon_status(void *data, notification_list_h noti_list)
 
 		noti_ret = notification_get_pkgname(noti, &pkgname);
 		noti_ret = notification_get_id(noti, NULL, &prev_id);
-		snprintf(prev_id_str,sizeof(prev_id_str),"%d",prev_id);
+
+		snprintf(prev_id_str, sizeof(prev_id_str), "%d", prev_id);
 
 		if (noti_ret != NOTIFICATION_ERROR_NONE) {
 			_D("Cannot Get pkgname of notication! : %p %p", noti, pkgname);
@@ -517,7 +457,7 @@ static void _change_icon_status(void *data, notification_list_h noti_list)
 
 				status->type = 0;
 				status->cnt = new_cnt;
-				_icon_add(status,prev_id_str, data);
+				_icon_add(status, prev_id_str, data);
 				status->noti = noti;
 				insert_icon_list(status);
 				status_list = eina_list_append(status_list, status);
@@ -529,7 +469,6 @@ static void _change_icon_status(void *data, notification_list_h noti_list)
 }
 
 
-
 void update_noti_module_new(void *data, notification_type_e type)
 {
 	notification_list_h list = NULL;
@@ -537,7 +476,7 @@ void update_noti_module_new(void *data, notification_type_e type)
 	notification_error_e noti_err = NOTIFICATION_ERROR_NONE;
 	int get_event_count = box_get_max_count_in_non_fixed_list();
 
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 
 	/* Get ongoing + noti count */
 	noti_err = notification_get_list(NOTIFICATION_TYPE_NONE, get_event_count, &list);
@@ -557,42 +496,32 @@ void update_noti_module_new(void *data, notification_type_e type)
 
 static void _indicator_noti_detailed_changed_cb(void *data, notification_type_e type, notification_op *op_list, int num_op)
 {
-	int i =0;
+	int i = 0;
 	int op_type = 0;
 	int priv_id = 0;
 
 	notification_h noti_new = NULL;
 
-	if(num_op<0)
-	{
-		ERR("invalid parameter %d",num_op);
-		return;
-	}
+	retm_if(num_op < 0, "invalid parameter %d", num_op);
 
-	for (i = 0; i < num_op; i++)
-	{
-		if(noti_ready==0)
-		{
+	for (i = 0; i < num_op; i++) {
+
+		if (noti_ready == 0) {
 			notification_op_get_data(op_list + i, NOTIFICATION_OP_DATA_TYPE, &op_type);
-			if(op_type ==NOTIFICATION_OP_SERVICE_READY)
-			{
+			if (op_type == NOTIFICATION_OP_SERVICE_READY) {
 				noti_ready = 1;
-				DBG("noti ready");
-				update_noti_module_new(data,type);
+				_D("noti ready");
+				update_noti_module_new(data, type);
 			}
-		}
-		else
-		{
+		} else {
 			notification_op_get_data(op_list + i, NOTIFICATION_OP_DATA_TYPE, &op_type);
 			notification_op_get_data(op_list + i, NOTIFICATION_OP_DATA_PRIV_ID, &priv_id);
 			notification_op_get_data(op_list + i, NOTIFICATION_OP_DATA_NOTI, &noti_new);
 
-			if(type!=-1)
-			{
-				switch(op_type)
-				{
+			if (type != -1) {
+				switch (op_type) {
 					case NOTIFICATION_OP_INSERT:
-						_insert_noti_by_privid(noti_new,data);
+						_insert_noti_by_privid(noti_new, data);
 						break;
 					case NOTIFICATION_OP_UPDATE:
 						_update_noti_by_privid(noti_new);
@@ -610,34 +539,29 @@ static void _indicator_noti_detailed_changed_cb(void *data, notification_type_e 
 }
 
 
-
 static void indicator_noti_sim_slot_cb(keynode_t *node, void *data)
 {
 	int status = 0;
 	int ret;
 
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 
 	ret = vconf_get_int(VCONFKEY_TELEPHONY_SIM_SLOT, &status);
 	if (ret == OK)
-	{
-		update_noti_module_new(data,NOTIFICATION_TYPE_NONE);
-	}
+		update_noti_module_new(data, NOTIFICATION_TYPE_NONE);
+
 	return;
 }
 
 
-
 static int register_noti_module(void *data)
 {
-
-	retif(data == NULL, FAIL, "Invalid parameter!");
+	retvm_if(data == NULL, FAIL, "Invalid parameter!");
 	static int bRegisterd = 0;
 
 	set_app_state(data);
 
-	if(bRegisterd==0)
-	{
+	if (bRegisterd == 0) {
 		notification_register_detailed_changed_cb(_indicator_noti_detailed_changed_cb, data);
 		bRegisterd = 1;
 	}
@@ -648,7 +572,6 @@ static int register_noti_module(void *data)
 }
 
 
-
 static int unregister_noti_module(void)
 {
 	Eina_List *l = NULL;
@@ -657,8 +580,7 @@ static int unregister_noti_module(void)
 	notification_unregister_detailed_changed_cb(_indicator_noti_detailed_changed_cb, noti.ad);
 
 	EINA_LIST_FOREACH(status_list, l, data) {
-		if(data!=NULL)
-		{
+		if (data != NULL) {
 			free_image_icon(data);
 			status_list = eina_list_remove_list(status_list, l);
 		}
