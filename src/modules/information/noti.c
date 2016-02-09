@@ -25,6 +25,7 @@
 #include <notification_internal.h>
 #include <app_manager.h>
 #include <app_preference.h>
+#include <vconf.h>
 
 #include "common.h"
 #include "indicator.h"
