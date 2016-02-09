@@ -424,16 +424,16 @@ static int __init_tel(void *data)
 		return FAIL;
 	}
 
-	ret = system_settings_set_changed_cb(SYSTEM_SETTINGS_KEY_NETWORK_FLIGHT_MODE, _flight_mode, data);
-	if (ret != SYSTEM_SETTINGS_ERROR_NONE) {
-		ERR("system_settings_set_changed_cb %d", get_error_message(ret));
+	ret = util_system_settings_set_changed_cb(SYSTEM_SETTINGS_KEY_NETWORK_FLIGHT_MODE, _flight_mode, data);
+	if (ret != 0) {
+		ERR("util_system_settings_set_changed_cb failed");
 		__deinit_tel();
 		return FAIL;
 	}
 
-	ret = runtime_info_set_changed_cb(RUNTIME_INFO_KEY_BLUETOOTH_TETHERING_ENABLED, _update_status_ri, data);
-	if (ret != RUNTIME_INFO_ERROR_NONE) {
-		ERR("runtime_info_set_changed_cb %d", get_error_message(ret));
+	ret = util_runtime_info_set_changed_cb(RUNTIME_INFO_KEY_BLUETOOTH_TETHERING_ENABLED, _update_status_ri, data);
+	if (ret != 0) {
+		ERR("util_runtime_info_set_changed_cb failed");
 		__deinit_tel();
 		return FAIL;
 	}
@@ -448,9 +448,9 @@ static void __deinit_tel()
 {
 	DBG("__deinit_tel");
 
-	system_settings_unset_changed_cb(SYSTEM_SETTINGS_KEY_NETWORK_FLIGHT_MODE);
+	util_system_settings_unset_changed_cb(SYSTEM_SETTINGS_KEY_NETWORK_FLIGHT_MODE, _flight_mode);
 	util_wifi_unset_connection_state_changed_cb(_wifi_status_changed_cb);
-	runtime_info_unset_changed_cb(RUNTIME_INFO_KEY_BLUETOOTH_TETHERING_ENABLED);
+	util_runtime_info_unset_changed_cb(RUNTIME_INFO_KEY_BLUETOOTH_TETHERING_ENABLED, _update_status_ri);
 
 	if (tel_list.count)
 		telephony_deinit(&tel_list);
