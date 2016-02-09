@@ -17,17 +17,15 @@
  *
  */
 
-
-
 #include <stdio.h>
 #include <stdlib.h>
-#include <vconf.h>
-#include <notification.h>
+#include <runtime_info.h>
 #include "common.h"
 #include "indicator.h"
 #include "main.h"
 #include "modules.h"
 #include "icon.h"
+#include "log.h"
 
 #define ICON_PRIORITY	INDICATOR_PRIORITY_NOTI_2
 #define MODULE_NAME		"earphone"
@@ -66,23 +64,16 @@ static void set_app_state(void* data)
 	earphone.ad = data;
 }
 
-
-
 static void show_image_icon(void)
 {
-
 	if(bShown == 1)
-	{
 		return;
-	}
 
 	earphone.img_obj.data = icon_path[0];
 	icon_show(&earphone);
 
 	bShown = 1;
 }
-
-
 
 static void hide_image_icon(void)
 {
@@ -91,55 +82,46 @@ static void hide_image_icon(void)
 	bShown = 0;
 }
 
-
-
-static void indicator_earphone_change_cb(keynode_t *node, void *data)
+void check_jack_port(void *data)
 {
-	int status = 0;
+	bool is_jack_connected;
+	bool is_tv_out_connected;
 	int ret;
 
 	retif(data == NULL, , "Invalid parameter!");
 
-	if(icon_get_update_flag()==0)
-	{
+	if(icon_get_update_flag()==0) {
 		updated_while_lcd_off = 1;
 		return;
 	}
 	updated_while_lcd_off = 0;
+	ret = runtime_info_get_value_bool(RUNTIME_INFO_KEY_AUDIO_JACK_CONNECTED, &is_jack_connected);
+	retm_if(ret != RUNTIME_INFO_ERROR_NONE, "runtime_info_get_value_bool failed[%s]", get_error_message(ret));
 
-	ret = vconf_get_int(VCONFKEY_SYSMAN_EARJACK, &status);
-	if (ret == FAIL) {
-		return;
-	}
+	ret = runtime_info_get_value_bool(RUNTIME_INFO_KEY_TV_OUT_CONNECTED, &is_tv_out_connected);
+	retm_if(ret != RUNTIME_INFO_ERROR_NONE, "runtime_info_get_value_bool failed[%s]", get_error_message(ret));
 
-	switch (status) {
-	case VCONFKEY_SYSMAN_EARJACK_3WIRE:
-	case VCONFKEY_SYSMAN_EARJACK_4WIRE:
-	case VCONFKEY_SYSMAN_EARJACK_TVOUT:
+	if (is_jack_connected || is_tv_out_connected) {
 		DBG("Earphone connected");
 		show_image_icon();
-		break;
-
-	default:
-		hide_image_icon();
-		break;
 	}
+	else
+		hide_image_icon();
 }
 
-
+void indicator_earphone_change_cb(runtime_info_key_e key, void *data)
+{
+	check_jack_port(data);
+}
 
 static int wake_up_cb(void *data)
 {
-	if(updated_while_lcd_off==0)
-	{
+	if(updated_while_lcd_off == 0)
 		return OK;
-	}
 
-	indicator_earphone_change_cb(NULL, data);
+	check_jack_port(data);
 	return OK;
 }
-
-
 
 static int register_earphone_module(void *data)
 {
@@ -149,22 +131,26 @@ static int register_earphone_module(void *data)
 
 	set_app_state(data);
 
-	ret = vconf_notify_key_changed(VCONFKEY_SYSMAN_EARJACK,
-				       indicator_earphone_change_cb, data);
+	ret = runtime_info_set_changed_cb(RUNTIME_INFO_KEY_AUDIO_JACK_CONNECTED, indicator_earphone_change_cb, data);
+	retvm_if(ret != RUNTIME_INFO_ERROR_NONE, FAIL, "runtime_info_set_changed_cb failed[%s]", get_error_message(ret));
 
-	indicator_earphone_change_cb(NULL, data);
+	ret = runtime_info_set_changed_cb(RUNTIME_INFO_KEY_TV_OUT_CONNECTED, indicator_earphone_change_cb, data);
+	retvm_if(ret != RUNTIME_INFO_ERROR_NONE, FAIL, "runtime_info_set_changed_cb failed[%s]", get_error_message(ret));
+
+	check_jack_port(data);
 
 	return ret;
 }
-
-
 
 static int unregister_earphone_module(void)
 {
 	int ret;
 
-	ret = vconf_ignore_key_changed(VCONFKEY_SYSMAN_EARJACK,
-				       indicator_earphone_change_cb);
+	ret = runtime_info_unset_changed_cb(RUNTIME_INFO_KEY_AUDIO_JACK_CONNECTED);
+	retvm_if(ret != RUNTIME_INFO_ERROR_NONE, FAIL, "runtime_info_unset_changed_cb failed[%s]", get_error_message(ret));
+
+	ret = runtime_info_unset_changed_cb(RUNTIME_INFO_KEY_TV_OUT_CONNECTED);
+	retvm_if(ret != RUNTIME_INFO_ERROR_NONE, FAIL, "runtime_info_unset_changed_cb failed[%s]", get_error_message(ret));
 
 	return ret;
 }
