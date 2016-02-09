@@ -20,13 +20,14 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <vconf.h>
+#include <nfc.h>
 #include "common.h"
 #include "indicator.h"
 #include "icon.h"
 #include "modules.h"
 #include "main.h"
 #include "util.h"
+#include "log.h"
 
 #define ICON_PRIORITY	INDICATOR_PRIORITY_NOTI_2
 #define MODULE_NAME		"nfc"
@@ -69,15 +70,12 @@ static void set_app_state(void* data)
 	nfc.ad = data;
 }
 
-
-
 static void show_image_icon(void *data, int index)
 {
 	if (index < NFC_ON || index >= NFC_NUM)
 		index = NFC_ON;
 
-	if(prevIndex == index)
-	{
+	if(prevIndex == index) {
 		DBG("same icon");
 		return;
 	}
@@ -95,78 +93,70 @@ static void hide_image_icon(void)
 	prevIndex = -1;
 }
 
-static void indicator_nfc_change_cb(keynode_t *node, void *data)
+static void indicator_nfc_change_cb(bool activated, void *data)
 {
-	int status;
-	int ret;
-
 	retif(data == NULL, , "Invalid parameter!");
 
-	if(util_is_orf()==0)
-	{
-		DBG("does not support in this bin");
-		return;
-	}
-
-	if(icon_get_update_flag()==0)
-	{
+	if(icon_get_update_flag()==0) {
 		updated_while_lcd_off = 1;
 		DBG("need to update %d",updated_while_lcd_off);
 		return;
 	}
 	updated_while_lcd_off = 0;
 
-	ret = vconf_get_bool(VCONFKEY_NFC_STATE, &status);
-	if (ret == OK) {
-		INFO("NFC STATUS: %d", status);
+	INFO("NFC STATUS is %s", (activated)? "activated" : "not activated");
 
-		if (status == 1) {
-			/* Show NFC Icon */
-			show_image_icon(data, NFC_ON);
-			return;
-		}
+	if (activated) {
+		/* Show NFC Icon */
+		show_image_icon(data, NFC_ON);
+		return;
 	}
-
 	hide_image_icon();
 	return;
 }
 
 static int wake_up_cb(void *data)
 {
-	if(updated_while_lcd_off==0)
-	{
-		return OK;
-	}
+	int ret;
+	bool status;
 
-	indicator_nfc_change_cb(NULL, data);
+	if(updated_while_lcd_off==0)
+		return OK;
+
+	status = nfc_manager_is_activated();
+	ret = get_last_result();
+	retvm_if(ret != NFC_ERROR_NONE, ret, "nfc_manager_is_activated failed[%s]!", get_error_message(ret));
+
+	indicator_nfc_change_cb(status, data);
 	return OK;
 }
 
 static int register_nfc_module(void *data)
 {
 	int ret;
+	bool status;
 
 	retif(data == NULL, FAIL, "Invalid parameter!");
 
 	set_app_state(data);
 
-	ret = vconf_notify_key_changed(VCONFKEY_NFC_STATE,
-					indicator_nfc_change_cb, data);
-	if (ret != OK)
-		ERR("Failed to register callback!");
+	ret = nfc_manager_set_activation_changed_cb(indicator_nfc_change_cb, data);
+	retif(ret != NFC_ERROR_NONE, FAIL, "Failed to register callback!");
 
-	indicator_nfc_change_cb(NULL, data);
+	status = nfc_manager_is_activated();
+	ret = get_last_result();
+	retvm_if(ret != NFC_ERROR_NONE, ret, "nfc_manager_is_activated failed[%s]!", get_error_message(ret));
 
-	return ret;
+	indicator_nfc_change_cb(status, data);
+
+	return OK;
 }
 
 static int unregister_nfc_module(void)
 {
-	int ret;
+	nfc_manager_unset_activation_changed_cb();
 
-	ret = vconf_ignore_key_changed(VCONFKEY_NFC_STATE,
-					indicator_nfc_change_cb);
-	if (ret != OK)
+	if (get_last_result() != NFC_ERROR_NONE)
 		ERR("Failed to unregister callback!");
 
 	return OK;
