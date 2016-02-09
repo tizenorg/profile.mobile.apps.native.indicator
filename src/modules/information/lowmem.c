@@ -18,17 +18,16 @@
  */
 
 
-
 #include <stdio.h>
 #include <stdlib.h>
-#include <vconf.h>
+#include <app_event.h>
+#include <storage.h>
 #include "common.h"
 #include "indicator.h"
 #include "main.h"
 #include "modules.h"
 #include "icon.h"
-#include <sys/statvfs.h>
-#include <app_event.h>
+#include "log.h"
 
 static event_handler_h handler;
 
@@ -38,8 +37,7 @@ static event_handler_h handler;
 static int register_lowmem_module(void *data);
 static int unregister_lowmem_module(void);
 static int wake_up_cb(void *data);
-void check_storage();
-void get_internal_storage_status(double *total, double *avail);
+static int check_storage();
 
 icon_s lowmem = {
 	.name = MODULE_NAME,
@@ -64,20 +62,15 @@ static int updated_while_lcd_off = 0;
 static int bShown = 0;
 
 
-
 static void set_app_state(void* data)
 {
 	lowmem.ad = data;
 }
 
-
-
 static void show_image_icon(void)
 {
 	if(bShown == 1)
-	{
 		return;
-	}
 
 	lowmem.img_obj.data = icon_path[0];
 	icon_show(&lowmem);
@@ -92,68 +85,41 @@ static void hide_image_icon(void)
 	bShown = 0;
 }
 
-
-
-static void indicator_lowmem_pm_state_change_cb(keynode_t *node, void *data)
-{
-}
-
-
-
 static int wake_up_cb(void *data)
 {
-	if(updated_while_lcd_off==0 && lowmem.obj_exist == EINA_FALSE)
-	{
+	if(updated_while_lcd_off == 0 && lowmem.obj_exist == EINA_FALSE)
 		return OK;
-	}
 
-	return OK;
+	return check_storage();
 }
 
-
-
-static void on_changed_receive(const char *event_name, bundle *event_data, void *user_data)
+static void on_changed_receive_cb(const char *event_name, bundle *event_data, void *user_data)
 {
 	char *val = NULL;
 
-	if (!event_name || strcmp(event_name, SYSTEM_EVENT_LOW_MEMORY)) {
-		DBG("Invalid event: %s", event_name);
-		return;
-	}
+	retm_if ((!event_name || strcmp(event_name, SYSTEM_EVENT_LOW_MEMORY)),"Invalid event: %s", event_name);
 
-	DBG("lowmem signal Received");
+	_D("lowmem signal Received");
 
 	int ret = bundle_get_str(event_data, EVENT_KEY_LOW_MEMORY, &val);
-	if (ret != BUNDLE_ERROR_NONE) {
-		ERR("bundle_get_str failed for %s: %d", EVENT_KEY_LOW_MEMORY, ret);
-		return;
-	}
+	retm_if (ret != BUNDLE_ERROR_NONE,"bundle_get_str failed for %s: %d", EVENT_KEY_LOW_MEMORY, ret);
 
-	if (!val) {
-		ERR("Empty bundle value for %s", EVENT_KEY_LOW_MEMORY);
-		return;
-	}
+	retm_if (!val, "Empty bundle value for %s", EVENT_KEY_LOW_MEMORY);
 
-	if (strcmp(val, EVENT_VAL_MEMORY_NORMAL)) {
+	if (strcmp(val, EVENT_VAL_MEMORY_NORMAL))
 		hide_image_icon();
-	}
-	else if (strcmp(val, EVENT_VAL_MEMORY_HARD_WARNING)) {
+	else if (strcmp(val, EVENT_VAL_MEMORY_HARD_WARNING))
 		show_image_icon();
-	}
-	else if (strcmp(val, EVENT_VAL_MEMORY_SOFT_WARNING)) {
+	else if (strcmp(val, EVENT_VAL_MEMORY_SOFT_WARNING))
 		show_image_icon();
-	}
-	else {
+	else
 		ERR("Unrecognized %s value %s", EVENT_KEY_LOW_MEMORY, val);
-	}
 }
-
-
 
 static void event_cleaner(void)
 {
 	if (!handler) {
-		DBG("already unregistered");
+		_D("already unregistered");
 		return;
 	}
 
@@ -161,98 +127,79 @@ static void event_cleaner(void)
 	handler = NULL;
 }
 
-
-
-static int event_listener(void)
+static int event_listener_add(void)
 {
 	if (handler) {
 		DBG("alreay exist");
-		return -1;
+		return FAIL;
 	}
 
-	int ret = event_add_event_handler(SYSTEM_EVENT_LOW_MEMORY, on_changed_receive, NULL, &handler);
-	if (ret != EVENT_ERROR_NONE) {
-		ERR("event_add_event_handler failed on %s: %d", SYSTEM_EVENT_LOW_MEMORY, ret);
-		return -1;
-	}
-	return 0;
+	int ret = event_add_event_handler(SYSTEM_EVENT_LOW_MEMORY, on_changed_receive_cb, NULL, &handler);
+	retvm_if(ret != EVENT_ERROR_NONE, FAIL, "event_add_event_handler failed on %s: %d", SYSTEM_EVENT_LOW_MEMORY, ret);
+
+	return OK;
 }
-
-
 
 static int register_lowmem_module(void *data)
 {
 	int ret;
 
-	retif(data == NULL, FAIL, "Invalid parameter!");
+	retvm_if(data == NULL, FAIL, "Invalid parameter!");
 
 	set_app_state(data);
 
-	ret = vconf_notify_key_changed(VCONFKEY_PM_STATE,
-						indicator_lowmem_pm_state_change_cb, data);
+	ret = check_storage();
+	retv_if(ret != OK, FAIL);
 
-	check_storage();
-	event_listener();
+	ret = event_listener_add();
+	retv_if(ret != OK, FAIL);
 
 	return ret;
 }
-
-
 
 static int unregister_lowmem_module(void)
 {
-	int ret;
-
-
-	ret = vconf_ignore_key_changed(VCONFKEY_PM_STATE,
-						indicator_lowmem_pm_state_change_cb);
-
 	event_cleaner();
 
-	return ret;
+	return OK;
 }
 
-
-
-void check_storage()
+bool storage_cb (int storage_id, storage_type_e type, storage_state_e state, const char *path, void *user_data)
 {
-	double total = 0.0;
-	double available = 0.0;
-	double percentage = 0.0;
-	get_internal_storage_status(&total, &available);
-	percentage = (available/total) * 100.0;
-	DBG("check_storage : Total : %lf, Available : %lf Percentage : %lf", total, available, percentage);
-	if(percentage <= 5.0)
-	{
-		show_image_icon();
+
+	if (type == STORAGE_TYPE_INTERNAL) {
+		int *s_id = (int *)user_data;
+		*s_id = storage_id;
+		return false;
 	}
+	return true;
 }
 
-
-
-void get_internal_storage_status(double *total, double *avail)
+static int check_storage()
 {
 	int ret;
-	double tmp_total;
-	struct statvfs s;
-	const double sz_32G = 32. * 1073741824;
-	const double sz_16G = 16. * 1073741824;
-	const double sz_8G = 8. * 1073741824;
+	double percentage = 0.0;
+	unsigned long long available_bytes;
+	unsigned long long total_bytes;
 
-	retif(total == NULL, , "Invalid parameter!");
-	retif(avail == NULL, , "Invalid parameter!");
+	int internal_storage_id;
+	ret = storage_foreach_device_supported (storage_cb, (void *)(&internal_storage_id));
+		retvm_if(ret != STORAGE_ERROR_NONE, FAIL, "storage_foreach_device_supported failed[%s]", get_error_message(ret));
 
-	ret = statvfs("/opt/usr", &s);
-	if (0 == ret)
-	{
-		tmp_total = (double)s.f_frsize * s.f_blocks;
-		*avail = (double)s.f_bsize * s.f_bavail;
+	storage_get_available_space(internal_storage_id, &available_bytes);
+	retvm_if(ret != STORAGE_ERROR_NONE, FAIL, "storage_get_available_space failed[%s]", get_error_message(ret));
 
-		if (sz_16G < tmp_total)
-			*total = sz_32G;
-		else if (sz_8G < tmp_total)
-			*total = sz_16G;
-		else
-			*total = sz_8G;
-	}
+	storage_get_total_space(internal_storage_id, &total_bytes);
+	retvm_if(ret != STORAGE_ERROR_NONE, FAIL, "storage_get_total_space failed[%s]", get_error_message(ret));
+
+	double a_b = (double)available_bytes;
+	double t_b = (double)total_bytes;
+	percentage = (a_b/t_b) * 100.0;
+
+	_D("check_storage : Total : %lf, Available : %lf Percentage : %lf", t_b, a_b, percentage);
+
+	if(percentage <= 5.0)
+		show_image_icon();
+
+	return OK;
 }
