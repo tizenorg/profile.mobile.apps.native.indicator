@@ -23,6 +23,7 @@
 #include <app.h>
 #include <app_common.h>
 #include <Eina.h>
+#include <system_settings.h>
 
 #include "common.h"
 #include "indicator.h"
@@ -209,15 +210,14 @@ void util_send_status_message_start(void* data,double duration)
 
 void util_launch_search(void* data)
 {
-	int lock_state = VCONFKEY_IDLE_UNLOCK;
-	int lock_ret = -1;
+	int lock_state = SYSTEM_SETTINGS_LOCK_STATE_UNLOCK;
 	app_control_h service;
-	int ret = APP_CONTROL_ERROR_NONE;
 
-	lock_ret = vconf_get_int(VCONFKEY_IDLE_LOCK_STATE, &lock_state);
+	int ret = system_settings_get_value_int(SYSTEM_SETTINGS_KEY_LOCK_STATE, &lock_state);
+	retm_if(ret != SYSTEM_SETTINGS_ERROR_NONE, "system_settings_get_value_int failed %s", get_error_message(ret));
 
 	/* In Lock Screen, home button don't have to do */
-	if (lock_ret == 0 && lock_state == VCONFKEY_IDLE_LOCK) {
+	if (lock_state == SYSTEM_SETTINGS_LOCK_STATE_LOCK) {
 		return;
 	}
 
