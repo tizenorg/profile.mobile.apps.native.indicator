@@ -21,9 +21,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <vconf.h>
 #include <stdbool.h>
-#include <message-port.h>
 #include "common.h"
 #include "indicator.h"
 #include "icon.h"
