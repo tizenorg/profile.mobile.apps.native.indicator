@@ -19,7 +19,7 @@
 
 //#include <Ecore_X.h>
 #include <Eina.h>
-#include <vconf.h>
+#include <display.h>
 
 #include "common.h"
 #include "box.h"
@@ -752,23 +752,7 @@ int box_get_minictrl_list(void)
 
 int box_get_max_count_in_non_fixed_list(void)
 {
-	int added_count = 0;
-	int icon_count = 0;
-	int status = 0;
-
-	if (OK != vconf_get_bool(VCONFKEY_SETAPPL_BATTERY_PERCENTAGE_BOOL, &status)) {
-		_E("Fail to get vconfkey");
-	}
-
-	if (status == EINA_TRUE) {
-		added_count = BATTERY_TEXT_ON_COUNT;
-	} else {
-		added_count = BATTERY_TEXT_OFF_COUNT;
-	}
-
-	icon_count = PORT_NONFIXED_ICON_COUNT + added_count;
-
-	return icon_count;
+	return PORT_NONFIXED_ICON_COUNT;
 }
 
 
@@ -1000,47 +984,34 @@ extern Eina_Bool box_exist_icon(icon_s *obj)
 
 int box_handle_animated_gif(icon_s *icon)
 {
-	int bPlay = true;
-	int val = 0;
+	display_state_e state;
 	Evas_Object *icon_eo = evas_object_data_get(icon->img_obj.obj, DATA_KEY_IMG_ICON);
 
 	retif(icon == NULL, FAIL, "Invalid parameter!");
 
 	if (elm_image_animated_available_get(icon_eo) == EINA_FALSE) {
-		return false;
+		return FAIL;
 	}
 
-	if (vconf_get_int(VCONFKEY_PM_STATE, &val) < 0) {
-		return false;
+	int ret = device_display_get_state(&state);
+	if (ret != DEVICE_ERROR_NONE) {
+		ERR("device_display_get_state failed: %s", get_error_message(ret));
+		return FAIL;
 	}
 
-	switch (val) {
-	case VCONFKEY_PM_STATE_LCDOFF :	//LCD OFF
-		bPlay = false;
+	switch (state) {
+	case DISPLAY_STATE_SCREEN_OFF:	//LCD OFF
+		elm_image_animated_play_set(icon_eo, EINA_FALSE);
 		break;
-	case VCONFKEY_PM_STATE_NORMAL :	//LCD ON
-		bPlay = true;
-		break;
+	case DISPLAY_STATE_NORMAL:	//LCD ON
 	default:
-		bPlay = true;
+		elm_image_animated_set(icon_eo, EINA_TRUE);
+		if (!elm_image_animated_play_get(icon_eo))
+			elm_image_animated_play_set(icon_eo, EINA_TRUE);
 		break;
 	}
 
-	if (bPlay == true) {
-		if (elm_image_animated_get(icon_eo)==EINA_FALSE) {
-			elm_image_animated_set(icon_eo,EINA_TRUE);
-		}
-
-		if (elm_image_animated_play_get(icon_eo) == EINA_FALSE) {
-			elm_image_animated_play_set(icon_eo, EINA_TRUE);
-		}
-	} else {
-		if(elm_image_animated_play_get(icon_eo) == EINA_TRUE) {
-			elm_image_animated_play_set(icon_eo, EINA_FALSE);
-		}
-	}
-
-	return true;
+	return OK;
 }
 
 
