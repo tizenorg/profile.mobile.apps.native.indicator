@@ -18,10 +18,8 @@
  */
 
 
-
 #include <stdio.h>
 #include <stdlib.h>
-#include <vconf.h>
 
 #include "common.h"
 #include "modules.h"
@@ -29,6 +27,7 @@
 #include "main.h"
 #include "util.h"
 #include "icon.h"
+#include "log.h"
 
 #define ICON_PRIORITY	INDICATOR_PRIORITY_MINICTRL2
 #define MODULE_NAME		"MP3_PLAY"
@@ -71,26 +70,22 @@ static char *icon_path[] = {
 static int prevIndex = -1;
 
 
-
 static void set_app_state(void* data)
 {
 	mp3_play.ad = data;
 }
 
 
-
 static void show_image_icon(void *data, int status)
 {
-	if (prevIndex == status) {
+	if (prevIndex == status)
 		return;
-	}
 
 	mp3_play.img_obj.data = icon_path[status];
 	icon_show(&mp3_play);
 
 	prevIndex = status;
 }
-
 
 
 static void hide_image_icon(void)
@@ -101,51 +96,41 @@ static void hide_image_icon(void)
 }
 
 
-
 static void show_mp_icon(void* data)
 {
 	FILE* fp = fopen(util_get_data_file_path(MUSIC_STATUS_FILE_PATH), "r");
 	char line[MAX_NAM_LEN+1];
 
-	retif(data == NULL, , "Invalid parameter!");
-	if(fp == NULL)
-	{
-		ERR("Invalid file path !!");
-		return;
-	}
+	retm_if(data == NULL, "Invalid parameter!");
 
-	if(icon_get_update_flag()==0)
-	{
+	retm_if(fp == NULL, "Invalid file path !!");
+
+	if(icon_get_update_flag() == 0) {
 		updated_while_lcd_off = 1;
-		DBG("need to update %d",updated_while_lcd_off);
+		_D("need to update %d",updated_while_lcd_off);
 		fclose(fp);
 		return;
 	}
 
 	updated_while_lcd_off = 0;
 
-	if(fgets(line, MAX_NAM_LEN, fp))
-	{
-		if(strstr(line, "play"))
-		{
-			DBG("Music state : PLAY");
+	if(fgets(line, MAX_NAM_LEN, fp)) {
+		if(strstr(line, "play")) {
+			_D("Music state : PLAY");
 			show_image_icon(data, MUSIC_PLAY);
 		}
-		else if(strstr(line, "pause"))
-		{
-			DBG("Music state : PAUSED");
+		else if(strstr(line, "pause")) {
+			_D("Music state : PAUSED");
 			show_image_icon(data, MUSIC_PAUSED);
 		}
-		else if(strstr(line, "stop") || strstr(line, "off"))
-		{
-			DBG("Music state : STOP or OFF");
+		else if(strstr(line, "stop") || strstr(line, "off")) {
+			_D("Music state : STOP or OFF");
 			hide_image_icon();
 		}
 	}
-	retif(fclose(fp), , "File close error!");
+	retm_if(fclose(fp), "File close error!");
 
 }
-
 
 
 void hide_mp_icon(void)
@@ -154,11 +139,10 @@ void hide_mp_icon(void)
 }
 
 
-
 static void indicator_mp3_play_change_cb(void *data, Ecore_File_Monitor *em, Ecore_File_Event event, const char* path)
 {
-	retif(data == NULL, , "Invalid parameter!");
-	DBG("indicator_mp3_play_change_cb");
+	retm_if(data == NULL, "Invalid parameter!");
+	_D("indicator_mp3_play_change_cb");
 
 	show_mp_icon(data);
 
@@ -166,40 +150,36 @@ static void indicator_mp3_play_change_cb(void *data, Ecore_File_Monitor *em, Eco
 }
 
 
-
 static int wake_up_cb(void *data)
 {
-	if(updated_while_lcd_off==0)
-	{
+	if(updated_while_lcd_off == 0)
 		return OK;
-	}
 
 	indicator_mp3_play_change_cb(data, pFileMonitor, (Ecore_File_Event)NULL, util_get_data_file_path(MUSIC_STATUS_FILE_PATH));
 	return OK;
 }
 
-
-
 static int register_mp3_play_module(void *data)
 {
-	DBG("Music file monitor added !!");
-	retif(data == NULL, FAIL, "Invalid parameter!");
+	_D("Music file monitor added !!");
+	retvm_if(data == NULL, FAIL, "Invalid parameter!");
 
 	set_app_state(data);
 
 	ECORE_FILE_MONITOR_DELIF(pFileMonitor);
-	pFileMonitor = util_file_monitor_add(util_get_data_file_path(MUSIC_STATUS_FILE_PATH), (Ecore_File_Monitor_Cb)indicator_mp3_play_change_cb, data);
-	retif(pFileMonitor == NULL, FAIL, "util_file_monitor_add return NULL!!");
+	pFileMonitor = util_file_monitor_add(util_get_data_file_path(MUSIC_STATUS_FILE_PATH),
+			(Ecore_File_Monitor_Cb)indicator_mp3_play_change_cb, data);
+
+	retvm_if(pFileMonitor == NULL, FAIL, "util_file_monitor_add return NULL!!");
 
 	return OK;
 }
 
 
-
 static int unregister_mp3_play_module(void)
 {
-	DBG("Music file monitor removed !!");
-	retif(pFileMonitor == NULL, FAIL, "File Monitor do not exist !");
+	_D("Music file monitor removed !!");
+	retvm_if(pFileMonitor == NULL, FAIL, "File Monitor do not exist !");
 
 	util_file_monitor_remove(pFileMonitor);
 	pFileMonitor = NULL;
