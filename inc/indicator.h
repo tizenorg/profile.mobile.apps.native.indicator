@@ -39,6 +39,8 @@
 #define DATA_KEY_BASE_RECT "dkbr"
 #define DATA_KEY_TICKER_TEXT "dktt"
 
+#define INDICATOR_MORE_NOTI "indicator_more_noti"
+
 enum indicator_win_mode{
 	INDICATOR_WIN_PORT = 0,
 };

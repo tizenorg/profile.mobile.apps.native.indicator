@@ -19,7 +19,6 @@
 
 
 #include <Eina.h>
-#include <vconf.h>
 #include <app_preference.h>
 
 #include "common.h"
@@ -40,8 +39,6 @@ extern int current_angle;
 #define DOWNLOAD_ICON_ANIMATION_SIGNAL "indicator.ani.downloading.%d"
 
 static unsigned int update_icon_flag = 1;	// For battery problem
-
-
 
 static void _reset_on_timer_icon_animation(icon_s *icon)
 {
@@ -755,24 +752,11 @@ void icon_reset_list(void)
 
 
 
-static void _show_hide_more_noti(win_info* win,int val)
+static void _show_hide_more_noti(win_info* win, bool show)
 {
-	static int bShow = 0;
-
-	if (bShow == val) {
-		return;
-	}
-
-	bShow = val;
-
-	if (val == 1) {
-		preference_set_int(VCONFKEY_INDICATOR_SHOW_MORE_NOTI, 1);
-	} else {
-		preference_set_int(VCONFKEY_INDICATOR_SHOW_MORE_NOTI, 0);
-	}
+	int err = preference_set_boolean(INDICATOR_MORE_NOTI, show);
+	retm_if(err != PREFERENCE_ERROR_NONE, "preference_set_boolean failed: %s", get_error_message(err));
 }
-
-
 
 void icon_handle_more_notify_icon(win_info* win)
 {
@@ -788,12 +772,12 @@ void icon_handle_more_notify_icon(win_info* win)
 		DBG("PORT :: %d", (system_cnt + minictrl_cnt + noti_cnt));
 		if((system_cnt + minictrl_cnt + noti_cnt) > MAX_NOTI_ICONS_PORT)
 		{
-			_show_hide_more_noti(win,1);
+			_show_hide_more_noti(win, true);
 			DBG("PORT :: handle_more_notify_show");
 		}
 		else
 		{*/
-			_show_hide_more_noti(win,0);
+			_show_hide_more_noti(win, false);
 			DBG("PORT :: handle_more_notify_hide");
 		/*}
 	}*/

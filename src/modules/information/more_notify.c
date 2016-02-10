@@ -21,7 +21,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <vconf.h>
 #include <app_preference.h>
 
 #include "common.h"
@@ -29,6 +28,7 @@
 #include "icon.h"
 #include "modules.h"
 #include "main.h"
+#include "log.h"
 
 #define ICON_PRIORITY	INDICATOR_PRIORITY_NOTI_MIN
 #define MODULE_NAME		"more_notify"
@@ -39,7 +39,7 @@ static int wake_up_cb(void *data);
 
 static int updated_while_lcd_off = 0;
 
-static int bShow = 0;
+static bool bShow = 0;
 
 icon_s more_notify = {
 	.name = MODULE_NAME,
@@ -88,12 +88,11 @@ static void hide_image_icon_by_win(win_info* win)
 
 
 
-static void _handle_more_notify_icon(win_info* win,int val)
+static void _handle_more_notify_icon(win_info* win, bool val)
 {
 	retif(win == NULL, , "Invalid parameter!");
 
-	if(bShow == val)
-	{
+	if(bShow == val) {
 		return;
 	}
 
@@ -101,13 +100,10 @@ static void _handle_more_notify_icon(win_info* win,int val)
 
 	DBG("val %d", val);
 
-	if(val==1)
-	{
+	if (val) {
 		show_image_icon_by_win(win);
 		DBG("_handle_more_notify_show");
-	}
-	else
-	{
+	} else {
 		hide_image_icon_by_win(win);
 		DBG("_handle_more_notify_hide");
 	}
@@ -118,23 +114,24 @@ static void _handle_more_notify_icon(win_info* win,int val)
 static void indicator_more_notify_change_cb(const char *key, void *data)
 {
 	struct appdata *ad = (struct appdata *)(more_notify.ad);
-	int val = 0;
+	bool val = 0;
 
 	retif(data == NULL, , "Invalid parameter!");
 
 	DBG("indicator_more_notify_change_cb");
 	win_info* win = NULL;
 
-	preference_get_int(key, &val);
-
-	if (strcmp(key, VCONFKEY_INDICATOR_SHOW_MORE_NOTI) == 0) {
+	if (strcmp(key, INDICATOR_MORE_NOTI) == 0) {
 		win = &(ad->win);
 	} else {
 		SECURE_ERR("invalid val %s",key);
 		return;
 	}
 
-	_handle_more_notify_icon(win,val);
+	int err = preference_get_boolean(key, &val);
+	retm_if(err != PREFERENCE_ERROR_NONE, "preference_get_boolean failed: %s", get_error_message(err));
+
+	_handle_more_notify_icon(win, val);
 
 	return;
 }
@@ -161,7 +158,7 @@ static int register_more_notify_module(void *data)
 
 	set_app_state(data);
 
-	preference_set_changed_cb(VCONFKEY_INDICATOR_SHOW_MORE_NOTI, indicator_more_notify_change_cb, data);
+	preference_set_changed_cb(INDICATOR_MORE_NOTI, indicator_more_notify_change_cb, data);
 
 	return OK;
 }
@@ -170,7 +167,7 @@ static int register_more_notify_module(void *data)
 
 static int unregister_more_notify_module(void)
 {
-	preference_unset_changed_cb(VCONFKEY_INDICATOR_SHOW_MORE_NOTI);
+	preference_unset_changed_cb(INDICATOR_MORE_NOTI);
 
 	return OK;
 }
