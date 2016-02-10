@@ -65,12 +65,10 @@ static char *icon_path[] = {
 };
 
 
-
 static void set_app_state(void* data)
 {
 	more_notify.ad = data;
 }
-
 
 
 static void show_image_icon_by_win(win_info* win)
@@ -78,7 +76,6 @@ static void show_image_icon_by_win(win_info* win)
 	more_notify.img_obj.data = icon_path[0];
 	icon_show(&more_notify);
 }
-
 
 
 static void hide_image_icon_by_win(win_info* win)
@@ -90,25 +87,23 @@ static void hide_image_icon_by_win(win_info* win)
 
 static void _handle_more_notify_icon(win_info* win, bool val)
 {
-	retif(win == NULL, , "Invalid parameter!");
+	retm_if(win == NULL, "Invalid parameter!");
 
-	if(bShow == val) {
+	if (bShow == val)
 		return;
-	}
 
 	bShow = val;
 
-	DBG("val %d", val);
+	_D("val %d", val);
 
 	if (val) {
 		show_image_icon_by_win(win);
 		DBG("_handle_more_notify_show");
 	} else {
 		hide_image_icon_by_win(win);
-		DBG("_handle_more_notify_hide");
+		_D("_handle_more_notify_hide");
 	}
 }
-
 
 
 static void indicator_more_notify_change_cb(const char *key, void *data)
@@ -116,7 +111,7 @@ static void indicator_more_notify_change_cb(const char *key, void *data)
 	struct appdata *ad = (struct appdata *)(more_notify.ad);
 	bool val = 0;
 
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 
 	DBG("indicator_more_notify_change_cb");
 	win_info* win = NULL;
@@ -137,37 +132,33 @@ static void indicator_more_notify_change_cb(const char *key, void *data)
 }
 
 
-
 static int wake_up_cb(void *data)
 {
-	if(updated_while_lcd_off==0)
-	{
+	if(updated_while_lcd_off == 0)
 		return OK;
-	}
 
-	indicator_more_notify_change_cb(NULL, data);
+	indicator_more_notify_change_cb(INDICATOR_MORE_NOTI, data);
 	return OK;
 }
-
 
 
 static int register_more_notify_module(void *data)
 {
-
-	retif(data == NULL, FAIL, "Invalid parameter!");
+	retvm_if(data == NULL, FAIL, "Invalid parameter!");
 
 	set_app_state(data);
 
-	preference_set_changed_cb(INDICATOR_MORE_NOTI, indicator_more_notify_change_cb, data);
+	int ret = preference_set_changed_cb(INDICATOR_MORE_NOTI, indicator_more_notify_change_cb, data);
+	retvm_if(ret != PREFERENCE_ERROR_NONE, FAIL, "preference_set_changed_cb failed: %s", get_error_message(ret));
 
 	return OK;
 }
 
 
-
 static int unregister_more_notify_module(void)
 {
-	preference_unset_changed_cb(INDICATOR_MORE_NOTI);
+	int ret = preference_unset_changed_cb(INDICATOR_MORE_NOTI);
+	retvm_if(ret != PREFERENCE_ERROR_NONE, FAIL, "preference_set_changed_cb failed: %s", get_error_message(ret));
 
 	return OK;
 }
