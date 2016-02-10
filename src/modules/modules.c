@@ -41,7 +41,7 @@ extern icon_s call;
 extern icon_s call_divert;
 
 /* Information */
-extern icon_s mmc;
+extern icon_s ext_storage;
 extern icon_s noti;
 
 /* alarm */
@@ -101,7 +101,7 @@ static icon_s *modules[INDICATOR_MODULE_NUMBERS] = {
 	/* Information */
 	/* &message, */
 	/* &voice_mail, */
-	&mmc,
+	&ext_storage,
 	&noti,
 	&useralarm,
 	&fm_radio,
