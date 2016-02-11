@@ -40,7 +40,6 @@
 #include "indicator_gui.h"
 #include "modules.h"
 #include "util.h"
-#include "plmn.h"
 #include "message.h"
 #include "tts.h"
 #include "log.h"

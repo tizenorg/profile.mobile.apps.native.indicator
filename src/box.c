@@ -28,7 +28,6 @@
 #include "main.h"
 #include "indicator_gui.h"
 #include "util.h"
-#include "plmn.h"
 #include "message.h"
 #include "log.h"
 
