@@ -173,7 +173,7 @@ static int register_ext_storage_module(void *data)
 
 	state = EXT_STORAGE_STATE_REMOVED;
 
-	ret = storage_foreach_device_supported (_storage_register_cb, (void *)state);
+	ret = storage_foreach_device_supported (_storage_register_cb, (void *)&state);
 
 	retvm_if(ret != STORAGE_ERROR_NONE, FAIL, "storage_foreach_device_supported failed[%s]", get_error_message(ret));
 
