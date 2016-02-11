@@ -703,8 +703,10 @@ int util_system_settings_set_changed_cb(system_settings_key_e key, system_settin
 		return -1;
 	}
 
+	system_settings_unset_changed_cb(key);
 	int err = system_settings_set_changed_cb(key, _system_settings_cb, NULL);
 	if (err != SYSTEM_SETTINGS_ERROR_NONE) {
+		ERR("system_settings_set_changed_cb failed: %s", get_error_message(err));
 		free(handler);
 		return -1;
 	}
@@ -758,8 +760,10 @@ int util_runtime_info_set_changed_cb(runtime_info_key_e key, runtime_info_change
 		return -1;
 	}
 
+	runtime_info_unset_changed_cb(key);
 	int err = runtime_info_set_changed_cb(key, _runtime_info_cb, NULL);
 	if (err != RUNTIME_INFO_ERROR_NONE) {
+		ERR("runtime_info_set_changed_cb failed: %s", get_error_message(err));
 		free(handler);
 		return -1;
 	}
