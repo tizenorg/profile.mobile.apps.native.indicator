@@ -34,7 +34,6 @@
 
 #define ICON_PRIORITY	INDICATOR_PRIORITY_FIXED6
 #define MODULE_NAME		"wifi"
-#define TIMER_INTERVAL	0.3
 
 static int register_wifi_module(void *data);
 static int unregister_wifi_module(void);
@@ -70,21 +69,19 @@ static const char *icon_path[LEVEL_WIFI_MAX] = {
 };
 
 static int transfer_state = -1;
-static Eina_Bool wifi_transferring = EINA_FALSE;
 static int updated_while_lcd_off = 0;
 static int prevIndex = -1;
+static wifi_rssi_level_e rssi_level;
 
 
-
-static void set_app_state(void* data)
+static void set_app_state(void *data)
 {
 	wifi.ad = data;
 }
 
 static void show_image_icon(void *data, int index)
 {
-	if(prevIndex == index)
-	{
+	if (prevIndex == index) {
 		return;
 	}
 
@@ -106,20 +103,18 @@ static void hide_image_icon(void)
 	util_signal_emit(wifi.ad, "indicator.wifi.updown.hide", "indicator.prog");
 }
 
-static void show_wifi_transfer_icon(void* data)
+static void show_wifi_transfer_icon(void *data)
 {
 	int type = -1;
 	int status = 0;
 
-	if (vconf_get_int(VCONFKEY_WIFI_TRANSFER_STATE, &status) < 0)
-	{
+	if (vconf_get_int(VCONFKEY_WIFI_TRANSFER_STATE, &status) < 0) {
 		ERR("Error getting VCONFKEY_WIFI_TRANSFER_STATE value");
 		return;
 	}
 
-	switch(status)
-	{
-	case VCONFKEY_WIFI_TRANSFER_STATE_TXRX://TX/RX BOTH
+	switch (status) {
+	case VCONFKEY_WIFI_TRANSFER_STATE_TXRX:
 		type = TRANSFER_UPDOWN;
 		break;
 	case VCONFKEY_WIFI_TRANSFER_STATE_TX:
@@ -135,15 +130,13 @@ static void show_wifi_transfer_icon(void* data)
 		break;
 	}
 
-	if(transfer_state==type)
-	{
+	if (transfer_state == type) {
 		DBG("same transfer state");
 		return;
 	}
 
 	transfer_state = type;
-	switch (type)
-	{
+	switch (type) {
 		case TRANSFER_NONE:
 			util_signal_emit(wifi.ad, "indicator.wifi.updown.none", "indicator.prog");
 			break;
@@ -158,187 +151,149 @@ static void show_wifi_transfer_icon(void* data)
 			break;
 		default:
 			break;
-
 	}
 }
 
-static void _wifi_changed_cb(keynode_t *node, void *data)
+static int _rssi_level_to_strength(wifi_rssi_level_e level)
 {
-	bool wifi_state = false;
-	int status, strength;
+	switch (level) {
+		case WIFI_RSSI_LEVEL_0:
+			return LEVEL_WIFI_01;
+		case WIFI_RSSI_LEVEL_2:
+		case WIFI_RSSI_LEVEL_1:
+			return LEVEL_WIFI_02;
+		case WIFI_RSSI_LEVEL_3:
+			return LEVEL_WIFI_03;
+		case WIFI_RSSI_LEVEL_4:
+			return LEVEL_WIFI_04;
+		default:
+			return WIFI_RSSI_LEVEL_0;
+	}
+}
+
+static void _wifi_view_update(void *data)
+{
+	bool activated;
+	wifi_connection_state_e state;
 	int ret;
 
 	ret_if(!data);
 
-	if (icon_get_update_flag()==0) {
+	if (icon_get_update_flag() == 0) {
 		updated_while_lcd_off = 1;
 		return;
 	}
 	updated_while_lcd_off = 0;
 
-	ret = vconf_get_int(VCONFKEY_WIFI_STRENGTH, &strength);
-	if (ret == OK) {
-		if (strength < VCONFKEY_WIFI_STRENGTH_MIN) {
-			strength = VCONFKEY_WIFI_STRENGTH_MIN;
-		}
-		else if (strength > VCONFKEY_WIFI_STRENGTH_MAX) {
-			strength = VCONFKEY_WIFI_STRENGTH_MAX;
-		}
-	} else {
-		strength = VCONFKEY_WIFI_STRENGTH_MAX;
-	}
+	ret = wifi_is_activated(&activated);
+	retm_if(ret != WIFI_ERROR_NONE, "wifi_is_activated failed: %s", get_error_message(ret));
+	_D("wifi_state : %d", activated);
 
-	if (strength <= 0) strength = 1;
-
-	/* Second, check wifi status */
-	ret = wifi_is_activated(&wifi_state);
-	_D("wifi_state : %d", wifi_state);
-	if(ret != WIFI_ERROR_NONE) {
-		_E("wifi_is_activated error. ret is [%d]", ret);
-	}
-
-	ret = wifi_get_connection_state(&status);
-	if (ret == WIFI_ERROR_NONE) {
-		DBG("CONNECTION WiFi Status: %d", status);
-		switch(status) {
-		case WIFI_CONNECTION_STATE_CONNECTED:
-			show_wifi_transfer_icon(data);
-			show_image_icon(data, strength-1);
-			break;
-		default: //WIFI_CONNECTION_STATE_DISCONNECTED
-			hide_image_icon();
-			break;
-		}
-	}
-
-	return;
-}
-
-static void _wifi_device_state_changed_cb(wifi_device_state_e state, void *user_data)
-{
-	bool wifi_state = false;
-	int ret, strength;
-
-	ret_if(!user_data);
-
-	if (icon_get_update_flag()==0) {
-		updated_while_lcd_off = 1;
-		return;
-	}
-	updated_while_lcd_off = 0;
-
-	ret = vconf_get_int(VCONFKEY_WIFI_STRENGTH, &strength);
-	if (ret == OK) {
-		if (strength < VCONFKEY_WIFI_STRENGTH_MIN) {
-			strength = VCONFKEY_WIFI_STRENGTH_MIN;
-		}
-		else if (strength > VCONFKEY_WIFI_STRENGTH_MAX) {
-			strength = VCONFKEY_WIFI_STRENGTH_MAX;
-		}
-	} else {
-		strength = VCONFKEY_WIFI_STRENGTH_MAX;
-	}
-
-	if (strength <= 0) strength = 1;
-
-	ret = wifi_is_activated(&wifi_state);
-	_D("wifi_state : %d", wifi_state);
-	if(ret != WIFI_ERROR_NONE) {
-		_E("wifi_is_activated error. ret is [%d]", ret);
-	}
-
-	if (wifi_state) {
-		show_wifi_transfer_icon(user_data);
-		show_image_icon(user_data, strength-1);
-	} else {
+	if (!activated) {
 		hide_image_icon();
+		return;
 	}
+
+	ret = wifi_get_connection_state(&state);
+	retm_if(ret != WIFI_ERROR_NONE, "wifi_get_connection_state failed: %s", get_error_message(ret));
+	if (state != WIFI_CONNECTION_STATE_CONNECTED) {
+		hide_image_icon();
+		return;
+	}
+
+	show_wifi_transfer_icon(data);
+	show_image_icon(data, _rssi_level_to_strength(rssi_level));
 
 	return;
 }
 
-static void _wifi_connection_state_changed_cb(wifi_connection_state_e state, wifi_ap_h ap, void *user_data)
+static void _wifi_rssi_level_changed(wifi_rssi_level_e level, void *data)
 {
-	ret_if(!user_data);
+	rssi_level = level;
+	_wifi_view_update(data);
+	return;
+}
 
-	_wifi_changed_cb(NULL, user_data);
+static void _wifi_connection_state_changed(wifi_connection_state_e state, wifi_ap_h ap, void *data)
+{
+	_wifi_view_update(data);
+	return;
+}
 
+static void _wifi_device_state_changed(wifi_device_state_e state, void *data)
+{
+	_wifi_view_update(data);
 	return;
 }
 
 static int wake_up_cb(void *data)
 {
-	if(updated_while_lcd_off==0)
-	{
+	if (updated_while_lcd_off == 0) {
 		return OK;
 	}
 
-	_wifi_changed_cb(NULL, data);
+	_wifi_view_update(data);
 	return OK;
 }
 
-static bool _wifi_init(void)
+static void _wifi_changed_cb(keynode_t *node, void *user_data)
 {
-	int ret = -1;
-	ret = wifi_initialize();
-	if (ret != WIFI_ERROR_NONE) {
-		_E("wifi_initialize is fail : %d", ret);
-		return false;
-	}
-
-	return true;
-}
-
-static void _wifi_fini(void)
-{
-	int ret = -1;
-	ret = wifi_deinitialize();
-	if (ret != WIFI_ERROR_NONE) {
-		_E("wifi_deinitialize is fail : %d", ret);
-	}
+	_wifi_view_update(user_data);
 }
 
 static int register_wifi_module(void *data)
 {
-	int r = 0, ret = -1;
-
 	retv_if(!data, 0);
 
 	set_app_state(data);
-	_wifi_init();
 
-	ret = wifi_set_device_state_changed_cb(_wifi_device_state_changed_cb, data);
-	if (ret != WIFI_ERROR_NONE) r = ret;
+	int ret = wifi_initialize();
+	retvm_if(ret != WIFI_ERROR_NONE, FAIL, "wifi_initialize failed : %s", get_error_message(ret));
 
-	ret = util_wifi_set_connection_state_changed_cb(_wifi_connection_state_changed_cb, data);
-	if (ret != WIFI_ERROR_NONE) r = ret;
+	ret = wifi_set_device_state_changed_cb(_wifi_device_state_changed, data);
+	if (ret != WIFI_ERROR_NONE) {
+		ERR("wifi_set_device_state_changed_cb failed: %s", get_error_message(ret));
+		unregister_wifi_module();
+		return FAIL;
+	}
 
-	ret = vconf_notify_key_changed(VCONFKEY_WIFI_STRENGTH, _wifi_changed_cb, data);
-	if (ret != OK) r = r | ret;
+	ret = util_wifi_set_connection_state_changed_cb(_wifi_connection_state_changed, data);
+	if (ret != 0) {
+		ERR("util_wifi_set_connection_state_changed_cb failed");
+		unregister_wifi_module();
+		return FAIL;
+	}
+
+	ret = wifi_set_rssi_level_changed_cb(_wifi_rssi_level_changed, data);
+	if (ret != WIFI_ERROR_NONE) {
+		ERR("wifi_set_rssi_level_changed_cb failed: %s", get_error_message(ret));
+		unregister_wifi_module();
+		return FAIL;
+	}
 
 	ret = vconf_notify_key_changed(VCONFKEY_WIFI_TRANSFER_STATE, _wifi_changed_cb, data);
-	if (ret != OK) r = r | ret;
+	if (ret != WIFI_ERROR_NONE) {
+		ERR("vconf_notify_key_changed failed: %s", get_error_message(ret));
+		unregister_wifi_module();
+		return FAIL;
+	}
 
-	_wifi_changed_cb(NULL, data);
+	_wifi_view_update(data);
 
-	return r;
+	return OK;
 }
 
 static int unregister_wifi_module(void)
 {
-	int ret;
+	util_wifi_unset_connection_state_changed_cb(_wifi_connection_state_changed);
+	wifi_unset_device_state_changed_cb();
+	wifi_unset_rssi_level_changed_cb();
+	vconf_ignore_key_changed(VCONFKEY_WIFI_TRANSFER_STATE, _wifi_changed_cb);
 
-	util_wifi_unset_connection_state_changed_cb(_wifi_connection_state_changed_cb);
-	ret = wifi_unset_device_state_changed_cb();
-	ret = ret | vconf_ignore_key_changed(VCONFKEY_WIFI_STRENGTH, _wifi_changed_cb);
-	ret = ret | vconf_ignore_key_changed(VCONFKEY_WIFI_TRANSFER_STATE, _wifi_changed_cb);
-
-	if (wifi_transferring == EINA_TRUE) {
-		wifi_transferring  = EINA_FALSE;
+	int ret = wifi_deinitialize();
+	if (ret != WIFI_ERROR_NONE) {
+		ERR("wifi_deinitialize failed : %s", get_error_message(ret));
 	}
 
-	_wifi_fini();
-
-	return ret;
+	return OK;
 }
-/* End of file */
