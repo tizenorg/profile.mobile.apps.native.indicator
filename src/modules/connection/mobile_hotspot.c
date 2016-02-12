@@ -22,11 +22,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <vconf.h>
+#include <system_settings.h>
+#include <runtime_info.h>
+
 #include "common.h"
 #include "indicator.h"
 #include "icon.h"
 #include "modules.h"
 #include "main.h"
+#include "log.h"
+#include "util.h"
 
 #define ICON_PRIORITY	INDICATOR_PRIORITY_NOTI_2
 #define MODULE_NAME		"mobile_hotspot"
@@ -106,109 +111,57 @@ static void hide_image_icon(void)
 
 
 
-static void indicator_mobile_hotspot_change_cb(keynode_t *node, void *data)
+static void indicator_mobile_hotspot_change_cb(void *user_data)
 {
-	int status;
 	int ret;
+	bool usb_enabled, wifi_enabled, bt_enabled;
 
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(user_data == NULL, "Invalid parameter!");
 
-	if(icon_get_update_flag()==0)
-	{
+	if (icon_get_update_flag() == 0) {
 		updated_while_lcd_off = 1;
 		return;
 	}
 	updated_while_lcd_off = 0;
 
-	ret = vconf_get_int(VCONFKEY_MOBILE_HOTSPOT_MODE, &status);
-	if (ret == OK)
-	{
-		DBG("mobile_hotspot status: %d", status);
-		if (status != VCONFKEY_MOBILE_HOTSPOT_MODE_NONE)
-		{
-			int connected_device = 0;
-			int on_device_cnt = 0;
+	ret = runtime_info_get_value_bool(RUNTIME_INFO_KEY_USB_TETHERING_ENABLED, &usb_enabled);
+	retm_if(ret != RUNTIME_INFO_ERROR_NONE, "runtime_info_get_value_bool failed");
 
-			int bBT = 0;
-			int bWifi = 0;
-			int bUSB = 0;
+	ret = runtime_info_get_value_bool(RUNTIME_INFO_KEY_WIFI_HOTSPOT_ENABLED, &wifi_enabled);
+	retm_if(ret != RUNTIME_INFO_ERROR_NONE, "runtime_info_get_value_bool failed");
 
-			vconf_get_int(VCONFKEY_MOBILE_HOTSPOT_CONNECTED_DEVICE,&connected_device);
+	ret = runtime_info_get_value_bool(RUNTIME_INFO_KEY_BLUETOOTH_TETHERING_ENABLED, &bt_enabled);
+	retm_if(ret != RUNTIME_INFO_ERROR_NONE, "runtime_info_get_value_bool failed");
 
-			if(status&VCONFKEY_MOBILE_HOTSPOT_MODE_BT)
-				bBT = 1;
-			if(status&VCONFKEY_MOBILE_HOTSPOT_MODE_WIFI)
-				bWifi = 1;
-			if(status&VCONFKEY_MOBILE_HOTSPOT_MODE_USB)
-				bUSB = 1;
+	/* How many tethering methods are on */
+	int sum = (usb_enabled ? 1 : 0) + (wifi_enabled ? 1 : 0) + (bt_enabled ? 1 : 0);
 
-			on_device_cnt = bBT+bWifi+bUSB;
-			DBG("STSTUS %d %d %d , %d",bBT,bWifi,bUSB,connected_device);
-			if(on_device_cnt==0)
-			{
-				hide_image_icon();
-				return;
-			}
-			else if(on_device_cnt>=2)
-			{
-				if(connected_device>=1)
-				{
-					show_image_icon(TETHERING_ALL_ON_CONNECTED);
-				}
-				else
-				{
-					show_image_icon(TETHERING_ALL_ON_NOT_CONNECTED);
-				}
-			}
-			else
-			{
-				if(bBT==1)
-				{
-					if(connected_device>0)
-					{
-						show_image_icon(TETHERING_BT_ON_CONNECTED);
-					}
-					else
-					{
-						show_image_icon(TETHERING_BT_ON_NOT_CONNECTED);
-					}
-				}
-
-				if(bUSB==1)
-				{
-					if(connected_device>0)
-					{
-						show_image_icon(TETHERING_USB_ON_CONNECTED);
-					}
-					else
-					{
-						show_image_icon(TETHERING_USB_ON_NOT_CONNECTED);
-					}
-				}
-
-				if(bWifi==1)
-				{
-					if(connected_device>0)
-					{
-						show_image_icon(TETHERING_WIFI_ON_CONNECTED);
-					}
-					else
-					{
-						show_image_icon(TETHERING_WIFI_ON_NOT_CONNECTED);
-					}
-				}
-			}
-
-		}
-		else
-		{
-			hide_image_icon();
-			return;
-		}
+	if (sum == 0) {
+		hide_image_icon();
 	}
 
+	if (sum >= 2) {
+		show_image_icon(TETHERING_ALL_ON_CONNECTED);
+	}
+
+	if (bt_enabled) {
+		show_image_icon(TETHERING_BT_ON_CONNECTED);
+	}
+
+	if (usb_enabled) {
+		show_image_icon(TETHERING_USB_ON_CONNECTED);
+	}
+
+	if (wifi_enabled) {
+		show_image_icon(TETHERING_WIFI_ON_CONNECTED);
+	}
 }
 
+
+static void _runtime_info_key_update_cb(runtime_info_key_e key, void *user_data)
+{
+	indicator_mobile_hotspot_change_cb(user_data);
+}
 
 
 static int wake_up_cb(void *data)
@@ -218,7 +171,7 @@ static int wake_up_cb(void *data)
 		return OK;
 	}
 
-	indicator_mobile_hotspot_change_cb(NULL, data);
+	indicator_mobile_hotspot_change_cb(data);
 	return OK;
 }
 
@@ -226,40 +179,40 @@ static int wake_up_cb(void *data)
 
 static int register_mobile_hotspot_module(void *data)
 {
-	int r = 0, ret = -1;
+	int ret;
 
-	retif(data == NULL, FAIL, "Invalid parameter!");
+	retvm_if(data == NULL, FAIL, "Invalid parameter!");
 
 	set_app_state(data);
 
-	ret = vconf_notify_key_changed(VCONFKEY_MOBILE_HOTSPOT_MODE,
-			       indicator_mobile_hotspot_change_cb, data);
-	if (ret != OK) {
-		r = r | ret;
+	ret = util_runtime_info_set_changed_cb(RUNTIME_INFO_KEY_WIFI_HOTSPOT_ENABLED, _runtime_info_key_update_cb, data);
+	retvm_if(ret != 0, FAIL, "util_runtime_info_set_changed_cb failed.");
+
+	ret = util_runtime_info_set_changed_cb(RUNTIME_INFO_KEY_BLUETOOTH_TETHERING_ENABLED, _runtime_info_key_update_cb, data);
+	if (ret != 0) {
+		util_runtime_info_unset_changed_cb(RUNTIME_INFO_KEY_WIFI_HOTSPOT_ENABLED, _runtime_info_key_update_cb);
+		ERR("util_runtime_info_set_changed_cb failed");
+		return FAIL;
 	}
 
-	ret = vconf_notify_key_changed(VCONFKEY_MOBILE_HOTSPOT_CONNECTED_DEVICE,
-			       indicator_mobile_hotspot_change_cb, data);
-	if (ret != OK) {
-		r = r | ret;
+	ret = util_runtime_info_set_changed_cb(RUNTIME_INFO_KEY_USB_TETHERING_ENABLED, _runtime_info_key_update_cb, data);
+	if (ret != 0) {
+		util_runtime_info_unset_changed_cb(RUNTIME_INFO_KEY_WIFI_HOTSPOT_ENABLED, _runtime_info_key_update_cb);
+		util_runtime_info_unset_changed_cb(RUNTIME_INFO_KEY_BLUETOOTH_TETHERING_ENABLED, _runtime_info_key_update_cb);
+		ERR("util_runtime_info_set_changed_cb failed");
+		return FAIL;
 	}
 
-	indicator_mobile_hotspot_change_cb(NULL, data);
+	indicator_mobile_hotspot_change_cb(data);
 
-	return r;
+	return OK;
 }
-
-
 
 static int unregister_mobile_hotspot_module(void)
 {
-	int ret;
+	util_runtime_info_unset_changed_cb(RUNTIME_INFO_KEY_WIFI_HOTSPOT_ENABLED, _runtime_info_key_update_cb);
+	util_runtime_info_unset_changed_cb(RUNTIME_INFO_KEY_BLUETOOTH_ENABLED, _runtime_info_key_update_cb);
+	util_runtime_info_unset_changed_cb(RUNTIME_INFO_KEY_USB_TETHERING_ENABLED, _runtime_info_key_update_cb);
 
-	ret = vconf_ignore_key_changed(VCONFKEY_MOBILE_HOTSPOT_MODE,
-				       indicator_mobile_hotspot_change_cb);
-
-	ret = ret | vconf_ignore_key_changed(VCONFKEY_MOBILE_HOTSPOT_CONNECTED_DEVICE,
-				       indicator_mobile_hotspot_change_cb);
-
-	return ret;
+	return OK;
 }
