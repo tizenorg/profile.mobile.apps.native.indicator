@@ -20,7 +20,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <vconf.h>
+#include <system_settings.h>
+#include <device/display.h>
+#include <device/battery.h>
+#include <device/callback.h>
 #include <runtime_info.h>
 #include "common.h"
 #include "indicator.h"
@@ -286,7 +289,7 @@ enum {
 
 struct battery_level_info {
 	int current_level;
-	int current_capa;
+	int current_percentage;
 	int min_level;
 	int max_level;
 };
@@ -317,41 +320,41 @@ static void delete_timer(void)
 	}
 }
 
-static int __battery_capa_to_level(int capacity)
+static int __battery_percentage_to_level(int percentage)
 {
 	int level = 0;
 
 	if(is_battery_percentage_shown)
 	{
 		if (battery_level_type == BATTERY_LEVEL_20) {
-			if (capacity >= 100)
+			if (percentage >= 100)
 				level = FUEL_GAUGE_LV_MAX;
-			else if (capacity < 3)
+			else if (percentage < 3)
 				level = FUEL_GAUGE_LV_0;
 			else
-				level = (int)((capacity + 2) / 5);
+				level = (int)((percentage + 2) / 5);
 		}
 		else
 		{
-			if (capacity >= 91)
+			if (percentage >= 91)
 				level = LEVEL_PERCENTAGE_10;
-			else if (capacity >= 81)
+			else if (percentage >= 81)
 				level = LEVEL_PERCENTAGE_9;
-			else if (capacity >= 71)
+			else if (percentage >= 71)
 				level = LEVEL_PERCENTAGE_8;
-			else if (capacity >= 61)
+			else if (percentage >= 61)
 				level = LEVEL_PERCENTAGE_7;
-			else if (capacity >= 51)
+			else if (percentage >= 51)
 				level = LEVEL_PERCENTAGE_6;
-			else if (capacity >= 41)
+			else if (percentage >= 41)
 				level = LEVEL_PERCENTAGE_5;
-			else if (capacity >= 31)
+			else if (percentage >= 31)
 				level = LEVEL_PERCENTAGE_4;
-			else if (capacity >= 21)
+			else if (percentage >= 21)
 				level = LEVEL_PERCENTAGE_3;
-			else if (capacity >= 11)
+			else if (percentage >= 11)
 				level = LEVEL_PERCENTAGE_2;
-			else if (capacity >= 1)
+			else if (percentage >= 1)
 				level = LEVEL_PERCENTAGE_1;
 			else
 				level = LEVEL_PERCENTAGE_0;
@@ -360,52 +363,52 @@ static int __battery_capa_to_level(int capacity)
 	else
 	{
 		if (battery_level_type == BATTERY_LEVEL_20) {
-			if (capacity >= 100)
+			if (percentage >= 100)
 				level = FUEL_GAUGE_LV_MAX;
-			else if (capacity < 3)
+			else if (percentage < 3)
 				level = FUEL_GAUGE_LV_0;
 			else
-				level = (int)((capacity + 2) / 5);
+				level = (int)((percentage + 2) / 5);
 		} else {
-			if (capacity >= 96)
+			if (percentage >= 96)
 				level = LEVEL_20;
-			else if (capacity >= 91)
+			else if (percentage >= 91)
 				level = LEVEL_19;
-			else if (capacity >= 86)
+			else if (percentage >= 86)
 				level = LEVEL_18;
-			else if (capacity >= 81)
+			else if (percentage >= 81)
 				level = LEVEL_17;
-			else if (capacity >= 76)
+			else if (percentage >= 76)
 				level = LEVEL_16;
-			else if (capacity >= 71)
+			else if (percentage >= 71)
 				level = LEVEL_15;
-			else if (capacity >= 66)
+			else if (percentage >= 66)
 				level = LEVEL_14;
-			else if (capacity >= 61)
+			else if (percentage >= 61)
 				level = LEVEL_13;
-			else if (capacity >= 56)
+			else if (percentage >= 56)
 				level = LEVEL_12;
-			else if (capacity >= 51)
+			else if (percentage >= 51)
 				level = LEVEL_11;
-			else if (capacity >= 46)
+			else if (percentage >= 46)
 				level = LEVEL_10;
-			else if (capacity >= 41)
+			else if (percentage >= 41)
 				level = LEVEL_9;
-			else if (capacity >= 36)
+			else if (percentage >= 36)
 				level = LEVEL_8;
-			else if (capacity >= 31)
+			else if (percentage >= 31)
 				level = LEVEL_7;
-			else if (capacity >= 26)
+			else if (percentage >= 26)
 				level = LEVEL_6;
-			else if (capacity >= 21)
+			else if (percentage >= 21)
 				level = LEVEL_5;
-			else if (capacity >= 16)
+			else if (percentage >= 16)
 				level = LEVEL_4;
-			else if (capacity >= 11)
+			else if (percentage >= 11)
 				level = LEVEL_3;
-			else if (capacity >= 6)
+			else if (percentage >= 6)
 				level = LEVEL_2;
-			else if (capacity >= 1)
+			else if (percentage >= 1)
 				level = LEVEL_1;
 			else
 				level = LEVEL_0;
@@ -491,19 +494,14 @@ static void hide_digits()
 
 
 
-static void indicator_battery_get_time_format( void)
-{
-}
-
 static void indicator_battery_level_init(void)
 {
 	/* Currently, kernel not support level 6, So We use only level 20 */
 	battery_level_type = BATTERY_LEVEL_8;
 	_level.min_level = LEVEL_MIN;
 	_level.current_level = -1;
-	_level.current_capa = -1;
+	_level.current_percentage = -1;
 	_level.max_level = LEVEL_MAX;
-	indicator_battery_get_time_format();
 }
 
 
@@ -587,7 +585,6 @@ static void indicator_battery_resize_percengate(void* data)
 
 static void indicator_battery_update_display(void *data)
 {
-	int battery_capa = 0;
 	int ret;
 	int level = 0;
 
@@ -598,32 +595,29 @@ static void indicator_battery_update_display(void *data)
 		return;
 	}
 
-	ret = vconf_get_int(VCONFKEY_SYSMAN_BATTERY_CAPACITY, &battery_capa);
-	if (ret != OK)
+	ret = device_battery_get_percent(&battery_percentage);
+	if (ret != DEVICE_ERROR_NONE)
 	{
 		return;
 	}
 
-	if (battery_capa < 0)
+	if (battery_percentage < 0)
 	{
-		ERR("Invalid Battery Capacity: %d", battery_capa);
+		ERR("Invalid Battery Capacity in percents: %d", battery_percentage);
 		return;
 	}
 
-	DBG("Battery Capacity: %d", battery_capa);
-
-	if (battery_capa > 100)
-		battery_capa = 100;
-
-	battery_percentage = battery_capa;
+	if (battery_percentage > 100)
+		battery_percentage = 100;
 
 	_resize_battery_digits_icons_box();
 
-	_level.current_capa = battery_capa;
+	_level.current_percentage = battery_percentage;
 
+	DBG("Battery capacity percentage: %d", battery_percentage);
 
 	/* Check Battery Level */
-	level = __battery_capa_to_level(battery_capa);
+	level = __battery_percentage_to_level(battery_percentage);
 	if (level == _level.current_level)
 	{
 	}
@@ -639,110 +633,89 @@ static void indicator_battery_update_display(void *data)
 
 static void indicator_battery_check_charging(void *data)
 {
-	int status = 0;
+	bool status = 0;
+	int ret;
 
-	if (vconf_get_int(VCONFKEY_SYSMAN_BATTERY_CHARGE_NOW, &status) < 0)
+	ret = device_battery_is_charging(&status);
+
+	if (ret != DEVICE_ERROR_NONE)
 	{
-		ERR("Fail to get VCONFKEY_SYSMAN_BATTERY_CHARGE_NOW");
+		ERR("Fail to get battery charging status");
+		return;
 	} else {
 		DBG("Battery charge Status: %d", status);
 	}
 
-	battery_charging = status;
+	battery_charging = (int)status;
 
 	indicator_battery_update_display(data);
 }
 
-static void indicator_battery_charging_cb(keynode_t *node, void *data)
+static void indicator_battery_charging_cb(device_callback_e type, void *value, void *data)
 {
 	indicator_battery_check_charging(data);
 }
 
-static void indicator_battery_change_cb(keynode_t *node, void *data)
+static void indicator_battery_change_cb(device_callback_e type, void *value, void *data)
 {
+	device_battery_level_e battery_level;
+	int ret = -1;
+
+	ret = device_battery_get_level_status(&battery_level);
+	if(ret != DEVICE_ERROR_NONE)
+	{
+		return;
+	}
+
+	if(battery_level == DEVICE_BATTERY_LEVEL_FULL)
+		batt_full = 1;
+	else
+		batt_full = 0;
+
 	indicator_battery_update_display(data);
 }
 
-static void indicator_battery_clock_format_changed_cb(keynode_t *node, void *data)
+static void indicator_battery_pm_state_change_cb(device_callback_e type, void *value, void *data)
 {
+	display_state_e display_state;
+
 	retif(data == NULL, , "Invalid parameter!");
 
-	indicator_battery_get_time_format();
+	display_state = device_display_get_state(&display_state);
 
-	indicator_battery_update_display(data);
-}
-
-static void indicator_battery_pm_state_change_cb(keynode_t *node, void *data)
-{
-	int status = 0;
-	retif(data == NULL, , "Invalid parameter!");
-
-	vconf_get_int(VCONFKEY_PM_STATE, &status);
-
-	if(status == VCONFKEY_PM_STATE_LCDOFF)
+	if(display_state == DISPLAY_STATE_SCREEN_OFF)
 	{
 		delete_timer();
 	}
 }
 
-static void indicator_battery_batt_percentage_cb(keynode_t *node, void *data)
+static void indicator_battery_batt_percentage_cb(device_callback_e type, void *value, void *data)
 {
 	struct appdata* ad = NULL;
-	int status = 0;
 
 	ret_if(!data);
 
 	ad = (struct appdata*)data;
 
-	vconf_get_bool(VCONFKEY_SETAPPL_BATTERY_PERCENTAGE_BOOL, &status);
-
-	if(status == 1)
-	{
-		is_battery_percentage_shown = EINA_TRUE;
-		_level.max_level = LEVEL_PERCENTAGE_MAX;
-		indicator_battery_update_display(data);
-		show_digits();
-		box_update_display(&(ad->win));
-	}
-	else
-	{
-		//remove battery percentage
-		is_battery_percentage_shown = EINA_FALSE;
-		_level.max_level = LEVEL_MAX;
-		indicator_battery_update_display(data);
-		hide_digits();
-		box_update_display(&(ad->win));
-	}
-}
-
-static void indicator_battery_batt_low_state_change_cb(keynode_t *node, void *data)
-{
-	int status = 0;
-	retif(data == NULL, , "Invalid parameter!");
-
-	vconf_get_int(VCONFKEY_SYSMAN_BATTERY_STATUS_LOW, &status);
-
-	if(status == VCONFKEY_SYSMAN_BAT_FULL)
-	{
-		DBG("batt full");
-		batt_full = 1;
-	}
-	else
-	{
-		batt_full = 0;
-	}
+	//remove battery percentage
+	is_battery_percentage_shown = EINA_FALSE;
+	_level.max_level = LEVEL_MAX;
 	indicator_battery_update_display(data);
+	hide_digits();
+	box_update_display(&(ad->win));
 }
 
 static int wake_up_cb(void *data)
 {
-	indicator_battery_clock_format_changed_cb(NULL, data);
+	indicator_battery_update_display(data);
+
 	return OK;
 }
 
 static int register_battery_module(void *data)
 {
-	int r = 0, ret = -1;
+	int r = 0;
+	int ret = -1;
 
 	retif(data == NULL, FAIL, "Invalid parameter!");
 
@@ -750,47 +723,31 @@ static int register_battery_module(void *data)
 	set_app_state(data);
 	indicator_battery_level_init();
 
-	ret = vconf_notify_key_changed(VCONFKEY_SYSMAN_BATTERY_CAPACITY,
+	ret = device_add_callback(DEVICE_CALLBACK_BATTERY_CAPACITY,
 					indicator_battery_change_cb, data);
-	if (ret != OK) {
+	if (ret != DEVICE_ERROR_NONE) {
 		r = ret;
 	}
 
-	ret = vconf_notify_key_changed(VCONFKEY_SYSMAN_BATTERY_STATUS_LOW,
+	ret = device_add_callback(DEVICE_CALLBACK_BATTERY_LEVEL,
 					indicator_battery_change_cb, data);
-	if (ret != OK) {
+	if (ret != DEVICE_ERROR_NONE) {
 		r = r | ret;
 	}
 
-	ret = vconf_notify_key_changed(VCONFKEY_SYSMAN_BATTERY_CHARGE_NOW,
+	ret = device_add_callback(DEVICE_CALLBACK_BATTERY_CHARGING,
 					indicator_battery_charging_cb, data);
-	if (ret != OK) {
+	if (ret != DEVICE_ERROR_NONE) {
 		r = r | ret;
 	}
 
-	ret = vconf_notify_key_changed(VCONFKEY_REGIONFORMAT_TIME1224,
-						indicator_battery_clock_format_changed_cb, data);
-	if (ret != OK) {
-		r = r | ret;
-	}
-	ret = vconf_notify_key_changed(VCONFKEY_PM_STATE,
-						indicator_battery_pm_state_change_cb, data);
-	if (ret != OK) {
-		r = r | ret;
-	}
-	ret = vconf_notify_key_changed(VCONFKEY_SETAPPL_BATTERY_PERCENTAGE_BOOL,
-						indicator_battery_batt_percentage_cb, data);
-	if (ret != OK) {
+	ret = device_add_callback(DEVICE_CALLBACK_DISPLAY_STATE,
+					indicator_battery_pm_state_change_cb, data);
+	if (ret != DEVICE_ERROR_NONE) {
 		r = r | ret;
 	}
 
-	ret = vconf_notify_key_changed(VCONFKEY_SYSMAN_BATTERY_STATUS_LOW,
-						indicator_battery_batt_low_state_change_cb, data);
-	if (ret != OK) {
-		r = r | ret;
-	}
-
-	indicator_battery_batt_percentage_cb(NULL,data);
+	indicator_battery_batt_percentage_cb(DEVICE_CALLBACK_BATTERY_CAPACITY, NULL, data);
 	indicator_battery_check_charging(data);
 
 	return r;
@@ -798,30 +755,32 @@ static int register_battery_module(void *data)
 
 static int unregister_battery_module(void)
 {
-	int ret;
+	int r = 0;
+	int ret = -1;
 
-	ret = vconf_ignore_key_changed(VCONFKEY_SYSMAN_BATTERY_CAPACITY,
-					indicator_battery_change_cb);
+	ret = device_remove_callback(DEVICE_CALLBACK_BATTERY_CAPACITY, indicator_battery_change_cb);
+	if (ret != DEVICE_ERROR_NONE) {
+		r = ret;
+	}
 
-	ret = ret | vconf_ignore_key_changed(VCONFKEY_SYSMAN_BATTERY_STATUS_LOW,
-					indicator_battery_change_cb);
+	ret = device_remove_callback(DEVICE_CALLBACK_BATTERY_LEVEL, indicator_battery_change_cb);
+	if (ret != DEVICE_ERROR_NONE) {
+		r = r | ret;
+	}
 
-	ret = ret | vconf_ignore_key_changed(VCONFKEY_SYSMAN_BATTERY_CHARGE_NOW,
-					indicator_battery_charging_cb);
+	ret = device_remove_callback(DEVICE_CALLBACK_BATTERY_CHARGING, indicator_battery_charging_cb);
+	if (ret != DEVICE_ERROR_NONE) {
+		r = r | ret;
+	}
 
-	ret = ret | vconf_ignore_key_changed(VCONFKEY_PM_STATE,
-					indicator_battery_pm_state_change_cb);
-
-	ret = ret | vconf_ignore_key_changed(VCONFKEY_SETAPPL_BATTERY_PERCENTAGE_BOOL,
-					indicator_battery_batt_percentage_cb);
-	ret = ret | vconf_ignore_key_changed(VCONFKEY_SYSMAN_BATTERY_STATUS_LOW,
-					indicator_battery_batt_low_state_change_cb);
-
-
+	ret = device_remove_callback(DEVICE_CALLBACK_DISPLAY_STATE, indicator_battery_pm_state_change_cb);
+	if (ret != DEVICE_ERROR_NONE) {
+		r = r | ret;
+	}
 
 	delete_timer();
 
-	return ret;
+	return r;
 }
 
 static void _resize_battery_digits_icons_box()
