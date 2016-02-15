@@ -664,7 +664,7 @@ int util_wifi_set_connection_state_changed_cb(wifi_connection_state_changed_cb c
 
 	hdl->cb = cb;
 	hdl->data = data;
-	wifi_callbacks = eina_list_append(wifi_callbacks, cb);
+	wifi_callbacks = eina_list_append(wifi_callbacks, hdl);
 
 	return 0;
 }
