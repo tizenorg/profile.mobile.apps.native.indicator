@@ -20,10 +20,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <vconf.h>
 //#include <Ecore_X.h>
 #include <utils_i18n.h>
 #include <system_settings.h>
+#include <device/battery.h>
 
 #include "common.h"
 #include "indicator.h"
@@ -58,6 +58,13 @@ enum {
 	INDICATOR_CLOCK_MODE_MAX
 };
 
+static system_settings_key_e clock_callback_array[] = {
+	SYSTEM_SETTINGS_KEY_LOCALE_TIMEFORMAT_24HOUR,
+	SYSTEM_SETTINGS_KEY_TIME_CHANGED,
+	SYSTEM_SETTINGS_KEY_LOCALE_COUNTRY,
+	SYSTEM_SETTINGS_KEY_LOCALE_TIMEZONE,
+};
+
 int clock_mode = INDICATOR_CLOCK_MODE_12H;
 int clock_hour = 0;
 static const char *colon = ":";
@@ -69,7 +76,6 @@ extern Ecore_Timer *clock_timer;
 
 static i18n_udatepg_h _last_generator;
 static char *_last_locale = NULL;
-static int battery_charging = 0;
 
 static int register_clock_module(void *data);
 static int unregister_clock_module(void);
@@ -202,17 +208,8 @@ static void indicator_clock_changed_cb(void *data)
 		char bf1[32] = { 0, };
 		int hour;
 		static int pre_hour = 0;
-		const char *region = NULL;
 
-		int bRegioncheck = 0;
-		char *lang1 = "it_IT";
-
-		region = vconf_get_str(VCONFKEY_REGIONFORMAT);
-		ret_if(!region);
-
-		if (strncmp(region,lang1,strlen(lang1)) == 0) bRegioncheck = 1;
-
-		if (apm_length>=4 || bRegioncheck==1) {
+		if (apm_length>=4) {
 			if (ts->tm_hour >= 0 && ts->tm_hour < 12) {
 				snprintf(ampm_buf, sizeof(ampm_buf),"%s","AM");
 			} else {
@@ -265,24 +262,22 @@ static void indicator_clock_changed_cb(void *data)
 
 
 
-static void _clock_format_changed_cb(keynode_t *node, void *data)
+static void clock_format_changed(void *data)
 {
 	struct appdata *ad = NULL;
-	int mode_24 = 0;
+	bool mode_24 = 0;
+	int ret = -1;
 	i18n_timezone_h timezone;
 
 	ret_if(!data);
 
 	ad = (struct appdata *)data;
 
-	if (vconf_get_int(VCONFKEY_REGIONFORMAT_TIME1224,&mode_24) < 0)
-	{
-		ERR("Error getting VCONFKEY_REGIONFORMAT_TIME1224 value");
-		return;
-	}
+	ret = system_settings_get_value_bool(SYSTEM_SETTINGS_KEY_LOCALE_TIMEFORMAT_24HOUR, &mode_24);
+	retm_if(ret != SYSTEM_SETTINGS_ERROR_NONE, "Error getting time format value");
 
 	/* Check Time format. If timeformat have invalid value, Set to 12H */
-	if( mode_24==VCONFKEY_TIME_FORMAT_24)
+	if (mode_24)
 	{
 		if(clock_mode == INDICATOR_CLOCK_MODE_12H)
 		{
@@ -301,7 +296,7 @@ static void _clock_format_changed_cb(keynode_t *node, void *data)
 
 	char *timezone_str = util_get_timezone_str();
 
-	int ret = i18n_timezone_create(&timezone, timezone_str);
+	ret = i18n_timezone_create(&timezone, timezone_str);
 	if (ret != I18N_ERROR_NONE) {
 		_E("Unable to create timzone handle for %s: %d", timezone_str, ret);
 		free(timezone_str);
@@ -323,25 +318,19 @@ static void _clock_format_changed_cb(keynode_t *node, void *data)
 
 
 
-static void indicator_clock_charging_now_cb(keynode_t *node, void *data)
-{
-	int status = 0;
-
-	retif(data == NULL, , "Invalid parameter!");
-
-
-	vconf_get_int(VCONFKEY_SYSMAN_CHARGER_STATUS, &status);
-
-	battery_charging = status;
-}
-
-
-
 static int language_changed_cb(void *data)
 {
-	const char *pa_lang = vconf_get_str(VCONFKEY_LANGSET);
+	char *pa_lang;
+	int ret = -1;
+
+	ret = system_settings_get_value_string(SYSTEM_SETTINGS_KEY_LOCALE_LANGUAGE, &pa_lang);
+	retv_if(ret != SYSTEM_SETTINGS_ERROR_NONE, FAIL);
+
 	DBG("language_changed_cb %s",pa_lang);
 	indicator_clock_changed_cb(data);
+
+	free(pa_lang);
+
 	return OK;
 }
 
@@ -349,7 +338,7 @@ static int language_changed_cb(void *data)
 
 static int region_changed_cb(void *data)
 {
-	_clock_format_changed_cb(NULL, data);
+	clock_format_changed(data);
 	return OK;
 }
 
@@ -364,75 +353,34 @@ static int wake_up_cb(void *data)
 
 
 
-/*static void _time_changed(system_settings_key_e key, void *data)
+static void time_format_changed(system_settings_key_e key, void *data)
 {
-	DBG("_time_changed");
-	_clock_format_changed_cb(NULL,data);
-}*/
-
-
-
-static void regionformat_changed(keynode_t *node, void *data)
-{
-	DBG("regionformat_changed");
-	_clock_format_changed_cb(NULL,data);
-}
-
-
-
-static void timezone_int_changed(keynode_t *node, void *data)
-{
-	DBG("timezone_int_changed");
-	_clock_format_changed_cb(NULL,data);
-}
-
-
-
-static void timezone_id_changed(keynode_t *node, void *data)
-{
-	char *szTimezone = NULL;
-	szTimezone = vconf_get_str(VCONFKEY_SETAPPL_TIMEZONE_ID);
-
-	DBG("timezone_id_changed %s",szTimezone);
-	_clock_format_changed_cb(NULL,data);
+	DBG("time format changed");
+	clock_format_changed(data);
 }
 
 
 
 static int register_clock_module(void *data)
 {
-	int r = 0, ret = -1;
+	int r = 0;
+	int ret = -1;
+	int i;
 
 	retif(data == NULL, FAIL, "Invalid parameter!");
 
 	set_app_state(data);
 
-	/*ret = system_settings_set_changed_cb(SYSTEM_SETTINGS_KEY_TIME_CHANGED, _time_changed, data);
-	if (ret != OK) {
-		r = r | ret;
-	}*/
+	for(i = 0; i < ARRAY_SIZE(clock_callback_array); ++i) {
 
-	ret = vconf_notify_key_changed(VCONFKEY_REGIONFORMAT_TIME1224, regionformat_changed, data);
-	if (ret != OK) {
-		r = r | ret;
+		ret = util_system_settings_set_changed_cb(clock_callback_array[i], time_format_changed, data);
+
+		if (ret != SYSTEM_SETTINGS_ERROR_NONE) {
+			r = r | ret;
+		}
 	}
 
-	ret = vconf_notify_key_changed(VCONFKEY_SETAPPL_TIMEZONE_INT, timezone_int_changed, data);
-	if (ret != OK) {
-		r = r | ret;
-	}
-
-	ret = vconf_notify_key_changed(VCONFKEY_SETAPPL_TIMEZONE_ID, timezone_id_changed, data);
-	if (ret != OK) {
-		r = r | ret;
-	}
-
-	ret = vconf_notify_key_changed(VCONFKEY_REGIONFORMAT, regionformat_changed, data);
-	if (ret != OK) {
-		r = r | ret;
-	}
-	_clock_format_changed_cb(NULL, data);
-	indicator_clock_charging_now_cb(NULL,data);
+	clock_format_changed(data);
 
 	return r;
 }
@@ -441,13 +389,10 @@ static int register_clock_module(void *data)
 
 static int unregister_clock_module(void)
 {
-	int ret = VCONF_OK;
+	int i;
+	for(i = 0; i < ARRAY_SIZE(clock_callback_array); ++i)
+		util_system_settings_unset_changed_cb(clock_callback_array[i], time_format_changed);
 
-	//ret = system_settings_unset_changed_cb(SYSTEM_SETTINGS_KEY_TIME_CHANGED);
-	ret = ret | vconf_ignore_key_changed(VCONFKEY_REGIONFORMAT_TIME1224, regionformat_changed);
-	ret = ret | vconf_ignore_key_changed(VCONFKEY_SETAPPL_TIMEZONE_INT, timezone_int_changed);
-	ret = ret | vconf_ignore_key_changed(VCONFKEY_SETAPPL_TIMEZONE_ID, timezone_id_changed);
-	ret = ret | vconf_ignore_key_changed(VCONFKEY_REGIONFORMAT, regionformat_changed);
 
 	if (clock_timer != NULL) {
 		ecore_timer_del(clock_timer);
@@ -456,7 +401,7 @@ static int unregister_clock_module(void)
 
 	cal_delete_last_generator();
 
-	return ret;
+	return 0;
 }
 
 
@@ -587,6 +532,8 @@ static char *_string_replacer(const char *src, const char *pattern, const char *
 
 void indicator_get_apm_by_region(char* output,void *data)
 {
+	int ret = -1;
+	char *locale = NULL;
 	retif(data == NULL, , "Data parameter is NULL");
 	retif(output == NULL, , "output parameter is NULL");
 
@@ -605,33 +552,26 @@ void indicator_get_apm_by_region(char* output,void *data)
 
 	i18n_udatepg_h pattern_generator = NULL;
 
-	char *locale = vconf_get_str(VCONFKEY_REGIONFORMAT);
-	if(locale == NULL)
-	{
-		ERR("[Error] get value of fail.");
-		return;
-	}
+	ret = system_settings_get_value_string(SYSTEM_SETTINGS_KEY_LOCALE_COUNTRY, &locale);
+	ret_if(ret != SYSTEM_SETTINGS_ERROR_NONE);
 
-	/* Remove ".UTF-8" in locale */
-	char locale_tmp[32] = {0,};
-	strncpy(locale_tmp, locale, sizeof(locale_tmp)-1);
-	char *p = util_safe_str(locale_tmp, ".UTF-8");
-	if (p) {
-		*p = 0;
-	}
-	free(locale);
+	DBG("Locale: %s", locale);
+
+	retm_if(locale == NULL, "[Error] get value of fail.");
 
 	i18n_ustring_copy_ua_n(u_custom_skeleton, "hhmm", ARRAY_SIZE(u_custom_skeleton));
 
-	pattern_generator = __cal_get_pattern_generator (locale_tmp, &status);
+	pattern_generator = __cal_get_pattern_generator (locale, &status);
 	if (pattern_generator == NULL) {
+		free(locale);
 		return ;
 	}
 
-	int ret = i18n_udatepg_get_best_pattern(pattern_generator, u_custom_skeleton, i18n_ustring_get_length(u_custom_skeleton),
+	ret = i18n_udatepg_get_best_pattern(pattern_generator, u_custom_skeleton, i18n_ustring_get_length(u_custom_skeleton),
 			u_best_pattern, (int32_t)ARRAY_SIZE(u_best_pattern), &best_pattern_len);
 	if (ret != I18N_ERROR_NONE) {
 		_E("i18n_udatepg_get_best_pattern failed: %d", ret);
+		free(locale);
 		return;
 	}
 
@@ -652,6 +592,7 @@ void indicator_get_apm_by_region(char* output,void *data)
 	ret = i18n_ucalendar_get_now(&date);
 	if (ret != I18N_ERROR_NONE) {
 		ERR("i18n_ucalendar_get_now failed: %d", ret);
+		free(locale);
 		free(timezone_id);
 		return;
 	}
@@ -659,13 +600,15 @@ void indicator_get_apm_by_region(char* output,void *data)
 		i18n_ustring_copy_ua_n(u_timezone, timezone_id, ARRAY_SIZE(u_timezone));
 	}
 
-	ret = i18n_udate_create(I18N_UDATE_PATTERN, I18N_UDATE_PATTERN, locale_tmp, timezone_id ? u_timezone : NULL, -1,
+	ret = i18n_udate_create(I18N_UDATE_PATTERN, I18N_UDATE_PATTERN, locale, timezone_id ? u_timezone : NULL, -1,
 			u_best_pattern, -1, &formatter);
 	if (ret != I18N_ERROR_NONE) {
+		free(locale);
 		free(timezone_id);
 		return;
 	}
 
+	free(locale);
 	free(timezone_id);
 
 	ret = i18n_udate_format_date(formatter, date, u_formatted, ARRAY_SIZE(s_formatted), NULL, &formatted_len);
@@ -693,6 +636,8 @@ void indicator_get_apm_by_region(char* output,void *data)
 
 void indicator_get_time_by_region(char* output,void *data)
 {
+	int ret = -1;
+	char *locale;
 	retif(data == NULL, , "Data parameter is NULL");
 	retif(output == NULL, , "output parameter is NULL");
 
@@ -719,32 +664,29 @@ void indicator_get_time_by_region(char* output,void *data)
 	else {
 		strcpy(s_time_skeleton, "Hm");
 	}
-	char *locale = vconf_get_str(VCONFKEY_REGIONFORMAT);
+
+	ret = system_settings_get_value_string(SYSTEM_SETTINGS_KEY_LOCALE_COUNTRY, &locale);
+	retm_if(ret != SYSTEM_SETTINGS_ERROR_NONE, "Cannot get LOCALE_COUNTRY string");
+	DBG("Locale: %s", locale);
+
 	if (locale == NULL) {
 		ERR("[Error] get value of fail.");
 		return;
 	}
 
-	/* Remove ".UTF-8" in locale */
-	char locale_tmp[32] = {0,};
-	strncpy(locale_tmp, locale, sizeof(locale_tmp)-1);
-	char *p = util_safe_str(locale_tmp, ".UTF-8");
-	if (p) {
-		*p = 0;
-	}
-	free(locale);
-
 	i18n_ustring_copy_ua_n(u_custom_skeleton, s_time_skeleton, ARRAY_SIZE(u_custom_skeleton));
 
-	pattern_generator = __cal_get_pattern_generator (locale_tmp, &status);
+	pattern_generator = __cal_get_pattern_generator (locale, &status);
 	if (pattern_generator == NULL) {
+		free(locale);
 		return;
 	}
 
-	int ret = i18n_udatepg_get_best_pattern(pattern_generator, u_custom_skeleton, i18n_ustring_get_length(u_custom_skeleton),
+	ret = i18n_udatepg_get_best_pattern(pattern_generator, u_custom_skeleton, i18n_ustring_get_length(u_custom_skeleton),
 				u_best_pattern, ARRAY_SIZE(u_best_pattern), &best_pattern_len);
 	if (ret != I18N_ERROR_NONE) {
 		_E("i18n_udatepg_get_best_pattern failed: %d", ret);
+		free(locale);
 		return;
 	}
 
@@ -765,6 +707,7 @@ void indicator_get_time_by_region(char* output,void *data)
 	ret = i18n_ucalendar_get_now(&date);
 	if (ret != I18N_ERROR_NONE) {
 		ERR("i18n_ucalendar_get_now failed: %d", ret);
+		free(locale);
 		return;
 	}
 
@@ -775,9 +718,10 @@ void indicator_get_time_by_region(char* output,void *data)
 		i18n_ustring_copy_ua_n(u_timezone, timezone_id, ARRAY_SIZE(u_timezone));
 	}
 
-	ret = i18n_udate_create(I18N_UDATE_PATTERN, I18N_UDATE_PATTERN, locale_tmp, timezone_id ? u_timezone : NULL, -1,
+	ret = i18n_udate_create(I18N_UDATE_PATTERN, I18N_UDATE_PATTERN, locale, timezone_id ? u_timezone : NULL, -1,
 			u_best_pattern, -1, &formatter);
 	if (ret != I18N_ERROR_NONE) {
+		free(locale);
 		free(timezone_id);
 		return;
 	}
@@ -786,6 +730,7 @@ void indicator_get_time_by_region(char* output,void *data)
 
 	ret = i18n_udate_format_date(formatter, date, u_formatted, ARRAY_SIZE(s_formatted), NULL, &formatted_len);
 	if (ret != I18N_ERROR_NONE) {
+		free(locale);
 		i18n_udate_destroy(formatter);
 		return;
 	}
@@ -793,7 +738,9 @@ void indicator_get_time_by_region(char* output,void *data)
 	i18n_udate_destroy(formatter);
 
 	i18n_ustring_copy_au(s_formatted, u_formatted);
-	DBG("DATE & TIME is %s %s %d %s", locale_tmp, s_formatted, i18n_ustring_get_length(u_formatted), s_best_pattern);
+	DBG("DATE & TIME is %s %s %d %s", locale, s_formatted, i18n_ustring_get_length(u_formatted), s_best_pattern);
+
+	free(locale);
 
 	DBG("24H :: Before change %s", s_formatted);
 	s_convert_formatted = _string_replacer(s_formatted, colon, ratio);
@@ -854,7 +801,7 @@ static char *_access_info_cb(void *data, Evas_Object *obj)
 	char buf[CLOCK_STR_LEN];
 	char buf1[CLOCK_STR_LEN];
 	int ret = 0;
-	int battery_capa = 0;
+	int battery_percentage = 0;
 	int hour = 0;
 	int minute = 0;
 	char strHour[128] = { 0, };
@@ -929,19 +876,13 @@ static char *_access_info_cb(void *data, Evas_Object *obj)
 		snprintf(time_str, sizeof(time_str), "%s, %s", strHour, strMin);
 
 
-	ret = vconf_get_int(VCONFKEY_SYSMAN_BATTERY_CAPACITY, &battery_capa);
-	if (ret != OK)
-	{
-		return NULL;
-	}
-	if (battery_capa < 0)
+	ret = device_battery_get_percent(&battery_percentage);
+	if (ret != DEVICE_ERROR_NONE)
 	{
 		return NULL;
 	}
 
-	if (battery_capa > 100)
-		battery_capa = 100;
-	snprintf(buf1, sizeof(buf1), _("IDS_IDLE_BODY_PD_PERCENT_OF_BATTERY_POWER_REMAINING"), battery_capa);
+	snprintf(buf1, sizeof(buf1), _("IDS_IDLE_BODY_PD_PERCENT_OF_BATTERY_POWER_REMAINING"), battery_percentage);
 
 	snprintf(buf, sizeof(buf), "%s, %s, %s", time_str, buf1, _("IDS_IDLE_BODY_STATUS_BAR_ITEM"));
 
