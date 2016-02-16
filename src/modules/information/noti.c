@@ -24,7 +24,6 @@
 #include <notification_internal.h>
 #include <app_manager.h>
 #include <app_preference.h>
-#include <vconf.h>
 
 #include "common.h"
 #include "indicator.h"
@@ -539,21 +538,6 @@ static void _indicator_noti_detailed_changed_cb(void *data, notification_type_e 
 }
 
 
-static void indicator_noti_sim_slot_cb(keynode_t *node, void *data)
-{
-	int status = 0;
-	int ret;
-
-	retm_if(data == NULL, "Invalid parameter!");
-
-	ret = vconf_get_int(VCONFKEY_TELEPHONY_SIM_SLOT, &status);
-	if (ret == OK)
-		update_noti_module_new(data, NOTIFICATION_TYPE_NONE);
-
-	return;
-}
-
-
 static int register_noti_module(void *data)
 {
 	retvm_if(data == NULL, FAIL, "Invalid parameter!");
@@ -565,8 +549,6 @@ static int register_noti_module(void *data)
 		notification_register_detailed_changed_cb(_indicator_noti_detailed_changed_cb, data);
 		bRegisterd = 1;
 	}
-
-	vconf_notify_key_changed(VCONFKEY_TELEPHONY_SIM_SLOT, indicator_noti_sim_slot_cb, data);
 
 	return OK;
 }
@@ -585,7 +567,6 @@ static int unregister_noti_module(void)
 			status_list = eina_list_remove_list(status_list, l);
 		}
 	}
-	vconf_ignore_key_changed(VCONFKEY_TELEPHONY_SIM_SLOT, indicator_noti_sim_slot_cb);
 
 	eina_list_free(status_list);
 	return OK;
