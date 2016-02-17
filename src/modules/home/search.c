@@ -22,7 +22,6 @@
 #ifndef _INDICATOR_REMOVE_SEARCH
 #include <stdio.h>
 #include <stdlib.h>
-#include <vconf.h>
 #include <app_preference.h>
 
 #include "common.h"
@@ -105,18 +104,18 @@ EXPORT_PUBLIC void show_search_icon(void)
 static void _handle_search_icon(void* data)
 {
 	int lock_status = -1;
-	int ps_mode = -1;
 	int bHide = 0;
+	int ret = -1;
 	struct appdata *ad = (struct appdata *)data;
 
 	retif(data == NULL, , "Invalid parameter!");
 
-	vconf_get_int(VCONFKEY_IDLE_LOCK_STATE, &lock_status);
-	vconf_get_int(VCONFKEY_SETAPPL_PSMODE, &ps_mode);
+	ret = system_settings_get_value_int(SYSTEM_SETTINGS_KEY_LOCK_STATE, &lock_status);
+	retm_if(ret != SYSTEM_SETTINGS_ERROR_NONE, "Cannot get LOCK_STATE status");
 
-	DBG("_indicator_lock_status_cb!!(%d)(%d)",lock_status,ps_mode);
+	_D("_indicator_lock_status_cb!!(%d)",lock_status);
 
-	if(lock_status==VCONFKEY_IDLE_LOCK || ps_mode == SETTING_PSMODE_EMERGENCY)
+	if(lock_status == SYSTEM_SETTINGS_LOCK_STATE_LOCK)
 	{
 		bHide = 1;
 	}
@@ -141,15 +140,7 @@ static void _handle_search_icon(void* data)
 
 
 
-static void _ps_mode_cb(keynode_t *node, void *data)
-{
-	DBG("Ps mode change");
-	_handle_search_icon(data);
-}
-
-
-
-static void _lock_status_cb(keynode_t *node, void *data)
+static void _lock_status_cb(system_settings_key_e key, void *data)
 {
 	DBG("lock state change");
 	_handle_search_icon(data);
@@ -159,26 +150,28 @@ static void _lock_status_cb(keynode_t *node, void *data)
 
 static int register_search_module(void *data)
 {
-	retv_if(!data, 0);
+	int ret = FAIL;
+
+	retv_if(!data, FAIL);
 
 	set_app_state(data);
 
-	vconf_notify_key_changed(VCONFKEY_IDLE_LOCK_STATE,  _lock_status_cb, (void *)data);
+	ret = util_system_settings_set_changed_cb(SYSTEM_SETTINGS_KEY_LOCK_STATE, _lock_status_cb, data);
+	retvm_if(ret != SYSTEM_SETTINGS_ERROR_NONE, FAIL, "Cannot set callback on lock state change");
 
-	vconf_notify_key_changed(VCONFKEY_SETAPPL_PSMODE,  _ps_mode_cb, (void *)data);
 
 	_handle_search_icon(data);
-	return 0;
+
+	return OK;
 }
 
 
 
 static int unregister_search_module(void)
 {
-	vconf_ignore_key_changed(VCONFKEY_IDLE_LOCK_STATE, _lock_status_cb);
-	vconf_ignore_key_changed(VCONFKEY_SETAPPL_PSMODE, _ps_mode_cb);
+	util_system_settings_unset_changed_cb(SYSTEM_SETTINGS_KEY_LOCK_STATE, _lock_status_cb);
 
-	return 0;
+	return OK;
 }
 
 
@@ -207,9 +200,10 @@ static char *_access_info_cb(void *data, Evas_Object *obj)
 
 static int register_search_tts(void *data)
 {
-	int r = 0, ret = -1;
+	int r = 0;
+	int ret = FAIL;
 
-	retv_if(!data, 0);
+	retv_if(!data, FAIL);
 
 	Evas_Object *to = NULL;
 	Evas_Object *ao = NULL;
@@ -220,7 +214,7 @@ static int register_search_tts(void *data)
 	util_access_object_info_cb_set(ao,ELM_ACCESS_INFO,_access_info_cb,data);
 	util_access_object_activate_cb_set(ao,_apptray_access_cb,data);
 
-	return 0;
+	return OK;
 }
 #endif /* _SUPPORT_SCREEN_READER */
 #endif /* _INDICATOR_REMOVE_SEARCH */
