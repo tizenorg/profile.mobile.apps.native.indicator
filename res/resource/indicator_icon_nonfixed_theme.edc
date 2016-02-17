@@ -29,9 +29,9 @@ collections {
 		parts {
 			part {
 				name: "background";
+				type: SPACER;
 				description {
 					state: "default" 0.0;
-					visible : 1;
 				}
 			}
 			part {
