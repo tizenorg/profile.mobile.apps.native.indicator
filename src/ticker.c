@@ -78,22 +78,6 @@ static inline int _is_text_exist(const char *text)
 	return 0;
 }
 
-static int _is_security_lockscreen_launched(void)
-{
-	int ret = 0;
-	int is_lock_launched = 0;
-
-	if ((ret = vconf_get_int(VCONFKEY_IDLE_LOCK_STATE, &is_lock_launched)) == 0) {
-		if (is_lock_launched == VCONFKEY_IDLE_LOCK && (ret = vconf_get_int(VCONFKEY_SETAPPL_SCREEN_LOCK_TYPE_INT, &is_lock_launched)) == 0) {
-		/*	if (is_lock_launched != SETTING_SCREEN_LOCK_TYPE_NONE && is_lock_launched != SETTING_SCREEN_LOCK_TYPE_SWIPE) {
-				return 1;
-			}*/
-		}
-	}
-
-	return 0;
-}
-
 static int _check_is_noti_from_email(char *pkgname)
 {
 	retv_if(!pkgname, 0);
@@ -1033,9 +1017,14 @@ static void _ticker_noti_detailed_changed_cb(void *data, notification_type_e typ
 	ret_if(!ticker_info);
 
 	if (num_op == 1) {
-		notification_op_get_data(op_list, NOTIFICATION_OP_DATA_TYPE, &op_type);
-		notification_op_get_data(op_list, NOTIFICATION_OP_DATA_PRIV_ID, &priv_id);
-		notification_op_get_data(op_list, NOTIFICATION_OP_DATA_NOTI, &noti_from_master);
+		//TODO: Functions below are depracated, should not be used
+		ret = notification_op_get_data(op_list, NOTIFICATION_OP_DATA_TYPE, &op_type);
+		ret_if(ret != NOTIFICATION_ERROR_NONE);
+		ret = notification_op_get_data(op_list, NOTIFICATION_OP_DATA_PRIV_ID, &priv_id);
+		ret_if(ret != NOTIFICATION_ERROR_NONE);
+		ret = notification_op_get_data(op_list, NOTIFICATION_OP_DATA_NOTI, &noti_from_master);
+		ret_if(ret != NOTIFICATION_ERROR_NONE);
+
 		DBG("op_type:%d", op_type);
 		DBG("op_priv_id:%d", priv_id);
 		DBG("noti:%p", noti_from_master);
@@ -1102,11 +1091,6 @@ static void _ticker_noti_detailed_changed_cb(void *data, notification_type_e typ
 		notification_free(noti);
 	} else if (applist & NOTIFICATION_DISPLAY_APP_TICKER
 			|| applist & NOTIFICATION_DISPLAY_APP_INDICATOR) {
-		if (_is_security_lockscreen_launched()) {
-			_E("lockscreen or sview launched, creating a ticker canceled");
-			notification_free(noti);
-			return;
-		}
 
 		ticker_info->ticker_list = eina_list_append(ticker_info->ticker_list, noti);
 		/* wait when win is not NULL */
@@ -1126,6 +1110,7 @@ static Eina_Bool _tickernoti_callback_register_idler_cb(void *data)
 {
 	retv_if(!data, EINA_FALSE);
 
+	//TODO: Function below is not in public API
 	notification_register_detailed_changed_cb(_ticker_noti_detailed_changed_cb, data);
 
 	return EINA_FALSE;
