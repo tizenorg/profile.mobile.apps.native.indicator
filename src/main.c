@@ -19,7 +19,6 @@
 
 #include <stdio.h>
 #include <app.h>
-#include <vconf.h>
 #include <unistd.h>
 #include <app_manager.h>
 #include <signal.h>
@@ -27,11 +26,14 @@
 #include <notification.h>
 #include <app_preference.h>
 #include <wifi.h>
+#include <device/display.h>
+#include <device/callback.h>
+#include <system_settings.h>
+#include <runtime_info.h>
 //FIXME
 #if 0
 #include <tzsh_indicator_service.h>
 #endif
-#include <vconf/vconf-internal-idle-lock-keys.h>
 
 #include "common.h"
 #include "box.h"
@@ -134,23 +136,26 @@ static void _indicator_window_delete_cb(void *data, Evas_Object * obj, void *eve
 	_terminate_indicator((struct appdata *)data);
 }
 
-static void _indicator_notify_pm_state_cb(keynode_t * node, void *data)
+static void _indicator_notify_pm_state_cb(device_callback_e type, void *value, void *user_data)
 {
 	static int nMove = 0;
 	static int nIndex = 1;
-	int val = -1;
+	display_state_e state;
 
-	ret_if(!data);
+	ret_if(!user_data);
 
-	if (vconf_get_int(VCONFKEY_PM_STATE, &val) < 0) return;
+	if (type != DEVICE_CALLBACK_DISPLAY_STATE)
+		return;
 
-	switch (val) {
-	case VCONFKEY_PM_STATE_LCDOFF:
+	state = (display_state_e)value;
+
+	switch (state) {
+	case DISPLAY_STATE_SCREEN_OFF:
 		if (clock_timer != NULL) {
 			ecore_timer_del(clock_timer);
 			clock_timer = NULL;
 		}
-	case VCONFKEY_PM_STATE_SLEEP: // lcd off 2
+	case DISPLAY_STATE_SCREEN_DIM: // lcd off 2
 		/* FIXME */
 		nMove = nMove+nIndex;
 		if(nMove>=4)
@@ -160,44 +165,24 @@ static void _indicator_notify_pm_state_cb(keynode_t * node, void *data)
 		{
 			char temp[30] = {0,};
 			sprintf(temp,"indicator.padding.resize.%d",nMove);
-			util_signal_emit(data,temp,"indicator.prog");
+			util_signal_emit(user_data,temp,"indicator.prog");
 		}
 		icon_set_update_flag(0);
 		box_noti_ani_handle(0);
 		break;
-	case VCONFKEY_PM_STATE_NORMAL:
+	case DISPLAY_STATE_NORMAL:
 		if (!icon_get_update_flag()) {
 			icon_set_update_flag(1);
 			box_noti_ani_handle(1);
-			modules_wake_up(data);
+			modules_wake_up(user_data);
 		}
 		break;
-	case VCONFKEY_PM_STATE_LCDDIM:
 	default:
 		break;
 	}
 }
 
-static void _indicator_power_off_status_cb(keynode_t * node, void *data)
-{
-	int val = -1;
-
-	ret_if(!data);
-
-	if (vconf_get_int(VCONFKEY_SYSMAN_POWER_OFF_STATUS, &val) < 0) return;
-
-	switch (val) {
-	case VCONFKEY_SYSMAN_POWER_OFF_DIRECT:
-	case VCONFKEY_SYSMAN_POWER_OFF_RESTART:
-		ui_app_exit();
-		break;
-	default:
-		break;
-	}
-
-}
-
-static void _indicator_lock_status_cb(keynode_t * node, void *data)
+static void _indicator_lock_status_cb(system_settings_key_e key, void *data)
 {
 	static int lockstate = 0;
 	extern int clock_mode;
@@ -205,24 +190,27 @@ static void _indicator_lock_status_cb(keynode_t * node, void *data)
 
 	ret_if(!data);
 
-	if (vconf_get_int(VCONFKEY_IDLE_LOCK_STATE, &val) < 0) return;
-	if (val == lockstate) return;
+	int err = system_settings_get_value_int(SYSTEM_SETTINGS_KEY_LOCK_STATE, &val);
+	if (err != SYSTEM_SETTINGS_ERROR_NONE) {
+		_E("system_settings_get_value_int failed: %s", get_error_message(err));
+		return;
+	}
 
+	if (val == lockstate) return;
 	lockstate = val;
 
 	switch (val) {
-	case VCONFKEY_IDLE_UNLOCK:
+	case SYSTEM_SETTINGS_LOCK_STATE_UNLOCK:
 		if (!clock_mode) util_signal_emit(data,"clock.font.12","indicator.prog");
 		else util_signal_emit(data,"clock.font.24","indicator.prog");
 		break;
-	case VCONFKEY_IDLE_LOCK:
-	case VCONFKEY_IDLE_LAUNCHING_LOCK:
+	case SYSTEM_SETTINGS_LOCK_STATE_LAUNCHING_LOCK:
+	case SYSTEM_SETTINGS_LOCK_STATE_LOCK:
 		util_signal_emit(data,"clock.invisible","indicator.prog");
 		break;
 	default:
 		break;
 	}
-
 }
 
 #if 0
@@ -574,16 +562,13 @@ static void register_event_handler(void *data)
 	ret_if(!hdl);
 	ad->evt_handlers = eina_list_append(ad->evt_handlers, hdl);
 #endif
-	if (vconf_notify_key_changed(VCONFKEY_PM_STATE, _indicator_notify_pm_state_cb, (void *)ad) != 0) {
-		_E("Fail to set callback for VCONFKEY_PM_STATE");
+	int err = device_add_callback(DEVICE_CALLBACK_DISPLAY_STATE, _indicator_notify_pm_state_cb, ad);
+	if (err != DEVICE_ERROR_NONE) {
+		_E("device_add_callback failed: %s", get_error_message(err));
 	}
 
-	if (vconf_notify_key_changed(VCONFKEY_SYSMAN_POWER_OFF_STATUS, _indicator_power_off_status_cb, (void *)ad) < 0) {
-		_E("Failed to set callback for VCONFKEY_SYSMAN_POWER_OFF_STATUS");
-	}
-
-	if (vconf_notify_key_changed(VCONFKEY_IDLE_LOCK_STATE, _indicator_lock_status_cb, (void *)ad) < 0) {
-		_E("Failed to set callback for VCONFKEY_IDLE_LOCK_STATE");
+	if (!util_system_settings_set_changed_cb(SYSTEM_SETTINGS_KEY_LOCK_STATE, _indicator_lock_status_cb, ad)) {
+		_E("util_system_settings_set_changed_cb failed");
 	}
 
 //	edbus_listener(data);
@@ -607,9 +592,8 @@ static int unregister_event_handler(void *data)
 
 	_unregister_event_handler_both(&(ad->win));
 
-	vconf_ignore_key_changed(VCONFKEY_PM_STATE, _indicator_notify_pm_state_cb);
-	vconf_ignore_key_changed(VCONFKEY_SYSMAN_POWER_OFF_STATUS, _indicator_power_off_status_cb);
-	vconf_ignore_key_changed(VCONFKEY_IDLE_LOCK_STATE, _indicator_lock_status_cb);
+	device_remove_callback(DEVICE_CALLBACK_DISPLAY_STATE, _indicator_notify_pm_state_cb);
+	util_system_settings_unset_changed_cb(SYSTEM_SETTINGS_KEY_LOCK_STATE, _indicator_lock_status_cb);
 
 	Ecore_Event_Handler *hdl = NULL;
 	EINA_LIST_FREE(ad->evt_handlers, hdl) {
@@ -980,7 +964,7 @@ static void _indicator_mouse_up_cb(void *data, Evas * e, Evas_Object * obj, void
 #else /* HOME_REMOVE_LONGPRESS */
 	int mouse_up_prio = -1;
 	int mouse_down_prio = -1;
-	int lock_state;
+	int lock_state, lock_ret;
 
 	if (home_button_pressed == EINA_TRUE) {
 		home_button_pressed = EINA_FALSE;
@@ -996,14 +980,11 @@ static void _indicator_mouse_up_cb(void *data, Evas * e, Evas_Object * obj, void
 		&& mouse_down_prio == mouse_up_prio) {
 		switch (mouse_down_prio) {
 		case INDICATOR_PRIORITY_FIXED1:
-			lock_state = VCONFKEY_IDLE_UNLOCK;
-			int lock_ret = -1;
-
-			lock_ret = vconf_get_int(VCONFKEY_IDLE_LOCK_STATE,
+			lock_ret = system_settings_get_value_int(SYSTEM_SETTINGS_KEY_LOCK_STATE,
 					&lock_state);
 
 			/* In Lock Screen, home button don't have to do */
-			if (lock_ret == 0 && lock_state == VCONFKEY_IDLE_LOCK)
+			if (lock_ret == SYSTEM_SETTINGS_ERROR_NONE && lock_state == SYSTEM_SETTINGS_LOCK_STATE_LOCK)
 				break;
 
 			if (util_check_system_status() == FAIL)
@@ -1156,7 +1137,7 @@ static void app_service(app_control_h service, void *data)
 #ifdef _SUPPORT_SCREEN_READER2
 	indicator_service_tts_init(data);
 #endif
-	_indicator_lock_status_cb(NULL, data);
+	_indicator_lock_status_cb(SYSTEM_SETTINGS_KEY_LOCK_STATE, data);
 #if 0
 	register_app_terminate_cb(data);
 #endif
