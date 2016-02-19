@@ -19,6 +19,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <system_settings.h>
+#include <telephony.h>
 #include <vconf.h>
 
 #include "common.h"
@@ -27,6 +29,7 @@
 #include "modules.h"
 #include "icon.h"
 #include "log.h"
+#include "util.h"
 
 #define ICON_PRIORITY	INDICATOR_PRIORITY_SYSTEM_2
 #define MODULE_NAME		"call_divert"
@@ -55,9 +58,11 @@ icon_s call_divert = {
 #endif
 };
 
-static const char *icon_path = "call_devert/B03_Call_divert_default.png";
+static telephony_handle_list_s list;
+static const char *icon_path = "Call divert/B03_Call_divert_default.png";
 
-static void set_app_state(void* data)
+
+static void set_app_state(void *data)
 {
 	call_divert.ad = data;
 }
@@ -79,46 +84,59 @@ static char *access_info_cb(void *data, Evas_Object *obj)
 	char *tmp = NULL;
 	char buf[256] = {0,};
 	int status = 0;
+	int ret;
+
+	ret = vconf_get_int(VCONFKEY_TELEPHONY_CALL_FORWARD_STATE, &status);
+	retv_if(ret != 0, NULL);
 
 	switch (status) {
 	case VCONFKEY_TELEPHONY_CALL_FORWARD_ON:
-		snprintf(buf, sizeof(buf), "%s, %s, %s",_("IDS_CST_BODY_CALL_FORWARDING"),_("IDS_IDLE_BODY_ICON"),_("IDS_IDLE_BODY_STATUS_BAR_ITEM"));
+		snprintf(buf, sizeof(buf), "%s, %s, %s", _("IDS_CST_BODY_CALL_FORWARDING"),
+				_("IDS_IDLE_BODY_ICON"), _("IDS_IDLE_BODY_STATUS_BAR_ITEM"));
 		break;
 	default:
 		break;
 	}
 
-	tmp = strdup(buf);
-	if (!tmp) return NULL;
-
-	return tmp;
+	return strdup(buf);
 }
 #endif
 
+
 static void _on_noti(void *user_data)
 {
-	int status = 0;
 	int ret = 0;
-	int call_divert_state = 0;
+	telephony_state_e state;
+	int call_divert_state = VCONFKEY_TELEPHONY_CALL_FORWARD_ON;
 
 	ret_if(!user_data);
 
-	ret = vconf_get_bool(VCONFKEY_TELEPHONY_FLIGHT_MODE, &status);
-	if (ret == OK && status == true) {
+	bool flight_mode;
+	ret = system_settings_get_value_bool(SYSTEM_SETTINGS_KEY_NETWORK_FLIGHT_MODE, &flight_mode);
+	ret_if(ret != SYSTEM_SETTINGS_ERROR_NONE);
+
+	if (flight_mode == true) {
 		_D("Flight Mode");
 		_hide_image_icon();
 		return;
 	}
 
-	/*
-	 *\note
-	 * Call forward function like call divert.
-	 */
-	/* FIXME */
+	ret = telephony_get_state(&state);
+	ret_if(ret != TELEPHONY_ERROR_NONE);
+
+	if (state == TELEPHONY_STATE_NOT_READY) {
+		_D("Telephony not ready");
+		_hide_image_icon();
+		return;
+	}
+
+	ret = vconf_get_int(VCONFKEY_TELEPHONY_CALL_FORWARD_STATE, &call_divert_state);
+	ret_if(ret != 0);
+
 	if (call_divert_state == VCONFKEY_TELEPHONY_CALL_FORWARD_ON) {
 		_D("Show call divert icon");
 		_show_image_icon();
-	} else { /* VCONFKEY_TELEPHONY_CALL_FORWARD_OFF */
+	} else {
 		_D("Hide call divert icon");
 		_hide_image_icon();
 	}
@@ -126,77 +144,91 @@ static void _on_noti(void *user_data)
 	return;
 }
 
-/* Initialize TAPI */
-static void _init_tel(void *data)
+
+static void _tel_ready_cb(telephony_state_e state, void *user_data)
 {
-	_on_noti(data);
+	_on_noti(user_data);
 }
 
-/* De-initialize TAPI */
-static void _deinit_tel()
+
+static void _flight_mode(system_settings_key_e key, void *user_data)
 {
-	_D("");
+	_on_noti(user_data);
 }
 
-static void _tel_ready_cb(keynode_t *key, void *data)
-{
-	bool status = false;
 
-	status = vconf_keynode_get_bool(key);
-	if (status == true) { /* Telephony State - READY */
-		_init_tel(data);
-	} else { /* Telephony State – NOT READY */
-		/*
-		 *\note
-		 * De-initialization is optional here. (ONLY if required)
-		 */
-		_deinit_tel();
-	}
+static void _vconf_indicator_call_forward(keynode_t *node, void *user_data)
+{
+	_on_noti(user_data);
 }
 
-static void _flight_mode(keynode_t *key, void *data)
+
+static void free_resources()
 {
-	_on_noti(data);
+	util_system_settings_unset_changed_cb(SYSTEM_SETTINGS_KEY_NETWORK_FLIGHT_MODE, _flight_mode);
+	telephony_deinit(&list);
+	telephony_unset_state_changed_cb(_tel_ready_cb);
 }
+
 
 static int register_call_divert_module(void *data)
 {
-	int state = false;
 	int ret;
+	telephony_state_e state;
 
 	retv_if(!data, 0);
 
 	set_app_state(data);
 
-	ret = vconf_notify_key_changed(VCONFKEY_TELEPHONY_FLIGHT_MODE, _flight_mode, data);
-	if (ret != OK) {
-		_E("Failed to register callback for VCONFKEY_TELEPHONY_FLIGHT_MODE");
+	ret = util_system_settings_set_changed_cb(SYSTEM_SETTINGS_KEY_NETWORK_FLIGHT_MODE, _flight_mode, data);
+	retvm_if(ret != SYSTEM_SETTINGS_ERROR_NONE, FAIL,
+			"util_system_settings_set_changed_cb failed[%s]", get_error_message(ret));
+
+	ret = telephony_init(&list);
+	if (ret != TELEPHONY_ERROR_NONE) {
+		_E("telephony_init failed[%s]", get_error_message(ret));
+		util_system_settings_unset_changed_cb(SYSTEM_SETTINGS_KEY_NETWORK_FLIGHT_MODE, _flight_mode);
+		return FAIL;
 	}
 
-	ret = vconf_get_bool(VCONFKEY_TELEPHONY_READY, &state);
-	if (ret != OK) {
-		_E("Failed to get value for VCONFKEY_TELEPHONY_READY");
-		return ret;
+	ret = telephony_set_state_changed_cb(_tel_ready_cb, data);
+	if (ret != TELEPHONY_ERROR_NONE) {
+		_E("telephony_set_state_changed_cb failed[%s]", get_error_message(ret));
+		free_resources();
+		return FAIL;
 	}
 
-	if (state) {
-		_D("Telephony ready");
-		_init_tel(data);
-	} else {
-		_D("Telephony not ready");
-		vconf_notify_key_changed(VCONFKEY_TELEPHONY_READY, _tel_ready_cb, data);
+	ret = telephony_get_state(&state);
+	if (ret != TELEPHONY_ERROR_NONE) {
+		_E("telephony_get_state failed[%s]", get_error_message(ret));
+		free_resources();
+		return FAIL;
 	}
+
+	ret = vconf_notify_key_changed(VCONFKEY_TELEPHONY_CALL_FORWARD_STATE, _vconf_indicator_call_forward, data);
+	if (ret != OK) {
+		_E("vconf_notify_key_changed failed[%s]", get_error_message(ret));
+		free_resources();
+		return FAIL;
+	}
+
+	_tel_ready_cb(state, data);
 
 	return ret;
 }
+
 
 static int unregister_call_divert_module(void)
 {
 	int ret = 0;
 
-	_deinit_tel();
+	util_system_settings_unset_changed_cb(SYSTEM_SETTINGS_KEY_NETWORK_FLIGHT_MODE, _flight_mode);
 
-	vconf_ignore_key_changed(VCONFKEY_TELEPHONY_FLIGHT_MODE, _flight_mode);
+	ret = ret | telephony_unset_state_changed_cb(_tel_ready_cb);
+
+	ret = ret | telephony_deinit(&list);
+
+	ret = ret | vconf_ignore_key_changed(VCONFKEY_TELEPHONY_CALL_FORWARD_STATE, _vconf_indicator_call_forward);
 
 	return ret;
 }
