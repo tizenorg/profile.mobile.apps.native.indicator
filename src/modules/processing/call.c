@@ -20,8 +20,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <vconf.h>
 #include <bluetooth.h>
+#include <telephony.h>
 
 #include "common.h"
 #include "indicator.h"
@@ -38,7 +38,8 @@
 
 static int register_call_module(void *data);
 static int unregister_call_module(void);
-static void show_call_icon( void *data);
+static void indicator_call_change_cb(telephony_h handle, telephony_noti_e noti_id, void *data, void *user_data);
+static int check_calls_status(int handle_no, void *data);
 
 enum {
 	CALL_UI_STATUS_NONE = 0,
@@ -60,10 +61,12 @@ icon_s call = {
 	.area = INDICATOR_ICON_AREA_MINICTRL,
 	.init = register_call_module,
 	.fini = unregister_call_module,
-	.minictrl_control = NULL //mctrl_monitor_cb
+	.minictrl_control = NULL /* mctrl_monitor_cb */
 };
 
 static int bt_state = 0;
+static telephony_noti_e call_state;
+static telephony_handle_list_s list;
 
 static const char *icon_path[] = {
 	"Call/B03_Call_Duringcall.png",
@@ -71,7 +74,7 @@ static const char *icon_path[] = {
 	NULL
 };
 
-static void set_app_state(void* data)
+static void set_app_state(void *data)
 {
 	call.ad = data;
 }
@@ -96,19 +99,19 @@ static void icon_animation_set(enum indicator_icon_ani type)
 	icon_ani_set(&call, type);
 }
 
-static void __bt_ag_sco_state_changed_cb(int result, bool connected, const char *remote_address, bt_audio_profile_type_e type, void *user_data)
+static void __bt_ag_sco_state_changed_cb(int result, bool connected,
+		const char *remote_address, bt_audio_profile_type_e type, void *user_data)
 {
-	int status = 0;
+	if (connected)
+		bt_state = 1;
+	else
+		bt_state = 0;
 
-	if (connected) bt_state=1;
-	else bt_state=0;
-
-	vconf_get_int(VCONFKEY_CALL_STATE, &status);
-
-	if (status != VCONFKEY_CALL_OFF) show_call_icon(user_data);
+	for (int j = 0; j < list.count; j++)
+		check_calls_status(j, user_data);
 }
 
-static void register_bt_state( void *data)
+static void register_bt_state(void *data)
 {
 	int error = -1;
 
@@ -118,12 +121,11 @@ static void register_bt_state( void *data)
 	error = bt_audio_initialize();
 	if (error != BT_ERROR_NONE) _E("bt_audio_initialize return [%d]", error);
 
-	error = bt_audio_set_connection_state_changed_cb(__bt_ag_sco_state_changed_cb, data);   // callback µî·Ï
+	error = bt_audio_set_connection_state_changed_cb(__bt_ag_sco_state_changed_cb, data);
 	if (error != BT_ERROR_NONE) _E("bt_ag_set_sco_state_changed_cb return [%d]", error);
-
 }
 
-static void unregister_bt_state( void )
+static void unregister_bt_state(void)
 {
 	int error = -1;
 
@@ -137,95 +139,156 @@ static void unregister_bt_state( void )
 	if (error != BT_ERROR_NONE) _E("bt_audio_deinitialize return [%d]", error);
 }
 
-static void show_call_icon( void *data)
+static telephony_noti_e convert_call_status(telephony_call_status_e call_status)
+{
+	switch (call_status) {
+	case TELEPHONY_CALL_STATUS_IDLE:
+		return TELEPHONY_NOTI_VOICE_CALL_STATUS_IDLE;
+	case TELEPHONY_CALL_STATUS_ACTIVE:
+		return TELEPHONY_NOTI_VOICE_CALL_STATUS_ACTIVE;
+	case TELEPHONY_CALL_STATUS_HELD:
+		return TELEPHONY_NOTI_VOICE_CALL_STATUS_HELD;
+	case TELEPHONY_CALL_STATUS_DIALING:
+		return TELEPHONY_NOTI_VOICE_CALL_STATUS_DIALING;
+	case TELEPHONY_CALL_STATUS_ALERTING:
+		return TELEPHONY_NOTI_VOICE_CALL_STATUS_ALERTING;
+	case TELEPHONY_CALL_STATUS_INCOMING:
+		return TELEPHONY_NOTI_VOICE_CALL_STATUS_INCOMING;
+	}
+}
+
+static void indicator_call_change_cb(telephony_h handle, telephony_noti_e noti_id, void *data, void *user_data)
 {
 	int status = 0;
-	int ret = 0;
 
-	ret_if(!data);
+	ret_if(!user_data);
 
-	ret = vconf_get_int(VCONFKEY_CALL_STATE, &status);
-	if (ret != OK) {
-		_E("Failed to get VCONFKEY_CALL_STATE!");
-		return;
-	}
+	call_state = noti_id;
 
-	switch (status) {
-	case VCONFKEY_CALL_VOICE_CONNECTING:
-	case VCONFKEY_CALL_VIDEO_CONNECTING:
-		show_image_icon(data);
+	switch (noti_id) {
+	case TELEPHONY_NOTI_VOICE_CALL_STATUS_DIALING:
+	case TELEPHONY_NOTI_VIDEO_CALL_STATUS_DIALING:
+	case TELEPHONY_NOTI_VOICE_CALL_STATUS_INCOMING:
+	case TELEPHONY_NOTI_VIDEO_CALL_STATUS_INCOMING:
+	case TELEPHONY_NOTI_VOICE_CALL_STATUS_ALERTING:
+	case TELEPHONY_NOTI_VIDEO_CALL_STATUS_ALERTING:
+		show_image_icon(user_data);
 		icon_animation_set(ICON_ANI_BLINK);
 		break;
-	case VCONFKEY_CALL_VOICE_ACTIVE:
-	case VCONFKEY_CALL_VIDEO_ACTIVE:
-		show_image_icon(data);
+	case TELEPHONY_NOTI_VOICE_CALL_STATUS_ACTIVE:
+	case TELEPHONY_NOTI_VIDEO_CALL_STATUS_ACTIVE:
+	case TELEPHONY_NOTI_VOICE_CALL_STATUS_HELD:
+		show_image_icon(user_data);
 		icon_animation_set(ICON_ANI_NONE);
 		break;
-	case VCONFKEY_CALL_OFF:
+	case TELEPHONY_NOTI_VOICE_CALL_STATUS_IDLE:
+	case TELEPHONY_NOTI_VIDEO_CALL_STATUS_IDLE:
 		hide_image_icon();
 		break;
 	default:
 		_E("Invalid value %d", status);
+		hide_image_icon();
 		break;
 	}
 }
 
-static void indicator_call_change_cb(keynode_t *node, void *data)
+static int check_calls_status(int handle_no, void *data)
 {
-	int status = 0;
-	int ret = 0;
+	int ret = OK;
+	int ret_val = OK;
 
-	ret_if(!data);
+	telephony_call_h *call_list;
+	unsigned int call_cnt = 0;
 
-	ret = vconf_get_int(VCONFKEY_CALL_STATE, &status);
-	if (ret != OK) {
-		_E("Failed to get VCONFKEY_CALL_STATE!");
-		return;
+	if ((handle_no < 0) || (handle_no >= list.count)) {
+		_E("Invalid handle number: %d", handle_no);
+		return FAIL;
 	}
 
-	switch (status) {
-	case VCONFKEY_CALL_VOICE_CONNECTING:
-	case VCONFKEY_CALL_VIDEO_CONNECTING:
-		show_image_icon(data);
-		icon_animation_set(ICON_ANI_BLINK);
-		break;
-	case VCONFKEY_CALL_VOICE_ACTIVE:
-	case VCONFKEY_CALL_VIDEO_ACTIVE:
-		show_image_icon(data);
-		icon_animation_set(ICON_ANI_NONE);
-		break;
-	case VCONFKEY_CALL_OFF:
+	ret = telephony_call_get_call_list(list.handle[handle_no], &call_cnt, &call_list);
+	if (ret != TELEPHONY_ERROR_NONE) {
+		_E("telephony_call_get_call_list failed : %s", get_error_message(ret));
+		return FAIL;
+	}
+
+	if (call_cnt == 0) {
 		hide_image_icon();
-		break;
-	default:
-		_E("Invalid value %d", status);
-		break;
+		_D("No calls available");
+		ret_val = FAIL;
+	} else {
+		for (int i = 0; i < call_cnt; i++) {
+			telephony_call_status_e status;
+
+			ret = telephony_call_get_status(call_list[i], &status);
+
+			if (ret != TELEPHONY_ERROR_NONE) {
+				_E("telephony_call_get_status failed : %s", get_error_message(ret));
+
+				ret_val = FAIL;
+				continue;
+			}
+			indicator_call_change_cb(NULL, convert_call_status(status), NULL, data);
+		}
 	}
+
+	telephony_call_release_call_list(call_cnt, &call_list);
+
+	return ret_val;
 }
 
 static int register_call_module(void *data)
 {
-	int ret = 0;
-
-	retv_if(!data, 0);
+	int ret = OK;
+	int ret_val = OK;
+	retv_if(!data, FAIL);
 
 	set_app_state(data);
 
-	ret = vconf_notify_key_changed(VCONFKEY_CALL_STATE, indicator_call_change_cb, data);
-	register_bt_state(data);
-	if (ret != OK) _E("Failed to register VCONFKEY_CALL_STATE callback!");
+	ret = telephony_init(&list);
+	retvm_if(ret != TELEPHONY_ERROR_NONE, FAIL, "telephony_init failed : %s", get_error_message(ret));
 
-	return ret;
+	for (int j = 0; j < list.count; j++) {
+		for (int i = TELEPHONY_NOTI_VOICE_CALL_STATUS_IDLE; i <= TELEPHONY_NOTI_VIDEO_CALL_STATUS_INCOMING; i++) {
+			ret = telephony_set_noti_cb(list.handle[j], i, indicator_call_change_cb, data);
+			if (ret != TELEPHONY_ERROR_NONE) {
+				_E("telephony_set_noti_cb failed : %s", get_error_message(ret));
+				_E("i: %d", i);
+				ret_val = FAIL;
+			}
+		}
+		ret = check_calls_status(j, data);
+		ret_val = (ret != OK) ? FAIL : ret_val;
+	}
+
+	register_bt_state(data);
+
+	return ret_val;
 }
 
 static int unregister_call_module(void)
 {
-	int ret = 0;
+	int ret = OK;
+	int ret_val = OK;
 
-	ret = vconf_ignore_key_changed(VCONFKEY_CALL_STATE, indicator_call_change_cb);
+	for (int j = 0; j < list.count; j++) {
+		for (int i = TELEPHONY_NOTI_VOICE_CALL_STATUS_IDLE; i <= TELEPHONY_NOTI_VIDEO_CALL_STATUS_INCOMING; i++) {
+			ret = telephony_unset_noti_cb(list.handle[j], i);
+			if (ret != TELEPHONY_ERROR_NONE) {
+				_E("telephony_unset_noti_cb failed : %s", get_error_message(ret));
+				_E("i: %d", i);
+				ret_val = FAIL;
+			}
+		}
+	}
+
+	ret = telephony_deinit(&list);
+	if (ret != TELEPHONY_ERROR_NONE) {
+		_E("telephony_deinit failed : %s", get_error_message(ret));
+		ret_val = FAIL;
+	}
+
 	unregister_bt_state();
-	if (ret != OK) _E("Failed to register VCONFKEY_CALL_STATE callback!");
 
-	return ret;
+	return ret_val;
 }
 /* End of file */
