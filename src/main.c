@@ -567,7 +567,7 @@ static void register_event_handler(void *data)
 		_E("device_add_callback failed: %s", get_error_message(err));
 	}
 
-	if (!util_system_settings_set_changed_cb(SYSTEM_SETTINGS_KEY_LOCK_STATE, _indicator_lock_status_cb, ad)) {
+	if (util_system_settings_set_changed_cb(SYSTEM_SETTINGS_KEY_LOCK_STATE, _indicator_lock_status_cb, ad)) {
 		_E("util_system_settings_set_changed_cb failed");
 	}
 
