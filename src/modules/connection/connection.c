@@ -479,7 +479,7 @@ static int register_conn_module(void *data)
 
 	ret = telephony_get_state(&state);
 	if (ret != TELEPHONY_ERROR_NONE) {
-		ERR("telephony_get_state failed: %d", get_error_message(ret));
+		ERR("telephony_get_state failed: %s", get_error_message(ret));
 		return FAIL;
 	}
 
@@ -494,7 +494,7 @@ static int register_conn_module(void *data)
 
 	ret = telephony_set_state_changed_cb(tel_ready_cb, data);
 	if (ret != TELEPHONY_ERROR_NONE) {
-		ERR("telephony_set_state_changed_cb failed %d", get_error_message(ret));
+		ERR("telephony_set_state_changed_cb failed %s", get_error_message(ret));
 		__deinit_tel();
 		return FAIL;
 	}
