@@ -21,11 +21,20 @@
 #ifndef __INDICATOR_TICKER_H__
 #define __INDICATOR_TICKER_H__
 
+typedef enum _indicator_animated_icon_type {
+	INDICATOR_ANIMATED_ICON_NONE = -1,
+	INDICATOR_ANIMATED_ICON_DOWNLOAD = 1,
+	INDICATOR_ANIMATED_ICON_UPLOAD,
+	INDICATOR_ANIMATED_ICON_INSTALL,
+} indicator_animated_icon_type;
+
 typedef struct ticker {
-	Evas_Object *win;
 	Evas_Object *scroller;
+	Evas_Object *textblock;
 	Ecore_Timer *timer;
 	Eina_List *ticker_list;
+	int current_page;
+	int cursor_pos;
 } ticker_info_s;
 
 extern int ticker_init(void *data);
