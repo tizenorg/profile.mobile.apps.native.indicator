@@ -1055,8 +1055,8 @@ static void _ticker_noti_detailed_changed_cb(void *data, notification_type_e typ
 	ret_if(!noti);
 
 	notification_get_display_applist(noti, &applist);
-	if (!(applist & NOTIFICATION_DISPLAY_APP_TICKER
-				|| applist & NOTIFICATION_DISPLAY_APP_INDICATOR)) {
+	if (!((applist & NOTIFICATION_DISPLAY_APP_TICKER)
+				|| (applist & NOTIFICATION_DISPLAY_APP_INDICATOR))) {
 		DBG("displaying ticker option is off");
 		notification_free(noti);
 		return;
@@ -1089,8 +1089,8 @@ static void _ticker_noti_detailed_changed_cb(void *data, notification_type_e typ
 		DBG("NOTIFICATION_PROP_DISABLE_TICKERNOTI");
 		__ticker_only_noti_del(noti);
 		notification_free(noti);
-	} else if (applist & NOTIFICATION_DISPLAY_APP_TICKER
-			|| applist & NOTIFICATION_DISPLAY_APP_INDICATOR) {
+	} else if ((applist & NOTIFICATION_DISPLAY_APP_TICKER)
+			|| (applist & NOTIFICATION_DISPLAY_APP_INDICATOR)) {
 
 		ticker_info->ticker_list = eina_list_append(ticker_info->ticker_list, noti);
 		/* wait when win is not NULL */
