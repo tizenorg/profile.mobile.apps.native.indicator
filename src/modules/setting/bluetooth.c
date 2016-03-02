@@ -72,11 +72,9 @@ enum {
 };
 
 static const char *icon_path[LEVEL_MAX] = {
-	[LEVEL_BT_NOT_CONNECTED] =
-		"Bluetooth, NFC, GPS/B03_BT_On&Connected.png",
+	[LEVEL_BT_NOT_CONNECTED] = "Bluetooth, NFC, GPS/B03_BT_On&Connected.png",
 	[LEVEL_BT_CONNECTED] = "Bluetooth, NFC, GPS/B03-4_BT_activated_on.png",
-	[LEVEL_BT_HEADSET] =
-		"Bluetooth, NFC, GPS/B03_BT_On&Connected&headset.png",
+	[LEVEL_BT_HEADSET] = "Bluetooth, NFC, GPS/B03_BT_On&Connected&headset.png",
 };
 
 static int updated_while_lcd_off = 0;
@@ -135,11 +133,11 @@ static void show_bluetooth_icon(void *data, int status)
 static void indicator_bluetooth_adapter_state_changed_cb(int result, bt_adapter_state_e adapter_state, void *user_data)
 {
 	DBG("BT STATUS: %d", adapter_state);
-	if (adapter_state != BT_ADAPTER_ENABLED)    // If adapter_state is NULL. hide_image_icon().
-	{
+	if (adapter_state != BT_ADAPTER_ENABLED) {    // If adapter_state is NULL. hide_image_icon().
 		DBG("BT is not enabled. So hide BT icon.");
 		hide_image_icon();
-	}
+	} else
+		show_bluetooth_icon(user_data, NO_DEVICE);
 }
 
 static bool _connected_cb(bt_profile_e profile, void *user_data)
