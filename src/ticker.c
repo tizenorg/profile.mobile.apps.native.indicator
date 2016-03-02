@@ -799,7 +799,7 @@ static void _mouse_down_cb(void *data, Evas *e, Evas_Object *obj, void *event_in
 	_noti_hide_cb(data, NULL, NULL, NULL);
 }
 
-#define TICKER_EDJ EDJDIR"/ticker.edj"
+#define TICKER_EDJ EDJDIR"ticker.edj"
 static void _create_tickernoti(notification_h noti, struct appdata *ad, ticker_info_s *ticker_info)
 {
 	Eina_Bool ret = EINA_FALSE;
@@ -833,7 +833,8 @@ static void _create_tickernoti(notification_h noti, struct appdata *ad, ticker_i
 	detail = elm_layout_add(ticker_info->win);
 	goto_if(!detail, ERROR);
 
-	ret = elm_layout_file_set(detail, TICKER_EDJ, "quickpanel/tickernoti/normal");
+	//FIXME ticker.c: _create_tickernoti(837) > (ret == EINA_FALSE) -> goto
+	ret = elm_layout_file_set(detail, util_get_res_file_path(TICKER_EDJ), "quickpanel/tickernoti/normal");
 	goto_if(ret == EINA_FALSE, ERROR);
 
 	elm_object_signal_callback_add(detail, "request,hide", "", _noti_hide_cb, ticker_info);
@@ -879,7 +880,7 @@ static void _create_tickernoti(notification_h noti, struct appdata *ad, ticker_i
 	textblock = elm_layout_add(box);
 	goto_if(!textblock, ERROR);
 
-	ret = elm_layout_file_set(textblock, TICKER_EDJ, "quickpanel/tickernoti/text");
+	ret = elm_layout_file_set(textblock, util_get_res_file_path(TICKER_EDJ), "quickpanel/tickernoti/text");
 	goto_if(ret == EINA_FALSE, ERROR);
 
 	evas_object_show(textblock);
