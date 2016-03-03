@@ -395,19 +395,16 @@ static int __init_tel(void *data)
 	DBG("__init_tel");
 	int ret, i;
 
-	ret = telephony_init(&tel_list);
-	if (ret != TELEPHONY_ERROR_NONE) {
-		ERR("telephony_init failed %d", ret);
-		return FAIL;
-	}
-
 	if (!tel_list.count) {
 		DBG("Not SIM handle returned by telephony_init");
 		__deinit_tel();
 		return FAIL;
 	}
 
-	telephony_noti_e events[] = { TELEPHONY_NOTI_NETWORK_DEFAULT_DATA_SUBSCRIPTION, TELEPHONY_NOTI_NETWORK_PS_TYPE, TELEPHONY_NOTI_NETWORK_SERVICE_STATE };
+	telephony_noti_e events[] = { TELEPHONY_NOTI_NETWORK_DEFAULT_DATA_SUBSCRIPTION,
+									TELEPHONY_NOTI_NETWORK_PS_TYPE,
+									TELEPHONY_NOTI_NETWORK_SERVICE_STATE };
+
 	for (i = 0; i < ARRAY_SIZE(events); i++) {
 		/* Currently handle only first SIM */
 		ret = telephony_set_noti_cb(tel_list.handle[0], events[i], _update_status, data);
@@ -455,6 +452,8 @@ static void __deinit_tel()
 	if (tel_list.count)
 		telephony_deinit(&tel_list);
 	tel_list.count = 0;
+
+	hide_image_icon();
 }
 
 static void tel_ready_cb(telephony_state_e state, void *user_data)
@@ -483,6 +482,12 @@ static int register_conn_module(void *data)
 		return FAIL;
 	}
 
+	ret = telephony_init(&tel_list);
+	if (ret != TELEPHONY_ERROR_NONE) {
+		ERR("telephony_init failed %d", ret);
+		return FAIL;
+	}
+
 	if (state == TELEPHONY_STATE_READY) {
 		DBG("Telephony ready");
 		if (__init_tel(data) != OK)
@@ -494,7 +499,7 @@ static int register_conn_module(void *data)
 
 	ret = telephony_set_state_changed_cb(tel_ready_cb, data);
 	if (ret != TELEPHONY_ERROR_NONE) {
-		ERR("telephony_set_state_changed_cb failed %s", get_error_message(ret));
+		ERR("telephony_set_state_changed_cb failed: %s", get_error_message(ret));
 		__deinit_tel();
 		return FAIL;
 	}
