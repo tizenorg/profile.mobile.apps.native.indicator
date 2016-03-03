@@ -252,7 +252,7 @@ static void _view_icon_update(telephony_h handle, void *data)
 		_view_icon_update_network(service_state, network_type, data);
 }
 
-static void on_noti(telephony_h handle, const char *noti_id, void *data, void *user_data)
+static void on_noti(telephony_h handle, void *user_data)
 {
 	telephony_network_default_data_subs_e default_subscription;
 	wifi_connection_state_e state;
@@ -321,14 +321,14 @@ static int wake_up_cb(void *data)
 	if (updated_while_lcd_off == 0)
 		return OK;
 
-	on_noti(tel_list.handle[0], NULL, NULL, data);
+	on_noti(tel_list.handle[0], data);
 	return OK;
 }
 
 
 static void _update_status_ri(runtime_info_key_e key, void *user_data)
 {
-	on_noti(tel_list.handle[0], NULL, NULL, user_data);
+	on_noti(tel_list.handle[0], user_data);
 }
 
 static void _wifi_status_changed_cb(wifi_connection_state_e state, wifi_ap_h ap, void *user_data)
@@ -343,18 +343,18 @@ static void _wifi_status_changed_cb(wifi_connection_state_e state, wifi_ap_h ap,
 			_D("[CB] WIFI connected, so hide connection icon");
 			hide_image_icon();
 		} else
-			on_noti(tel_list.handle[0], NULL, NULL, user_data);
+			on_noti(tel_list.handle[0], user_data);
 	}
 }
 
 static void _flight_mode(system_settings_key_e key, void *user_data)
 {
-	on_noti(tel_list.handle[0], NULL, NULL, user_data);
+	on_noti(tel_list.handle[0], user_data);
 }
 
 static void _update_status(telephony_h handle, telephony_noti_e noti_id, void *data, void *user_data)
 {
-	on_noti(tel_list.handle[0], NULL, NULL, data);
+	on_noti(tel_list.handle[0], data);
 }
 
 /* Initialize TAPI */
@@ -408,7 +408,7 @@ static int __init_tel(void *data)
 		return FAIL;
 	}
 
-	on_noti(tel_list.handle[0], NULL, NULL, data);
+	on_noti(tel_list.handle[0], data);
 
 	return OK;
 }
@@ -452,7 +452,7 @@ static void data_event_cb(const char *event_name, bundle *event_data, void *user
 	if (!strcmp(value, "off"))
 		hide_image_icon();
 	else
-		on_noti(tel_list.handle[0], NULL, NULL, user_data);
+		on_noti(tel_list.handle[0], user_data);
 }
 
 static int register_conn_module(void *data)
