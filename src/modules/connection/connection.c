@@ -24,6 +24,7 @@
 #include <system_settings.h>
 #include <runtime_info.h>
 #include <vconf.h>
+#include <app_event.h>
 
 #include "common.h"
 #include "indicator.h"
@@ -47,6 +48,8 @@ static int isBTIconShowing = 0;
 static telephony_handle_list_s tel_list;
 static int updated_while_lcd_off = 0;
 static int prevIndex = -1;
+static event_handler_h event;
+
 
 icon_s conn = {
 	.type = INDICATOR_IMG_ICON,
@@ -155,6 +158,8 @@ static void hide_image_icon(void)
 
 static icon_e _icon_level_for_network_type(telephony_network_type_e net_type)
 {
+	_D("network_type:%d", net_type);
+
 	switch (net_type) {
 	case TELEPHONY_NETWORK_TYPE_GSM:
 	case TELEPHONY_NETWORK_TYPE_GPRS:
@@ -174,6 +179,8 @@ static icon_e _icon_level_for_network_type(telephony_network_type_e net_type)
 
 static icon_e _icon_level_for_ps_network_type(telephony_network_ps_type_e net_type)
 {
+	_D("network_ps_type:%d", net_type);
+
 	switch (net_type) {
 	case TELEPHONY_NETWORK_PS_TYPE_HSDPA:
 	case TELEPHONY_NETWORK_PS_TYPE_HSUPA:
@@ -370,6 +377,7 @@ static int __init_tel(void *data)
 		/* Currently handle only first SIM */
 		ret = telephony_set_noti_cb(tel_list.handle[0], events[i], _update_status, data);
 		if (ret != TELEPHONY_ERROR_NONE) {
+			_E("telephony_set_noti_cb failed: %s", get_error_message(ret));
 			__deinit_tel();
 			return FAIL;
 		}
@@ -429,6 +437,24 @@ static void tel_ready_cb(telephony_state_e state, void *user_data)
 		__deinit_tel();
 }
 
+static void data_event_cb(const char *event_name, bundle *event_data, void *user_data)
+{
+	char *value;
+	int ret;
+	ret = bundle_get_str(event_data, EVENT_KEY_MOBILE_DATA_STATE, &value);
+	if (ret != BUNDLE_ERROR_NONE) {
+		_E("bundle_get_str failed: %s", get_error_message(ret));
+		hide_image_icon();
+		return;
+	}
+	_D("bundle value:%s", value);
+
+	if (!strcmp(value, "off"))
+		hide_image_icon();
+	else
+		on_noti(tel_list.handle[0], NULL, NULL, user_data);
+}
+
 static int register_conn_module(void *data)
 {
 	int ret;
@@ -458,6 +484,14 @@ static int register_conn_module(void *data)
 		__deinit_tel();
 		return FAIL;
 	}
+
+	ret = event_add_event_handler(SYSTEM_EVENT_MOBILE_DATA_STATE, data_event_cb, data, &event);
+	if (ret != EVENT_ERROR_NONE) {
+		_E("event_add_event_handler failed: %s", get_error_message(ret));
+		__deinit_tel();
+		return FAIL;
+	}
+
 	return OK;
 }
 
@@ -465,6 +499,7 @@ static int unregister_conn_module(void)
 {
 	telephony_unset_state_changed_cb(tel_ready_cb);
 	__deinit_tel();
+	event_remove_event_handler(event);
 
 	return OK;
 }
