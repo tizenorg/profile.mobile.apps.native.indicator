@@ -45,7 +45,7 @@ static int wake_up_cb(void *data);
 static void __deinit_tel(void);
 
 static int transfer_state = -1;
-int isBTIconShowing = 0;
+static int isBTIconShowing = 0;
 static telephony_handle_list_s tel_list;
 static int updated_while_lcd_off = 0;
 static int prevIndex = -1;
@@ -103,54 +103,34 @@ static void show_connection_transfer_icon(void* data)
 {
 	int state = 0;
 	int ret = 0;
-	int type = -1;
 
 	ret = vconf_get_int(VCONFKEY_PACKET_STATE, &state);
 	if (ret == OK) {
+
+		if (transfer_state == state) {
+			_D("same transfer state");
+			return;
+		}
+
+		_D("type %d",state);
+		transfer_state = state;
+
 		switch (state) {
 		case VCONFKEY_PACKET_RX:
-			type = TRANSFER_DOWN;
-			break;
-		case VCONFKEY_PACKET_TX:
-			type = TRANSFER_UP;
-			break;
-		case VCONFKEY_PACKET_RXTX:
-			type = TRANSFER_UPDOWN;
-			break;
-		case VCONFKEY_PACKET_NORMAL:
-			type = TRANSFER_NONE;
-			break;
-		default:
-			type = -1;
-			break;
-		}
-	}
-
-	if(transfer_state==type)
-	{
-		DBG("same transfer state");
-		return;
-	}
-
-	DBG("type %d",type);
-	transfer_state = type;
-	switch (type)
-	{
-		case TRANSFER_NONE:
-			util_signal_emit(conn.ad,"indicator.connection.updown.none","indicator.prog");
-			break;
-		case TRANSFER_DOWN:
 			util_signal_emit(conn.ad,"indicator.connection.updown.download","indicator.prog");
 			break;
-		case TRANSFER_UP:
+		case VCONFKEY_PACKET_TX:
 			util_signal_emit(conn.ad,"indicator.connection.updown.upload","indicator.prog");
 			break;
-		case TRANSFER_UPDOWN:
+		case VCONFKEY_PACKET_RXTX:
 			util_signal_emit(conn.ad,"indicator.connection.updown.updownload","indicator.prog");
+			break;
+		case VCONFKEY_PACKET_NORMAL:
+			util_signal_emit(conn.ad,"indicator.connection.updown.none","indicator.prog");
 			break;
 		default:
 			break;
-
+		}
 	}
 }
 
