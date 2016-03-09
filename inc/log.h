@@ -25,15 +25,15 @@
 #define LOG_TAG "INDICATOR"
 
 #if !defined(_D)
-#define _D(fmt, arg...) LOGD(fmt"\n", ##arg)
+#define _D(fmt, arg...) dlog_print(DLOG_DEBUG, LOG_TAG, fmt"\n", ##arg)
 #endif
 
 #if !defined(_W)
-#define _W(fmt, arg...) LOGW(fmt"\n", ##arg)
+#define _W(fmt, arg...) dlog_print(DLOG_WARN, LOG_TAG, fmt"\n", ##arg)
 #endif
 
 #if !defined(_E)
-#define _E(fmt, arg...) LOGE(fmt"\n", ##arg)
+#define _E(fmt, arg...) dlog_print(DLOG_ERROR, LOG_TAG, fmt"\n", ##arg)
 #endif
 
 #define retvm_if(expr, val, fmt, arg...) do { \
