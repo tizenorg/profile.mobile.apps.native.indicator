@@ -33,6 +33,7 @@ static event_handler_h handler;
 
 #define ICON_PRIORITY	INDICATOR_PRIORITY_NOTI_2
 #define MODULE_NAME		"lowmem"
+#define LOW_STORAGE_MEMORY_THRESHOLD 5.0
 
 static int register_lowmem_module(void *data);
 static int unregister_lowmem_module(void);
@@ -62,7 +63,7 @@ static int updated_while_lcd_off = 0;
 static int bShown = 0;
 
 
-static void set_app_state(void* data)
+static void set_app_state(void *data)
 {
 	lowmem.ad = data;
 }
@@ -71,7 +72,7 @@ static void show_image_icon(void)
 {
 	_D("Show icon");
 
-	if(bShown == 1)
+	if (bShown == 1)
 		return;
 
 	lowmem.img_obj.data = icon_path[0];
@@ -90,7 +91,7 @@ static void hide_image_icon(void)
 
 static int wake_up_cb(void *data)
 {
-	if(updated_while_lcd_off == 0 && lowmem.obj_exist == EINA_FALSE)
+	if (updated_while_lcd_off == 0 && lowmem.obj_exist == EINA_FALSE)
 		return OK;
 
 	return check_storage();
@@ -100,14 +101,14 @@ static void on_changed_receive_cb(const char *event_name, bundle *event_data, vo
 {
 	char *val = NULL;
 
-	retm_if ((!event_name || strcmp(event_name, SYSTEM_EVENT_LOW_MEMORY)),"Invalid event: %s", event_name);
+	retm_if((!event_name || strcmp(event_name, SYSTEM_EVENT_LOW_MEMORY)), "Invalid event: %s", event_name);
 
 	_D("\"Low memory changed\" signal received");
 
 	int ret = bundle_get_str(event_data, EVENT_KEY_LOW_MEMORY, &val);
-	retm_if (ret != BUNDLE_ERROR_NONE,"bundle_get_str failed for %s: %d", EVENT_KEY_LOW_MEMORY, ret);
+	retm_if(ret != BUNDLE_ERROR_NONE, "bundle_get_str failed for %s: %d", EVENT_KEY_LOW_MEMORY, ret);
 
-	retm_if (!val, "Empty bundle value for %s", EVENT_KEY_LOW_MEMORY);
+	retm_if(!val, "Empty bundle value for %s", EVENT_KEY_LOW_MEMORY);
 
 	if (!strcmp(val, EVENT_VAL_MEMORY_NORMAL))
 		hide_image_icon();
@@ -167,7 +168,7 @@ static int unregister_lowmem_module(void)
 	return OK;
 }
 
-bool storage_cb (int storage_id, storage_type_e type, storage_state_e state, const char *path, void *user_data)
+static bool storage_cb(int storage_id, storage_type_e type, storage_state_e state, const char *path, void *user_data)
 {
 	if (type == STORAGE_TYPE_INTERNAL) {
 		int *s_id = (int *)user_data;
@@ -185,7 +186,7 @@ static int check_storage()
 	unsigned long long total_bytes;
 
 	int internal_storage_id;
-	ret = storage_foreach_device_supported (storage_cb, (void *)(&internal_storage_id));
+	ret = storage_foreach_device_supported(storage_cb, (void *)(&internal_storage_id));
 		retvm_if(ret != STORAGE_ERROR_NONE, FAIL, "storage_foreach_device_supported failed[%s]", get_error_message(ret));
 
 	storage_get_available_space(internal_storage_id, &available_bytes);
@@ -200,7 +201,7 @@ static int check_storage()
 
 	_D("check_storage : Total : %lf, Available : %lf Percentage : %lf", t_b, a_b, percentage);
 
-	if(percentage <= 5.0)
+	if (percentage <= LOW_STORAGE_MEMORY_THRESHOLD)
 		show_image_icon();
 
 	return OK;
