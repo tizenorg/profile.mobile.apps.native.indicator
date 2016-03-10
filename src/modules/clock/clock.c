@@ -406,126 +406,20 @@ static int unregister_clock_module(void)
 
 
 
-static inline char *_extend_heap(char *buffer, int *sz, int incsz)
-{
-	char *tmp;
-
-	*sz += incsz;
-	tmp = realloc(buffer, *sz);
-	if (!tmp) {
-		ERR("Heap");
-		return NULL;
-	}
-
-	return tmp;
-}
-
-
-
 static char *_string_replacer(const char *src, const char *pattern, const char *replace)
 {
-	const char *ptr;
-	char *tmp = NULL;
-	char *ret = NULL;
-	int idx = 0;
-	int out_idx = 0;
-	int out_sz = 0;
-	enum {
-		STATE_START,
-		STATE_FIND,
-		STATE_CHECK,
-		STATE_END,
-	} state;
+	Eina_Strbuf *strbuf = eina_strbuf_new();
+	retvm_if(strbuf == NULL, NULL, "eina_strbuf_new failed");
 
-	if (!src || !pattern)
-		return NULL;
+	char *result = NULL;
+	Eina_Bool ret = eina_strbuf_append(strbuf, src);
+	retvm_if(ret == EINA_FALSE, NULL, "eina_strbuf_append failed");
 
-	out_sz = strlen(src);
-	ret = strdup(src);
-	if (!ret) {
-		ERR("Heap");
-		return NULL;
-	}
+	eina_strbuf_replace_all(strbuf, pattern, replace);
+	result = eina_strbuf_string_steal(strbuf);
+	eina_strbuf_free(strbuf);
 
-	out_idx = 0;
-	for (state = STATE_START, ptr = src; state != STATE_END; ptr++) {
-		switch (state) {
-		case STATE_START:
-			if (*ptr == '\0') {
-				state = STATE_END;
-			} else if (!isblank(*ptr)) {
-				state = STATE_FIND;
-				ptr--;
-			}
-			break;
-		case STATE_FIND:
-			if (*ptr == '\0') {
-				state = STATE_END;
-			} else if (*ptr == *pattern) {
-				state = STATE_CHECK;
-				ptr--;
-				idx = 0;
-			} else {
-				ret[out_idx] = *ptr;
-				out_idx++;
-				if (out_idx == out_sz) {
-					tmp = _extend_heap(ret, &out_sz, strlen(replace) + 1);
-					if (!tmp) {
-						free(ret);
-						return NULL;
-					}
-					ret = tmp;
-				}
-			}
-			break;
-		case STATE_CHECK:
-			if (!pattern[idx]) {
-				/*!
-     * If there is no space for copying the replacement,
-     * Extend size of the return buffer.
-     */
-				if (out_sz - out_idx < strlen(replace) + 1) {
-					tmp = _extend_heap(ret, &out_sz, strlen(replace) + 1);
-					if (!tmp) {
-						free(ret);
-						return NULL;
-					}
-					ret = tmp;
-				}
-
-				strcpy(ret + out_idx, replace);
-				out_idx += strlen(replace);
-
-				state = STATE_FIND;
-				ptr--;
-			} else if (*ptr != pattern[idx]) {
-				ptr -= idx;
-
-				/* Copy the first matched character */
-				ret[out_idx] = *ptr;
-				out_idx++;
-				if (out_idx == out_sz) {
-					tmp = _extend_heap(ret, &out_sz, strlen(replace) + 1);
-					if (!tmp) {
-						free(ret);
-						return NULL;
-					}
-
-					ret = tmp;
-				}
-
-				state = STATE_FIND;
-			} else {
-				idx++;
-			}
-			break;
-		default:
-			break;
-		}
-	}
-
-	ret[out_idx] = '\0';
-	return ret;
+	return result;
 }
 
 
