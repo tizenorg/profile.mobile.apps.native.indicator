@@ -132,9 +132,9 @@ void modules_init(void *data)
 	for (i = 0; modules[i]; i++) {
 		list_insert_icon(modules[i]);
 		modules[i]->ad = data;
-		if (modules[i]->init)
-		{
-			modules[i]->init(data);
+		if (modules[i]->init && !modules[i]->initialized) {
+			if (modules[i]->init(data) == OK)
+				modules[i]->initialized = EINA_TRUE;
 		}
 	}
 }
@@ -148,9 +148,9 @@ void modules_init_first(void *data)
 	for (i = 0; i < 5; i++) {
 		list_insert_icon(modules[i]);
 		modules[i]->ad = data;
-		if (modules[i]->init)
-		{
-			modules[i]->init(data);
+		if (modules[i]->init && !modules[i]->initialized) {
+			if (modules[i]->init(data) == OK)
+				modules[i]->initialized = EINA_TRUE;
 		}
 	}
 }
@@ -162,8 +162,10 @@ void modules_fini(void *data)
 	int i;
 	/* add items to list */
 	for (i = 0; modules[i]; i++) {
-		if (modules[i]->fini)
-			modules[i]->fini();
+		if (modules[i]->fini && modules[i]->initialized) {
+			if (modules[i]->fini() == OK)
+				modules[i]->initialized = EINA_FALSE;
+		}
 	}
 
 	/* delete modules */
@@ -177,7 +179,7 @@ void modules_lang_changed(void *data)
 	int i;
 	/* add items to list */
 	for (i = 0; modules[i]; i++) {
-		if (modules[i]->lang_changed)
+		if (modules[i]->lang_changed && modules[i]->initialized)
 			modules[i]->lang_changed(data);
 	}
 }
@@ -189,7 +191,7 @@ void modules_region_changed(void *data)
 	int i;
 	/* add items to list */
 	for (i = 0; modules[i]; i++) {
-		if (modules[i]->region_changed)
+		if (modules[i]->region_changed && modules[i]->initialized)
 			modules[i]->region_changed(data);
 	}
 }
@@ -201,7 +203,7 @@ void modules_minictrl_control(int action, const char* name, void *data)
 	int i;
 	/* add items to list */
 	for (i = 0; modules[i]; i++) {
-		if (modules[i]->minictrl_control)
+		if (modules[i]->minictrl_control && modules[i]->initialized)
 			modules[i]->minictrl_control(action, name, data);
 	}
 }
@@ -213,7 +215,7 @@ void modules_wake_up(void *data)
 	int i;
 	/* add items to list */
 	for (i = 0; modules[i]; i++) {
-		if (modules[i]->wake_up)
+		if (modules[i]->wake_up && modules[i]->initialized)
 			modules[i]->wake_up(data);
 	}
 }
@@ -227,7 +229,7 @@ void modules_register_tts(void *data)
 	/* add items to list */
 	for (i = 0; modules[i]; i++) {
 		modules[i]->ad = data;
-		if (modules[i]->register_tts)
+		if (modules[i]->register_tts && modules[i]->initialized)
 		{
 			modules[i]->register_tts(data);
 		}
