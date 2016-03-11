@@ -48,6 +48,7 @@ static int isBTIconShowing = 0;
 static telephony_handle_list_s tel_list;
 static int updated_while_lcd_off = 0;
 static int prevIndex = -1;
+static bool mobile_data_status = false;
 static event_handler_h event;
 
 
@@ -254,7 +255,6 @@ static void _view_icon_update(telephony_h handle, void *data)
 
 static void on_noti(telephony_h handle, void *user_data)
 {
-	telephony_network_default_data_subs_e default_subscription;
 	wifi_connection_state_e state;
 
 	int ret = 0;
@@ -299,21 +299,9 @@ static void on_noti(telephony_h handle, void *user_data)
 			hide_image_icon();
 		}
 	}
+	if (mobile_data_status)
+		_view_icon_update(handle, user_data);
 
-	ret = telephony_network_get_default_data_subscription(handle, &default_subscription);
-	retm_if(ret != TELEPHONY_ERROR_NONE, "telephony_network_get_default_data_subscription failed %s",
-			get_error_message(ret));
-
-	switch (default_subscription) {
-		case TELEPHONY_NETWORK_DEFAULT_DATA_SUBS_SIM1:
-			_view_icon_update(handle, user_data);
-			break;
-		case TELEPHONY_NETWORK_DEFAULT_DATA_SUBS_SIM2:
-		case TELEPHONY_NETWORK_DEFAULT_DATA_SUBS_UNKNOWN:
-		default:
-			hide_image_icon();
-			break;
-	}
 }
 
 static int wake_up_cb(void *data)
@@ -449,16 +437,20 @@ static void data_event_cb(const char *event_name, bundle *event_data, void *user
 	}
 	_D("bundle value:%s", value);
 
-	if (!strcmp(value, "off"))
+	if (!strcmp(value, "off")) {
+		mobile_data_status = false;
 		hide_image_icon();
-	else
+	} else {
+		mobile_data_status = true;
 		on_noti(tel_list.handle[0], user_data);
+	}
 }
 
 static int register_conn_module(void *data)
 {
 	int ret;
 	telephony_state_e state;
+	event_handler_h event;
 
 	retvm_if(data == NULL, FAIL, "Invalid parameter!");
 
