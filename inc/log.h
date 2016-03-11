@@ -20,20 +20,23 @@
 
 #include <unistd.h>
 #include <dlog.h>
+#include <string.h>
 
 #undef LOG_TAG
 #define LOG_TAG "INDICATOR"
 
+#define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+
 #if !defined(_D)
-#define _D(fmt, arg...) dlog_print(DLOG_DEBUG, LOG_TAG, fmt"\n", ##arg)
+#define _D(fmt, arg...) dlog_print(DLOG_DEBUG, LOG_TAG, "%s: %s[%d]\t " #fmt "\n", __FILENAME__, __func__, __LINE__, ##arg)
 #endif
 
 #if !defined(_W)
-#define _W(fmt, arg...) dlog_print(DLOG_WARN, LOG_TAG, fmt"\n", ##arg)
+#define _W(fmt, arg...) dlog_print(DLOG_WARN, LOG_TAG, "%s: %s[%d]\t " #fmt "\n", __FILENAME__, __func__, __LINE__, ##arg)
 #endif
 
 #if !defined(_E)
-#define _E(fmt, arg...) dlog_print(DLOG_ERROR, LOG_TAG, fmt"\n", ##arg)
+#define _E(fmt, arg...) dlog_print(DLOG_ERROR, LOG_TAG, "%s: %s[%d]\t " #fmt "\n", __FILENAME__, __func__, __LINE__, ##arg)
 #endif
 
 #define retvm_if(expr, val, fmt, arg...) do { \
