@@ -92,7 +92,6 @@ typedef enum {
 	LEVEL_MAX
 } rssi_icon_e;
 
-static int registered = 0;
 static int updated_while_lcd_off = 0;
 
 static const char *icon_path[LEVEL_MAX] = {
@@ -277,11 +276,6 @@ static void _init_tel(void *data)
 
 	_D("Initialize telephony...");
 
-	retm_if(registered, "Telephony already registered");
-
-	ret = telephony_init(&tel_list);
-	retm_if(ret != TELEPHONY_ERROR_NONE, "telephony_init failed %s", get_error_message(ret));
-
 	telephony_noti_e events[] = { TELEPHONY_NOTI_NETWORK_SIGNALSTRENGTH_LEVEL, TELEPHONY_NOTI_SIM_STATUS, TELEPHONY_NOTI_NETWORK_SERVICE_STATE,
 		TELEPHONY_NOTI_NETWORK_PS_TYPE, TELEPHONY_NOTI_NETWORK_ROAMING_STATUS, TELEPHONY_NOTI_NETWORK_DEFAULT_DATA_SUBSCRIPTION,
 		TELEPHONY_NOTI_NETWORK_DEFAULT_SUBSCRIPTION};
@@ -295,24 +289,21 @@ static void _init_tel(void *data)
 
 	_view_update(data);
 
-	registered = 1;
 }
 
 /* De-initialize TAPI */
 static void _deinit_tel()
 {
 	_D("De-initialize TAPI");
-	if (registered)
-		telephony_deinit(&tel_list);
-	registered = 0;
+	telephony_deinit(&tel_list);
 }
 
 static void _tel_ready_cb(telephony_state_e state, void *user_data)
 {
-	if (state == TELEPHONY_STATE_READY)
+	if (state == TELEPHONY_STATE_READY) {
 		_init_tel(user_data);
-	else if (state == TELEPHONY_STATE_NOT_READY)
-		_deinit_tel();
+		_view_update(user_data);
+	}
 }
 
 static int register_rssi_module(void *data)
@@ -326,6 +317,9 @@ static int register_rssi_module(void *data)
 
 	ret = util_system_settings_set_changed_cb(SYSTEM_SETTINGS_KEY_NETWORK_FLIGHT_MODE, _flight_mode, data);
 	retvm_if(ret, FAIL, "util_system_settings_set_changed_cb failed: %s", get_error_message(ret));
+
+	ret = telephony_init(&tel_list);
+	retvm_if(ret != TELEPHONY_ERROR_NONE, FAIL, "telephony_init failed: %s", get_error_message(ret));
 
 	ret = telephony_set_state_changed_cb(_tel_ready_cb, data);
 	if (ret != TELEPHONY_ERROR_NONE) {
@@ -345,9 +339,8 @@ static int register_rssi_module(void *data)
 	if (state == TELEPHONY_STATE_READY) {
 		_D("Telephony ready");
 		_init_tel(data);
-	} else if (state == TELEPHONY_STATE_NOT_READY) {
+	} else if (state == TELEPHONY_STATE_NOT_READY)
 		_D("Telephony not ready");
-	}
 
 	return ret;
 }
