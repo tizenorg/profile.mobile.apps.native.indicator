@@ -69,6 +69,8 @@ static void set_app_state(void* data)
 
 static void show_image_icon(void)
 {
+	_D("Show icon");
+
 	if(bShown == 1)
 		return;
 
@@ -80,6 +82,7 @@ static void show_image_icon(void)
 
 static void hide_image_icon(void)
 {
+	_D("Hide icon");
 	icon_hide(&lowmem);
 
 	bShown = 0;
@@ -99,21 +102,21 @@ static void on_changed_receive_cb(const char *event_name, bundle *event_data, vo
 
 	retm_if ((!event_name || strcmp(event_name, SYSTEM_EVENT_LOW_MEMORY)),"Invalid event: %s", event_name);
 
-	_D("lowmem signal Received");
+	_D("\"Low memory changed\" signal received");
 
 	int ret = bundle_get_str(event_data, EVENT_KEY_LOW_MEMORY, &val);
 	retm_if (ret != BUNDLE_ERROR_NONE,"bundle_get_str failed for %s: %d", EVENT_KEY_LOW_MEMORY, ret);
 
 	retm_if (!val, "Empty bundle value for %s", EVENT_KEY_LOW_MEMORY);
 
-	if (strcmp(val, EVENT_VAL_MEMORY_NORMAL))
+	if (!strcmp(val, EVENT_VAL_MEMORY_NORMAL))
 		hide_image_icon();
-	else if (strcmp(val, EVENT_VAL_MEMORY_HARD_WARNING))
+	else if (!strcmp(val, EVENT_VAL_MEMORY_HARD_WARNING))
 		show_image_icon();
-	else if (strcmp(val, EVENT_VAL_MEMORY_SOFT_WARNING))
+	else if (!strcmp(val, EVENT_VAL_MEMORY_SOFT_WARNING))
 		show_image_icon();
 	else
-		ERR("Unrecognized %s value %s", EVENT_KEY_LOW_MEMORY, val);
+		_E("Unrecognized %s value %s", EVENT_KEY_LOW_MEMORY, val);
 }
 
 static void event_cleaner(void)
@@ -130,7 +133,7 @@ static void event_cleaner(void)
 static int event_listener_add(void)
 {
 	if (handler) {
-		DBG("alreay exist");
+		_D("alreay exist");
 		return FAIL;
 	}
 
@@ -166,7 +169,6 @@ static int unregister_lowmem_module(void)
 
 bool storage_cb (int storage_id, storage_type_e type, storage_state_e state, const char *path, void *user_data)
 {
-
 	if (type == STORAGE_TYPE_INTERNAL) {
 		int *s_id = (int *)user_data;
 		*s_id = storage_id;
