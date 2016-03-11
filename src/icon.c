@@ -32,8 +32,6 @@
 
 #define PRIVATE_DATA_KEY_ICON_B_ANI "p_i_ba"
 
-extern int current_angle;
-
 #define ON_TIMER_ICON_ANIMATION_FRAME_TIME 0.3
 #define UPLOAD_ICON_ANIMATION_SIGNAL 	"indicator.ani.uploading.%d"
 #define DOWNLOAD_ICON_ANIMATION_SIGNAL "indicator.ani.downloading.%d"

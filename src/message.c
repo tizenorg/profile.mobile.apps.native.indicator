@@ -50,7 +50,6 @@ static int msg_type = 0;
 static Ecore_Timer *msg_timer = NULL;
 static Ecore_Timer *ani_temp_timer = NULL;
 
-extern int current_angle;
 static int block_width = 0;
 static int string_width = 0;
 static char* message_buf = NULL;
