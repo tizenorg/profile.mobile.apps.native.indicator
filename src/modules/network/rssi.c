@@ -255,6 +255,9 @@ static void _view_update(void *user_data)
 			_D("Unhandled service state %d", service_state);
 			break;
 		}
+	} else {
+		_D("No SIM");
+		_show_image_icon(user_data, LEVEL_NOSIM);
 	}
 }
 
