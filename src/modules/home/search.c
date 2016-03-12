@@ -154,7 +154,6 @@ static int register_search_module(void *data)
 	ret = util_system_settings_set_changed_cb(SYSTEM_SETTINGS_KEY_LOCK_STATE, _lock_status_cb, data);
 	retvm_if(ret != SYSTEM_SETTINGS_ERROR_NONE, FAIL, "Cannot set callback on lock state change");
 
-
 	_handle_search_icon(data);
 
 	return OK;
@@ -187,9 +186,7 @@ static char *_access_info_cb(void *data, Evas_Object *obj)
 	snprintf(buf, sizeof(buf), "%s, %s, %s", _("IDS_IDLE_SK_SMARTSEARCH_SEARCH"),
 			_("IDS_COM_BODY_BUTTON_T_TTS"), _("IDS_IDLE_BODY_STATUS_BAR_ITEM"));
 
-	tmp = strdup(buf);
-	if (!tmp) return NULL;
-	return tmp;
+	return strdup(buf);
 }
 
 
