@@ -83,12 +83,10 @@ enum app_subdir {
 	APP_DIR_DATA,
 	APP_DIR_CACHE,
 	APP_DIR_RESOURCE,
-	APP_DIR_SHARED_DATA,
 	APP_DIR_SHARED_RESOURCE,
 	APP_DIR_SHARED_TRUSTED,
 	APP_DIR_EXTERNAL_DATA,
 	APP_DIR_EXTERNAL_CACHE,
-	APP_DIR_EXTERNAL_SHARED_DATA,
 };
 
 /**
@@ -107,12 +105,10 @@ const char *util_get_file_path(enum app_subdir dir, const char *relative);
 #define util_get_data_file_path(x) util_get_file_path(APP_DIR_DATA, (x))
 #define util_get_cache_file_path(x) util_get_file_path(APP_DIR_CACHE, (x))
 #define util_get_res_file_path(x) util_get_file_path(APP_DIR_RESOURCE, (x))
-#define util_get_shared_data_file_path(x) util_get_file_path(APP_DIR_SHARED_DATA, (x))
 #define util_get_shared_res_file_path(x) util_get_file_path(APP_DIR_SHARED_RESOURCE, (x))
 #define util_get_trusted_file_path(x) util_get_file_path(APP_DIR_SHARED_TRUSTED, (x))
 #define util_get_external_data_file_path(x) util_get_file_path(APP_DIR_EXTERNAL_DATA, (x))
 #define util_get_external_cache_file_path(x) util_get_file_path(APP_DIR_EXTERNAL_CACHE, (x))
-#define util_get_external_shared_data_file_path(x) util_get_file_path(APP_DIR_EXTERNAL_SHARED_DATA, (x))
 
 /**
  * @brief Allows to set multiple callbacks using wifi_set_connection_state_changed_cb API
