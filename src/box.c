@@ -19,7 +19,7 @@
 
 //#include <Ecore_X.h>
 #include <Eina.h>
-#include <display.h>
+#include <device/display.h>
 
 #include "common.h"
 #include "box.h"
