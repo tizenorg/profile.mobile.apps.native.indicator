@@ -10,8 +10,6 @@ Release:    1
 Group:      utils
 License:    Apache-2.0
 Source0:    %{name}-%{version}.tar.gz
-Source1:    indicator.service.system
-Source2:    indicator.path
 
 %if "%{?profile}" == "wearable"
 ExcludeArch: %{arm} %ix86 x86_64
@@ -100,11 +98,6 @@ cp -f LICENSE %{buildroot}/usr/share/license/%{PKGNAME}
 %define tizen_author_sign 1
 %define tizen_dist_sign 1
 
-mkdir -p %{buildroot}/usr/lib/systemd/user/default.target.wants
-install -m 0644 %SOURCE1 %{buildroot}/usr/lib/systemd/user/indicator.service
-install -m 0644 %SOURCE2 %{buildroot}/usr/lib/systemd/user/indicator.path
-ln -s ../indicator.path %{buildroot}/usr/lib/systemd/user/default.target.wants/
-
 %clean
 rm -rf %{buildroot}
 
@@ -121,9 +114,6 @@ rm -rf %{buildroot}
 /usr/share/packages/%{PKGNAME}.xml
 %attr(775,app,app) %{PREFIXRW}/data
 %attr(755,-,-) %{_sysconfdir}/init.d/indicator
-/usr/lib/systemd/user/indicator.service
-/usr/lib/systemd/user/default.target.wants/indicator.path
-/usr/lib/systemd/user/indicator.path
 /usr/share/license/%{PKGNAME}
 /usr/apps/%{PKGNAME}/author-signature.xml
 /usr/apps/%{PKGNAME}/signature1.xml
