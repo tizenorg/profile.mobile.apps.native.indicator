@@ -132,9 +132,9 @@ static void show_bluetooth_icon(void *data, int status)
 
 static void indicator_bluetooth_adapter_state_changed_cb(int result, bt_adapter_state_e adapter_state, void *user_data)
 {
-	DBG("BT STATUS: %d", adapter_state);
+	_D("BT STATUS: %d", adapter_state);
 	if (adapter_state != BT_ADAPTER_ENABLED) {    // If adapter_state is NULL. hide_image_icon().
-		DBG("BT is not enabled. So hide BT icon.");
+		_D("BT is not enabled. So hide BT icon.");
 		hide_image_icon();
 	} else
 		show_bluetooth_icon(user_data, NO_DEVICE);
@@ -146,11 +146,11 @@ static bool _connected_cb(bt_profile_e profile, void *user_data)
 
 	if (profile == BT_PROFILE_HSP) {
 		*result = (*result | HEADSET_CONNECTED);
-		DBG("BT_HEADSET_CONNECTED(%x)", result);
+		_D("BT_HEADSET_CONNECTED(%x)", result);
 	}
 	else {
 		*result = (*result | DEVICE_CONNECTED);
-		DBG("BT_DEVICE_CONNECTED(%x)", result);
+		_D("BT_DEVICE_CONNECTED(%x)", result);
 	}
 
 	return true;
@@ -167,7 +167,7 @@ static bool _bt_cb(bt_device_info_s *device_info, void *user_data)
 
 static void indicator_bluetooth_change_cb(bool connected, bt_device_connection_info_s *conn_info, void *data)
 {
-	DBG("indicator_bluetooth_change_cb");
+	_D("indicator_bluetooth_change_cb");
 	int ret = 0;
 	int result = NO_DEVICE;
 	bt_adapter_state_e adapter_state = BT_ADAPTER_DISABLED;
@@ -183,7 +183,7 @@ static void indicator_bluetooth_change_cb(bool connected, bt_device_connection_i
 	ret = bt_adapter_get_state(&adapter_state);
 	retif(ret != BT_ERROR_NONE, , "bt_adapter_get_state failed");
 	if (adapter_state != BT_ADAPTER_ENABLED) {  // If adapter_state is NULL. hide_image_icon().
-		DBG("BT is not enabled. So don't need to update BT icon.");
+		_D("BT is not enabled. So don't need to update BT icon.");
 		return;
 	}
 

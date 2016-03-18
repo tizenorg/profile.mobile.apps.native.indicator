@@ -130,7 +130,7 @@ static int indicator_gps_state_get(void)
 
 static void _gps_state_icon_set(int status, void *data)
 {
-	DBG("GPS STATUS: %d", status);
+	_D("GPS STATUS: %d", status);
 	int ret;
 	display_state_e display_state = DISPLAY_STATE_NORMAL;
 

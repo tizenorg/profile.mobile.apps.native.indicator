@@ -625,7 +625,7 @@ unsigned int icon_get_update_flag(void)
 
 void icon_set_update_flag(unsigned int val)
 {
-	DBG("SET UPDATE FLAG %d",val);
+	_D("SET UPDATE FLAG %d",val);
 	update_icon_flag = val;
 }
 
@@ -670,14 +670,14 @@ void icon_reset_list(void)
 	int minictrl_cnt = box_get_count(MINICTRL_LIST);
 
 	if (minictrl_cnt > box_get_minictrl_list()) {
-		DBG("11 minictrl_cnt : %d //  box_get_minictrl_list : %d", minictrl_cnt, box_get_minictrl_list());
+		_D("11 minictrl_cnt : %d //  box_get_minictrl_list : %d", minictrl_cnt, box_get_minictrl_list());
 		while (minictrl_cnt > box_get_minictrl_list()) {
-			DBG("22 minictrl_cnt : %d //  box_get_minictrl_list : %d", minictrl_cnt, box_get_minictrl_list());
+			_D("22 minictrl_cnt : %d //  box_get_minictrl_list : %d", minictrl_cnt, box_get_minictrl_list());
 			icon_s *wish_remove_icon = NULL;
 			wish_remove_icon = list_try_to_find_icon_to_remove(INDICATOR_ICON_AREA_MINICTRL,0);
 
 			if (wish_remove_icon == NULL) {
-				DBG("icon_reset_list NULL!");
+				_D("icon_reset_list NULL!");
 				break;
 			}
 
@@ -750,24 +750,24 @@ static void _show_hide_more_noti(win_info* win, bool show)
 void icon_handle_more_notify_icon(win_info* win)
 {
 	retif(win == NULL, , "Invalid parameter!");
-	DBG("icon_handle_more_notify_icon called !!");
+	_D("icon_handle_more_notify_icon called !!");
 /*	int system_cnt = box_get_count(SYSTEM_LIST);
 	int minictrl_cnt = box_get_count(MINICTRL_LIST);
 	int noti_cnt = list_get_noti_count();
 
-	DBG("System count : %d, Minictrl count : %d, Notification count : %d", system_cnt, minictrl_cnt, noti_cnt);
+	_D("System count : %d, Minictrl count : %d, Notification count : %d", system_cnt, minictrl_cnt, noti_cnt);
 	if(win->type == INDICATOR_WIN_PORT)
 	{
-		DBG("PORT :: %d", (system_cnt + minictrl_cnt + noti_cnt));
+		_D("PORT :: %d", (system_cnt + minictrl_cnt + noti_cnt));
 		if((system_cnt + minictrl_cnt + noti_cnt) > MAX_NOTI_ICONS_PORT)
 		{
 			_show_hide_more_noti(win, true);
-			DBG("PORT :: handle_more_notify_show");
+			_D("PORT :: handle_more_notify_show");
 		}
 		else
 		{*/
 			_show_hide_more_noti(win, false);
-			DBG("PORT :: handle_more_notify_hide");
+			_D("PORT :: handle_more_notify_hide");
 		/*}
 	}*/
 }

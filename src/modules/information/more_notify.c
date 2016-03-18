@@ -98,7 +98,7 @@ static void _handle_more_notify_icon(win_info* win, bool val)
 
 	if (val) {
 		show_image_icon_by_win(win);
-		DBG("_handle_more_notify_show");
+		_D("_handle_more_notify_show");
 	} else {
 		hide_image_icon_by_win(win);
 		_D("_handle_more_notify_hide");
@@ -113,7 +113,7 @@ static void indicator_more_notify_change_cb(const char *key, void *data)
 
 	retm_if(data == NULL, "Invalid parameter!");
 
-	DBG("indicator_more_notify_change_cb");
+	_D("indicator_more_notify_change_cb");
 	win_info* win = NULL;
 
 	if (strcmp(key, INDICATOR_MORE_NOTI) == 0) {

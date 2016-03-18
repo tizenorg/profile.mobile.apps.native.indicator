@@ -74,7 +74,7 @@ char *util_set_label_text_color(const char *txt)
 				LABEL_STRING, FONT_COLOR, txt);
 
 	if (buf_result == EINA_FALSE)
-		DBG("Failed to make label string!");
+		_D("Failed to make label string!");
 	else
 		ret_str = eina_strbuf_string_steal(temp_buf);
 
@@ -97,9 +97,6 @@ void util_signal_emit(void* data, const char *emission, const char *source)
 	ret_if(!data);
 
 	ad = (struct appdata *)data;
-
-	char *filter1 = "indicator.connection.updown";
-	char *filter2 = "indicator.wifi.updown";
 
 	edje = elm_layout_edje_get(ad->win.layout);
 	ret_if(!edje);
@@ -196,7 +193,7 @@ void util_send_status_message_start(void* data,double duration)
 	msg.xwin = ad->active_indi_win;
 	msg.duration = duration;
 
-	DBG("status start %x, %f",ad->active_indi_win,duration);
+	_D("status start %x, %f",ad->active_indi_win,duration);
 	ee_port = ecore_evas_ecore_evas_get(evas_object_evas_get(win->win));
 	ecore_evas_msg_send(ee_port, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_ANI_START, &(msg), sizeof(Indicator_Data_Animation));
 
@@ -218,7 +215,7 @@ void util_launch_search(void* data)
 	}
 
 	if (util_check_system_status() == FAIL) {
-		DBG("util_check_system_status failed");
+		_D("util_check_system_status failed");
 		return;
 	}
 
@@ -484,7 +481,7 @@ void util_start_noti_ani(void* data)
 
 	if(util_check_noti_ani(icon->img_obj.data))
 	{
-		DBG("%s",icon->name);
+		_D("%s",icon->name);
 		if(!strcmp(icon->img_obj.data,"reserved://indicator/ani/downloading"))
 		{
 			icon_ani_set(icon,ICON_ANI_DOWNLOADING);
@@ -507,7 +504,7 @@ void util_stop_noti_ani(void* data)
 	{
 		Evas_Object *img_edje;
 		img_edje = elm_layout_edje_get(icon->img_obj.obj);
-		DBG("%s",icon->name);
+		_D("%s",icon->name);
 		if(!strcmp(icon->img_obj.data,"reserved://indicator/ani/downloading"))
 		{
 			edje_object_signal_emit(img_edje, "indicator.ani.downloading.stop","elm.swallow.icon");

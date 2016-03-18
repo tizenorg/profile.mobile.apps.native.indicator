@@ -131,7 +131,7 @@ static void show_wifi_transfer_icon(void *data)
 	}
 
 	if (transfer_state == type) {
-		DBG("same transfer state");
+		_D("same transfer state");
 		return;
 	}
 

@@ -27,6 +27,7 @@
 #include "main.h"
 #include "modules.h"
 #include "icon.h"
+#include "log.h"
 
 #define ICON_PRIORITY	INDICATOR_PRIORITY_SYSTEM_1
 #define MODULE_NAME		"alarm"
@@ -103,11 +104,11 @@ static void indicator_alarm_change_cb(keynode_t *node, void *data)
 	ret = vconf_get_int(VCONFKEY_ALARM_STATE, &status);
 	if (ret == OK) {
 		if (status > 0) {
-			DBG("ALARM COUNT: %d", status);
+			_D("ALARM COUNT: %d", status);
 			show_image_icon(data);
 			return;
 		}
-		DBG("ALARM COUNT: %d", status);
+		_D("ALARM COUNT: %d", status);
 		hide_image_icon();
 		return;
 	}

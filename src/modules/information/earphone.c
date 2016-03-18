@@ -102,7 +102,7 @@ void check_jack_port(void *data)
 	retm_if(ret != RUNTIME_INFO_ERROR_NONE, "runtime_info_get_value_bool failed[%s]", get_error_message(ret));
 
 	if (is_jack_connected || is_tv_out_connected) {
-		DBG("Earphone connected");
+		_D("Earphone connected");
 		show_image_icon();
 	}
 	else

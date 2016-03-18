@@ -952,7 +952,7 @@ static void _indicator_mouse_up_cb(void *data, Evas * e, Evas_Object * obj, void
 
 		} else if (box_check_more_icon_area(win, ev->canvas.x, ev->canvas.y)) {
 			if(show_hide_pressed == EINA_TRUE) {
-				DBG("pressed area");
+				_D("pressed area");
 				feedback_play_type(FEEDBACK_TYPE_SOUND, FEEDBACK_PATTERN_TAP);
 			}
 		}
@@ -1001,25 +1001,25 @@ static void _indicator_mouse_up_cb(void *data, Evas * e, Evas_Object * obj, void
 static void _app_terminate_cb(app_context_h app_context, app_context_status_e status, void *data)
 {
 	retif(data == NULL, , "Invalid parameter!");
-	DBG("_app_terminate_cb");
+	_D("_app_terminate_cb");
 	char *app_id = NULL;
 	app_context_get_app_id(app_context, &app_id);
 	if (app_id == NULL) {
 		ERR("app_id is null!!");
 		return;
 	} else {
-		DBG("_app_terminate_cb %s",app_id);
+		_D("_app_terminate_cb %s",app_id);
 	}
 
 	if (status == APP_CONTEXT_STATUS_TERMINATED) {
 		if (strcmp(MP_APP_ID,app_id) == 0) {
-			DBG("hide music icon");
+			_D("hide music icon");
 			hide_mp_icon();
 		} else if(strcmp(FMRADIO_APP_ID,app_id) == 0) {
-			DBG("hide fm radio icon");
+			_D("hide fm radio icon");
 			hide_fm_radio_icon();
 		} else if(strcmp(VR_APP_ID,app_id) == 0) {
-			DBG("hide voice recorder icon");
+			_D("hide voice recorder icon");
 			hide_voice_recorder_icon();
 		}
 	}

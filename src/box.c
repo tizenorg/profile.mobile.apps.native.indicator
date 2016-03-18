@@ -382,7 +382,7 @@ extern int box_pack(icon_s *icon)
 			if (data->priority <= icon->priority) {
 				icon->exist_in_view = EINA_TRUE;
 				_view_system_list = eina_list_append_relative_list(_view_system_list, icon, l);
-				DBG("System (eina_list_append_relative_list) %s",icon->name);
+				_D("System (eina_list_append_relative_list) %s",icon->name);
 				goto __CATCH;
 			}
 		}
@@ -390,7 +390,7 @@ extern int box_pack(icon_s *icon)
 		/* if finding condition is failed, append it at tail */
 		icon->exist_in_view = EINA_TRUE;
 		_view_system_list = eina_list_prepend(_view_system_list, icon);
-		DBG("System prepend (Priority low) : %s",icon->name);
+		_D("System prepend (Priority low) : %s",icon->name);
 	} else if(INDICATOR_ICON_AREA_MINICTRL == icon->area) {
 		INFO("Pack to MINICTRL list : %s", icon->name);
 		icon_s *data;
@@ -522,7 +522,7 @@ int box_unpack(icon_s *icon)
 	if (noti_count > 0) {
 		util_signal_emit(_win->data, "indicator.noti.show", "indicator.prog");
 	} else {
-		DBG("Need to stop blink animation and hide icon");
+		_D("Need to stop blink animation and hide icon");
 		util_signal_emit_by_win(_win->data,"indicator.noti.hide", "indicator.prog");
 	}
 #endif
@@ -682,14 +682,14 @@ int box_get_enabled_noti_count(void)
 
 	int system_cnt = box_get_count(SYSTEM_LIST);
 	int minictrl_cnt = box_get_count(MINICTRL_LIST);
-	DBG("System Count : %d, Minictrl Count : %d", system_cnt, minictrl_cnt);
+	_D("System Count : %d, Minictrl Count : %d", system_cnt, minictrl_cnt);
 
 	enabled_noti_cnt = MAX_NOTI_ICONS_PORT - system_cnt - minictrl_cnt;
 	if(enabled_noti_cnt <= 0) {
 		enabled_noti_cnt = 1;    // Notification icon must show at least 1.
 	}
 
-	DBG("Notification icon enabled_noti_cnt %d",enabled_noti_cnt);
+	_D("Notification icon enabled_noti_cnt %d",enabled_noti_cnt);
 
 	return enabled_noti_cnt;
 }

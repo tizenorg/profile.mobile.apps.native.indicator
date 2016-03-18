@@ -76,7 +76,7 @@ static void show_image_icon(void *data, int index)
 		index = NFC_ON;
 
 	if(prevIndex == index) {
-		DBG("same icon");
+		_D("same icon");
 		return;
 	}
 
@@ -99,7 +99,7 @@ static void indicator_nfc_change_cb(bool activated, void *data)
 
 	if(icon_get_update_flag()==0) {
 		updated_while_lcd_off = 1;
-		DBG("need to update %d",updated_while_lcd_off);
+		_D("need to update %d",updated_while_lcd_off);
 		return;
 	}
 	updated_while_lcd_off = 0;

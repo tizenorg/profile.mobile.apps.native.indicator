@@ -405,7 +405,7 @@ static int _is_phone_number(const char *address)
 
 		return 1;
 	} else {
-		DBG("invalid address length [%d]", addr_len);
+		_D("invalid address length [%d]", addr_len);
 		return 0;
 	}
 }
@@ -1026,9 +1026,9 @@ static void _ticker_noti_detailed_changed_cb(void *data, notification_type_e typ
 		ret = notification_op_get_data(op_list, NOTIFICATION_OP_DATA_NOTI, &noti_from_master);
 		ret_if(ret != NOTIFICATION_ERROR_NONE);
 
-		DBG("op_type:%d", op_type);
-		DBG("op_priv_id:%d", priv_id);
-		DBG("noti:%p", noti_from_master);
+		_D("op_type:%d", op_type);
+		_D("op_priv_id:%d", priv_id);
+		_D("noti:%p", noti_from_master);
 
 		if (op_type != NOTIFICATION_OP_INSERT &&
 				op_type != NOTIFICATION_OP_UPDATE) {
@@ -1045,7 +1045,7 @@ static void _ticker_noti_detailed_changed_cb(void *data, notification_type_e typ
 #ifdef QP_EMERGENCY_MODE_ENABLE
 		if (quickpanel_emergency_mode_is_on()) {
 			if (quickpanel_emergency_mode_notification_filter(noti, 1)) {
-				DBG("notification filtered");
+				_D("notification filtered");
 				notification_free(noti);
 				return;
 			}
@@ -1058,7 +1058,7 @@ static void _ticker_noti_detailed_changed_cb(void *data, notification_type_e typ
 	notification_get_display_applist(noti, &applist);
 	if (!((applist & NOTIFICATION_DISPLAY_APP_TICKER)
 				|| (applist & NOTIFICATION_DISPLAY_APP_INDICATOR))) {
-		DBG("displaying ticker option is off");
+		_D("displaying ticker option is off");
 		notification_free(noti);
 		return;
 	}
@@ -1066,7 +1066,7 @@ static void _ticker_noti_detailed_changed_cb(void *data, notification_type_e typ
 	/* Check setting's event notification */
 	ret = _ticker_check_ticker_off(noti);
 	if (ret == 1) {
-		DBG("Disabled tickernoti ret : %d", ret);
+		_D("Disabled tickernoti ret : %d", ret);
 		/* delete temporary here only ticker noti display item */
 		__ticker_only_noti_del(noti);
 		notification_free(noti);
@@ -1077,7 +1077,7 @@ static void _ticker_noti_detailed_changed_cb(void *data, notification_type_e typ
 	/* Skip if previous ticker is still shown */
 /*
 	if (ticker_info->win != NULL) {
-		DBG("delete ticker noti");
+		_D("delete ticker noti");
 		_destroy_tickernoti();
 		ticker_info->win = NULL;
 	}
@@ -1087,7 +1087,7 @@ static void _ticker_noti_detailed_changed_cb(void *data, notification_type_e typ
 	notification_get_property(noti, &flags);
 
 	if (flags & NOTIFICATION_PROP_DISABLE_TICKERNOTI) {
-		DBG("NOTIFICATION_PROP_DISABLE_TICKERNOTI");
+		_D("NOTIFICATION_PROP_DISABLE_TICKERNOTI");
 		__ticker_only_noti_del(noti);
 		notification_free(noti);
 	} else if ((applist & NOTIFICATION_DISPLAY_APP_TICKER)

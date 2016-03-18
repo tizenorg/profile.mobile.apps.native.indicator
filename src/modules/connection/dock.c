@@ -27,6 +27,7 @@
 #include "icon.h"
 #include "modules.h"
 #include "main.h"
+#include "log.h"
 
 #define ICON_PRIORITY	INDICATOR_PRIORITY_NOTI_2
 #define MODULE_NAME		"dock"
@@ -98,7 +99,7 @@ static void indicator_dock_change_cb(keynode_t *node, void *data)
 	ret = vconf_get_int(VCONFKEY_SYSMAN_CRADLE_STATUS, &status);
 	if (ret == OK) {
 		if (status > 0) {
-			DBG("dock Status: %d", status);
+			_D("dock Status: %d", status);
 			show_image_icon();
 		}
 		else

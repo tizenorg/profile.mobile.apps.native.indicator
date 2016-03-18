@@ -27,6 +27,7 @@
 #include "main.h"
 #include "common.h"
 #include "tts.h"
+#include "log.h"
 
 static void _tts_init(void);
 static void _tts_fini(void);
@@ -155,7 +156,7 @@ static void _tts_play(const char *message)
 		return;
 	}
 
-	DBG("adding %s", message);
+	_D("adding %s", message);
 
 	ret = tts_add_text(s_info.tts_handler, message, NULL, TTS_VOICE_TYPE_AUTO, TTS_SPEED_AUTO, &utt);
 	if (TTS_ERROR_NONE != ret){
@@ -193,7 +194,7 @@ static void _tts_state_changed_cb(tts_h tts, tts_state_e previous, tts_state_e c
 {
 	QP_TTS_T *entry = NULL;
 
-	DBG("_tts_state_changed_cb(%d => %d)", previous, current);
+	_D("_tts_state_changed_cb(%d => %d)", previous, current);
 
 	if(previous == TTS_STATE_CREATED && current == TTS_STATE_READY) {
 		entry = _tts_list_get_first();
@@ -210,21 +211,21 @@ static void _tts_state_changed_cb(tts_h tts, tts_state_e previous, tts_state_e c
 
 static void _tts_utt_started_cb(tts_h tts, int utt_id, void *user_data)
 {
-	DBG("_tts_utt_started_cb");
+	_D("_tts_utt_started_cb");
 }
 
 
 
 static void _tts_utt_completed_cb(tts_h tts, int utt_id, void *user_data)
 {
-	DBG("_tts_utt_completed_cb");
+	_D("_tts_utt_completed_cb");
 }
 
 
 
 static void _tts_error_cb(tts_h tts, int utt_id, tts_error_e reason, void* user_data)
 {
-	DBG("_tts_error_cb");
+	_D("_tts_error_cb");
 }
 
 
@@ -316,7 +317,7 @@ static void _tts_fini(void)
 
 static void _tts_vconf_cb(keynode_t *key, void *data){
 	if(_is_screenreader_on() == 0) {
-		DBG("TTS turned off");
+		_D("TTS turned off");
 		_tts_fini();
 	}
 

@@ -98,7 +98,7 @@ static void show_video_icon(void *data)
 
 	ret = vconf_get_bool(VCONF_VIDEO_PLAY_PLAYSTATUS, &status);
 	if (ret == OK) {
-		DBG("VIDEO PLAY state: %d", status);
+		_D("VIDEO PLAY state: %d", status);
 		if (status == 1)
 			show_image_icon(data);
 		else

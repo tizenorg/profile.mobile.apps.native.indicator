@@ -455,7 +455,7 @@ static void show_battery_icon(int mode, int level)
 
 static void show_digits()
 {
-	DBG("Show digits: %d", battery_percentage);
+	_D("Show digits: %d", battery_percentage);
 
 	if (battery_percentage < 10) {
 		digit.img_obj.data = percentage_battery_digit_icon_path[battery_percentage];
@@ -486,7 +486,7 @@ static void show_digits()
 
 static void hide_digits()
 {
-	DBG("Hide digits");
+	_D("Hide digits");
 
 	icon_hide(&digit);
 	icon_hide(&digit_additional);
@@ -614,7 +614,7 @@ static void indicator_battery_update_display(void *data)
 
 	_level.current_percentage = battery_percentage;
 
-	DBG("Battery capacity percentage: %d", battery_percentage);
+	_D("Battery capacity percentage: %d", battery_percentage);
 
 	/* Check Battery Level */
 	level = __battery_percentage_to_level(battery_percentage);
@@ -643,7 +643,7 @@ static void indicator_battery_check_charging(void *data)
 		ERR("Fail to get battery charging status");
 		return;
 	} else {
-		DBG("Battery charge Status: %d", status);
+		_D("Battery charge Status: %d", status);
 	}
 
 	battery_charging = (int)status;

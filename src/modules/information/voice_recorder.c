@@ -122,7 +122,7 @@ static void show_voicerecoder_icon(void *data)
 	}
 	updated_while_lcd_off = 0;
 
-	DBG("VOICE RECORDER state: %d", vr_state);
+	_D("VOICE RECORDER state: %d", vr_state);
 	switch (vr_state) {
 	case VOICE_RECORDER_RECORDING:
 		show_image_icon(data, VOICE_RECORDER_RECORDING);

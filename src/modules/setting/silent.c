@@ -92,7 +92,7 @@ static void hide_image_icon(void)
 {
 	if(prevIndex == -1)
 	{
-		DBG("ALREADY HIDE");
+		_D("ALREADY HIDE");
 		return;
 	}
 
@@ -111,7 +111,7 @@ static bool _get_sound_profile(bool *silent_mode, bool *vib_status)
 	ret = runtime_info_get_value_bool(RUNTIME_INFO_KEY_VIBRATION_ENABLED, vib_status);
 	retvm_if(ret != RUNTIME_INFO_ERROR_NONE, false, "Failed to get vibration status.");
 
-	DBG("CURRENT Sound Status: %d, Vibration Status: %d", (int)(*silent_mode), (int)(*vib_status));
+	_D("CURRENT Sound Status: %d, Vibration Status: %d", (int)(*silent_mode), (int)(*vib_status));
 
 	return true;
 }

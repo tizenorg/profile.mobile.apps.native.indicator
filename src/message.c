@@ -27,6 +27,7 @@
 #include "util.h"
 #include "tts.h"
 #include "box.h"
+#include "log.h"
 
 
 #define MSG_TIMEOUT 3
@@ -127,7 +128,7 @@ static void _show_message(void* data)
 	start_temp_ani_timer(data);
 	if(ad->opacity_mode==INDICATOR_OPACITY_TRANSPARENT)
 	{
-		DBG("Transparent");
+		_D("Transparent");
 		util_signal_emit_by_win(win,"message.show.noeffect", "indicator.prog");
 		evas_object_show(win->win);
 	}
@@ -295,7 +296,7 @@ static void __handle_2line(win_info* win,char* origin, char* part1, char* part2)
 			if(width > block_width)
 			{
 				exceed_index = exceed_index -1;
-				DBG("reduce exceed index(%d)",exceed_index,width);
+				_D("reduce exceed index(%d)",exceed_index,width);
 			}
 			else
 			{
@@ -322,7 +323,7 @@ static void __handle_2line(win_info* win,char* origin, char* part1, char* part2)
 			if(width < block_width)
 			{
 				exceed_index = exceed_index +1;
-				DBG("increase exceed index(%d)",exceed_index,width);
+				_D("increase exceed index(%d)",exceed_index,width);
 			}
 			else
 			{
@@ -436,7 +437,7 @@ static void _handle_message_by_win(char *message, void *data)
 		msg_type = 2;
 	}
 
-	DBG("msg_type %d",  msg_type);
+	_D("msg_type %d",  msg_type);
 
 	_show_message(win);
 
@@ -512,7 +513,7 @@ static void _buf_timeout_callback(void* data)
 	if(current_buf_index<QUEUE_SIZE)
 	if(msg_queue[current_buf_index].data!=NULL)
 	{
-		DBG("index %d,%s",current_buf_index,msg_queue[current_buf_index].data);
+		_D("index %d,%s",current_buf_index,msg_queue[current_buf_index].data);
 		__message_callback(msg_queue[current_buf_index].data,data);
 		if(msg_queue[current_buf_index].data!=NULL)
 		{
@@ -542,7 +543,7 @@ static void _buf_timeout_callback(void* data)
 	}
 	current_buf_cnt = 0;
 	current_buf_index = 0;
-	DBG("quit buffering..");
+	_D("quit buffering..");
 }
 
 
@@ -635,7 +636,7 @@ void indicator_message_display_trigger(void)
 		return;
 	}
 
-	DBG("retry message");
+	_D("retry message");
 
 	msg_retry = 1;
 
