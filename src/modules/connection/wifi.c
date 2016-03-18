@@ -109,7 +109,7 @@ static void show_wifi_transfer_icon(void *data)
 	int status = 0;
 
 	if (vconf_get_int(VCONFKEY_WIFI_TRANSFER_STATE, &status) < 0) {
-		ERR("Error getting VCONFKEY_WIFI_TRANSFER_STATE value");
+		_E("Error getting VCONFKEY_WIFI_TRANSFER_STATE value");
 		return;
 	}
 
@@ -252,28 +252,28 @@ static int register_wifi_module(void *data)
 
 	ret = wifi_set_device_state_changed_cb(_wifi_device_state_changed, data);
 	if (ret != WIFI_ERROR_NONE) {
-		ERR("wifi_set_device_state_changed_cb failed: %s", get_error_message(ret));
+		_E("wifi_set_device_state_changed_cb failed: %s", get_error_message(ret));
 		unregister_wifi_module();
 		return FAIL;
 	}
 
 	ret = util_wifi_set_connection_state_changed_cb(_wifi_connection_state_changed, data);
 	if (ret != 0) {
-		ERR("util_wifi_set_connection_state_changed_cb failed");
+		_E("util_wifi_set_connection_state_changed_cb failed");
 		unregister_wifi_module();
 		return FAIL;
 	}
 
 	ret = wifi_set_rssi_level_changed_cb(_wifi_rssi_level_changed, data);
 	if (ret != WIFI_ERROR_NONE) {
-		ERR("wifi_set_rssi_level_changed_cb failed: %s", get_error_message(ret));
+		_E("wifi_set_rssi_level_changed_cb failed: %s", get_error_message(ret));
 		unregister_wifi_module();
 		return FAIL;
 	}
 
 	ret = vconf_notify_key_changed(VCONFKEY_WIFI_TRANSFER_STATE, _wifi_changed_cb, data);
 	if (ret != WIFI_ERROR_NONE) {
-		ERR("vconf_notify_key_changed failed: %s", get_error_message(ret));
+		_E("vconf_notify_key_changed failed: %s", get_error_message(ret));
 		unregister_wifi_module();
 		return FAIL;
 	}
@@ -292,7 +292,7 @@ static int unregister_wifi_module(void)
 
 	int ret = wifi_deinitialize();
 	if (ret != WIFI_ERROR_NONE) {
-		ERR("wifi_deinitialize failed : %s", get_error_message(ret));
+		_E("wifi_deinitialize failed : %s", get_error_message(ret));
 	}
 
 	return OK;

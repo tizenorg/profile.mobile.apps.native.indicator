@@ -26,6 +26,7 @@
 #include "main.h"
 #include "modules.h"
 #include "icon.h"
+#include "log.h"
 
 #define ICON_PRIORITY	INDICATOR_PRIORITY_NOTI_1
 #define MODULE_NAME		"uploading"
@@ -98,7 +99,7 @@ static void show_uploading_icon(void* data)
 	}
 	else
 	{
-		ERR("show_uploading_icon!, timer");
+		_E("show_uploading_icon!, timer");
 	}
 }
 
@@ -132,7 +133,7 @@ static void indicator_uploading_change_cb(keynode_t *node, void *data)
 	{
 		result = result | status;
 	} else {
-		ERR("Failed to get VCONFKEY_WIFI_DIRECT_SENDING_STATE value");
+		_E("Failed to get VCONFKEY_WIFI_DIRECT_SENDING_STATE value");
 	}*/
 
 	if (result == 1) {

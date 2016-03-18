@@ -112,7 +112,7 @@ static void indicator_alarm_change_cb(keynode_t *node, void *data)
 		hide_image_icon();
 		return;
 	}
-	ERR("Failed to get alarm count!");
+	_E("Failed to get alarm count!");
 	return;
 }
 
@@ -150,7 +150,7 @@ static int register_alarm_module(void *data)
 	set_app_state(data);
 	if (ret < 0)
 	{
-		ERR("Fail to init alarmdb.");
+		_E("Fail to init alarmdb.");
 		return FAIL;
 	}
 

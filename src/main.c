@@ -1005,7 +1005,7 @@ static void _app_terminate_cb(app_context_h app_context, app_context_status_e st
 	char *app_id = NULL;
 	app_context_get_app_id(app_context, &app_id);
 	if (app_id == NULL) {
-		ERR("app_id is null!!");
+		_E("app_id is null!!");
 		return;
 	} else {
 		_D("_app_terminate_cb %s",app_id);

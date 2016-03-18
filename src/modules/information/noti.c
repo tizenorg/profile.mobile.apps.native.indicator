@@ -145,7 +145,7 @@ char *__indicator_ui_get_pkginfo_icon(const char *pkgid)
 	ret = app_info_get_icon(app_info, &icon_path);
 	if (ret != APP_MANAGER_ERROR_NONE) {
 		app_info_destroy(app_info);
-		ERR("app_info_get_icon failed %d", ret);
+		_E("app_info_get_icon failed %d", ret);
 		return NULL;
 	}
 

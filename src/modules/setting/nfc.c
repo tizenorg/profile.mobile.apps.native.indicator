@@ -157,7 +157,7 @@ static int unregister_nfc_module(void)
 	nfc_manager_unset_activation_changed_cb();
 
 	if (get_last_result() != NFC_ERROR_NONE)
-		ERR("Failed to unregister callback!");
+		_E("Failed to unregister callback!");
 
 	return OK;
 }

@@ -172,7 +172,7 @@ void util_battery_percentage_part_content_set(void* data, const char *part, cons
 
 	if (!ecore_file_exists(path))
 	{
-		ERR("icon file does not exist!!: %s",path);
+		_E("icon file does not exist!!: %s",path);
 		return;
 	}
 	elm_image_file_set(icon, path, NULL);
@@ -226,7 +226,7 @@ void util_launch_search(void* data)
 	ret = app_control_send_launch_request(service, NULL, NULL);
 
 	if(ret != APP_CONTROL_ERROR_NONE) {
-		ERR("Cannot launch app");
+		_E("Cannot launch app");
 	}
 
 	app_control_destroy(service);
@@ -253,7 +253,7 @@ int util_check_system_status(void)
 Evas_Object *util_access_object_register(Evas_Object *object, Evas_Object *layout)
 {
 	if ((object == NULL) || (layout == NULL)) {
-		ERR("Access object doesn't exist!!! %x %x",object,layout);
+		_E("Access object doesn't exist!!! %x %x",object,layout);
 		return NULL;
 	}
 
@@ -265,7 +265,7 @@ Evas_Object *util_access_object_register(Evas_Object *object, Evas_Object *layou
 void util_access_object_unregister(Evas_Object *object)
 {
 	if (object == NULL) {
-		ERR("Access object doesn't exist!!! %x",object);
+		_E("Access object doesn't exist!!! %x",object);
 		return NULL;
 	}
 
@@ -277,7 +277,7 @@ void util_access_object_unregister(Evas_Object *object)
 void util_access_object_info_set(Evas_Object *object, int info_type, char *info_text)
 {
 	if ((object == NULL) || (info_text == NULL)) {
-		ERR("Access info set fails %x, %x!!!",object,info_text);
+		_E("Access info set fails %x, %x!!!",object,info_text);
 		return;
 	}
 
@@ -289,7 +289,7 @@ void util_access_object_info_set(Evas_Object *object, int info_type, char *info_
 void util_access_object_activate_cb_set(Evas_Object *object, Elm_Access_Activate_Cb activate_cb, void *cb_data)
 {
 	if ((object == NULL) || (activate_cb == NULL)) {
-		ERR("Access activated cb set fails %x %x!!!",object,activate_cb);
+		_E("Access activated cb set fails %x %x!!!",object,activate_cb);
 		return;
 	}
 
@@ -301,7 +301,7 @@ void util_access_object_activate_cb_set(Evas_Object *object, Elm_Access_Activate
 void util_access_object_info_cb_set(Evas_Object *object, int type, Elm_Access_Info_Cb info_cb, void *cb_data)
 {
 	if ((object == NULL) || (info_cb == NULL)) {
-		ERR("Access info cb set fails  %x %x!!!",object,info_cb);
+		_E("Access info cb set fails  %x %x!!!",object,info_cb);
 		return;
 	}
 
@@ -315,7 +315,7 @@ void util_icon_access_register(icon_s *icon)
 
 	if(icon == NULL)
 	{
-		ERR("ICON NULL");
+		_E("ICON NULL");
 		return;
 	}
 
@@ -339,7 +339,7 @@ void util_icon_access_unregister(icon_s *icon)
 {
 	if(icon == NULL)
 	{
-		ERR("ICON NULL");
+		_E("ICON NULL");
 		return;
 	}
 
@@ -359,7 +359,7 @@ static char* _get_timezone_from_vconf(void)
 	szTimezone = vconf_get_str(VCONFKEY_SETAPPL_TIMEZONE_ID);
 	if(szTimezone == NULL)
 	{
-		ERR("Cannot get time zone.");
+		_E("Cannot get time zone.");
 		return strdup("N/A");
 	}
 
@@ -380,7 +380,7 @@ char* util_get_timezone_str(void)
 	}
 	else
 	{
-		ERR("NO TIMEZONEINFO");
+		_E("NO TIMEZONEINFO");
 		return _get_timezone_from_vconf();
 	}
 	return (char*)strdup(buf+20);	// Asia/Seoul
@@ -610,13 +610,13 @@ const char *util_get_file_path(enum app_subdir dir, const char *relative)
 		prefix = app_get_external_cache_path();
 		break;
 	default:
-		LOGE("Not handled directory type.");
+		_E("Not handled directory type.");
 		return NULL;
 	}
 	size_t res = eina_file_path_join(buf, sizeof(buf), prefix, relative);
 	free(prefix);
 	if (res > sizeof(buf)) {
-		LOGE("Path exceeded PATH_MAX");
+		_E("Path exceeded PATH_MAX");
 		return NULL;
 	}
 
@@ -692,7 +692,7 @@ int util_system_settings_set_changed_cb(system_settings_key_e key, system_settin
 	system_settings_unset_changed_cb(key);
 	int err = system_settings_set_changed_cb(key, _system_settings_cb, NULL);
 	if (err != SYSTEM_SETTINGS_ERROR_NONE) {
-		ERR("system_settings_set_changed_cb failed: %s", get_error_message(err));
+		_E("system_settings_set_changed_cb failed: %s", get_error_message(err));
 		free(handler);
 		return -1;
 	}
@@ -749,7 +749,7 @@ int util_runtime_info_set_changed_cb(runtime_info_key_e key, runtime_info_change
 	runtime_info_unset_changed_cb(key);
 	int err = runtime_info_set_changed_cb(key, _runtime_info_cb, NULL);
 	if (err != RUNTIME_INFO_ERROR_NONE) {
-		ERR("runtime_info_set_changed_cb failed: %s", get_error_message(err));
+		_E("runtime_info_set_changed_cb failed: %s", get_error_message(err));
 		free(handler);
 		return -1;
 	}

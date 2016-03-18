@@ -27,6 +27,7 @@
 #include "icon.h"
 #include "modules.h"
 #include "main.h"
+#include "log.h"
 
 #define ICON_PRIORITY	INDICATOR_PRIORITY_MINICTRL1
 #define MODULE_NAME		"VOICE_RECORDER"

@@ -341,7 +341,7 @@ static void __handle_2line(win_info* win,char* origin, char* part1, char* part2)
 
 	if(exceed_index<0)
 	{
-		ERR("INDEX %d",exceed_index);
+		_E("INDEX %d",exceed_index);
 		goto __CATCH;
 	}
 
@@ -576,7 +576,7 @@ static void __buffer_msg_callback(const char *message, void *data)
 	{
 		if(current_buf_cnt>=QUEUE_SIZE)
 		{
-			ERR("QUEUE FULL");
+			_E("QUEUE FULL");
 			return;
 		}
 		if(msg_queue[current_buf_cnt].data!=NULL)

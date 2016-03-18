@@ -211,11 +211,11 @@ static int unregister_silent_module(void)
 
 	ret = system_settings_unset_changed_cb(SYSTEM_SETTINGS_KEY_SOUND_SILENT_MODE);
 	if (ret != SYSTEM_SETTINGS_ERROR_NONE)
-		ERR("Failed to unset silent mode change callback function.");
+		_E("Failed to unset silent mode change callback function.");
 
 	ret = runtime_info_unset_changed_cb(RUNTIME_INFO_KEY_VIBRATION_ENABLED);
 	if (ret != RUNTIME_INFO_ERROR_NONE)
-		ERR("Failed to unset vibration change callback function.");
+		_E("Failed to unset vibration change callback function.");
 
 	return ret;
 }

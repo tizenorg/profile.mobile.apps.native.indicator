@@ -26,6 +26,7 @@
 #include "main.h"
 #include "modules.h"
 #include "icon.h"
+#include "log.h"
 
 #define ICON_PRIORITY	INDICATOR_PRIORITY_NOTI_1
 #define MODULE_NAME		"downloading"
@@ -98,7 +99,7 @@ static void show_downloading_icon(void* data)
 	}
 	else
 	{
-		ERR("show_downloading_icon!, timer");
+		_E("show_downloading_icon!, timer");
 	}
 }
 
@@ -132,7 +133,7 @@ static void indicator_downloading_change_cb(keynode_t *node, void *data)
 	{
 		result = result | status;
 	} else {
-		ERR("Error getting VCONFKEY_WIFI_DIRECT_RECEIVING_STATE value");
+		_E("Error getting VCONFKEY_WIFI_DIRECT_RECEIVING_STATE value");
 	}*/
 
 	if (result == 1) {
@@ -151,7 +152,7 @@ static void indicator_downloading_pm_state_change_cb(keynode_t *node, void *data
 
 	if (vconf_get_int(VCONFKEY_PM_STATE, &status) < 0)
 	{
-		ERR("Error getting VCONFKEY_PM_STATE value");
+		_E("Error getting VCONFKEY_PM_STATE value");
 
 		if (timer != NULL)
 		{

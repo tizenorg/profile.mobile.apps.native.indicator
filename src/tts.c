@@ -134,7 +134,7 @@ static tts_state_e _tts_state_get(void)
 	if (s_info.tts_handler != NULL) {
 		ret = tts_get_state(s_info.tts_handler, &state);
 		if (TTS_ERROR_NONE != ret){
-			ERR("get state error(%d)", ret);
+			_E("get state error(%d)", ret);
 			return -1;
 		}
 
@@ -152,7 +152,7 @@ static void _tts_play(const char *message)
 	int ret = TTS_ERROR_NONE;
 
 	if (s_info.tts_handler == NULL) {
-		ERR("critical, TTS handler isn't initialized");
+		_E("critical, TTS handler isn't initialized");
 		return;
 	}
 
@@ -160,13 +160,13 @@ static void _tts_play(const char *message)
 
 	ret = tts_add_text(s_info.tts_handler, message, NULL, TTS_VOICE_TYPE_AUTO, TTS_SPEED_AUTO, &utt);
 	if (TTS_ERROR_NONE != ret){
-		ERR("add text error!");
+		_E("add text error!");
 		return;
 	}
 
 	ret = tts_play(s_info.tts_handler);
 	if(ret != TTS_ERROR_NONE) {
-		ERR("play error(%d) state(%d)", ret);
+		_E("play error(%d) state(%d)", ret);
 	}
 }
 
@@ -177,13 +177,13 @@ static void _tts_stop(void)
 	int ret = TTS_ERROR_NONE;
 
 	if (s_info.tts_handler == NULL) {
-		ERR("critical, TTS handler isn't initialized");
+		_E("critical, TTS handler isn't initialized");
 		return;
 	}
 
 	ret = tts_stop(s_info.tts_handler);
 	if (TTS_ERROR_NONE != ret){
-		ERR("failed to stop play:%d", ret);
+		_E("failed to stop play:%d", ret);
 		return;
 	}
 }
@@ -235,22 +235,22 @@ static int _tts_callback_set(tts_h tts, void* data)
 	int ret = 0;
 
 	if (TTS_ERROR_NONE != (ret = tts_set_state_changed_cb(tts, _tts_state_changed_cb, tts))){
-		ERR("set interrupted callback error !!:%d", ret);
+		_E("set interrupted callback error !!:%d", ret);
 		ret = -1;
 	}
 
 	if (TTS_ERROR_NONE != (ret = tts_set_utterance_started_cb(tts, _tts_utt_started_cb, data))) {
-		ERR("set utterance started callback error !!:%d", ret);
+		_E("set utterance started callback error !!:%d", ret);
 		ret = -1;
 	}
 
 	if (TTS_ERROR_NONE != (ret = tts_set_utterance_completed_cb(tts, _tts_utt_completed_cb, data))) {
-		ERR("set utterance completed callback error !!:%d", ret);
+		_E("set utterance completed callback error !!:%d", ret);
 		ret = -1;
 	}
 
 	if (TTS_ERROR_NONE != (ret = tts_set_error_cb(tts, _tts_error_cb, data))) {
-		ERR("set error callback error !!:%d", ret);
+		_E("set error callback error !!:%d", ret);
 		ret = -1;
 	}
 
@@ -267,20 +267,20 @@ static void _tts_init()
 	if (s_info.tts_handler == NULL) {
 		ret = tts_create(&tts);
 		if(ret != TTS_ERROR_NONE) {
-			ERR("tts_create() failed");
+			_E("tts_create() failed");
 			return ;
 		}
 
 		ret = tts_set_mode(tts, TTS_MODE_NOTIFICATION);
 		if(ret != TTS_ERROR_NONE) {
-			ERR("tts_create() failed");
+			_E("tts_create() failed");
 			tts_destroy(s_info.tts_handler);
 			s_info.tts_handler = NULL;
 			return ;
 		}
 
 		if(_tts_callback_set(tts, NULL) != 0) {
-			ERR("_tts_callback_set() failed");
+			_E("_tts_callback_set() failed");
 			tts_destroy(s_info.tts_handler);
 			s_info.tts_handler = NULL;
 			return ;
@@ -288,7 +288,7 @@ static void _tts_init()
 
 		ret = tts_prepare(tts);
 		if(ret != TTS_ERROR_NONE) {
-			ERR("tts_create() failed");
+			_E("tts_create() failed");
 			tts_destroy(s_info.tts_handler);
 			s_info.tts_handler = NULL;
 			return ;
@@ -307,7 +307,7 @@ static void _tts_fini(void)
 	if (s_info.tts_handler != NULL) {
 		ret = tts_destroy(s_info.tts_handler);
 		if(ret != TTS_ERROR_NONE) {
-			ERR("tts_destroy() failed");
+			_E("tts_destroy() failed");
 		}
 		s_info.tts_handler = NULL;
 	}
@@ -368,7 +368,7 @@ void indicator_service_tts_play(char *message) {
 		} else if (state == TTS_STATE_READY) {
 			_tts_play(message);
 		} else {
-			ERR("invalid status: %d", state);
+			_E("invalid status: %d", state);
 		}
 	}
 }

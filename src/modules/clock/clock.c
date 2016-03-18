@@ -485,7 +485,7 @@ void indicator_get_apm_by_region(char* output,void *data)
 	i18n_udate date;
 	ret = i18n_ucalendar_get_now(&date);
 	if (ret != I18N_ERROR_NONE) {
-		ERR("i18n_ucalendar_get_now failed: %d", ret);
+		_E("i18n_ucalendar_get_now failed: %d", ret);
 		free(locale);
 		free(timezone_id);
 		return;
@@ -564,7 +564,7 @@ void indicator_get_time_by_region(char* output,void *data)
 	_D("Locale: %s", locale);
 
 	if (locale == NULL) {
-		ERR("[Error] get value of fail.");
+		_E("[Error] get value of fail.");
 		return;
 	}
 
@@ -600,7 +600,7 @@ void indicator_get_time_by_region(char* output,void *data)
 	i18n_udate date;
 	ret = i18n_ucalendar_get_now(&date);
 	if (ret != I18N_ERROR_NONE) {
-		ERR("i18n_ucalendar_get_now failed: %d", ret);
+		_E("i18n_ucalendar_get_now failed: %d", ret);
 		free(locale);
 		return;
 	}
@@ -664,19 +664,19 @@ static void ICU_set_timezone(const char *timezone)
 	i18n_timezone_h tmz;
 
 	if (timezone == NULL) {
-		ERR("TIMEZONE is NULL");
+		_E("TIMEZONE is NULL");
 		return;
 	}
 
 	int ret = i18n_timezone_create(&tmz, timezone);
 	if (ret != I18N_ERROR_NONE) {
-		ERR("Unable to create timezone handle from %s: %d", timezone, ret);
+		_E("Unable to create timezone handle from %s: %d", timezone, ret);
 		return;
 	}
 
 	ret = i18n_timezone_set_default(tmz);
 	if (ret != I18N_ERROR_NONE) {
-		ERR("Unable to set default timezone to %s: %d", timezone, ret);
+		_E("Unable to set default timezone to %s: %d", timezone, ret);
 	}
 
 	i18n_timezone_destroy(tmz);

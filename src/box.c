@@ -993,7 +993,7 @@ int box_handle_animated_gif(icon_s *icon)
 
 	int ret = device_display_get_state(&state);
 	if (ret != DEVICE_ERROR_NONE) {
-		ERR("device_display_get_state failed: %s", get_error_message(ret));
+		_E("device_display_get_state failed: %s", get_error_message(ret));
 		return FAIL;
 	}
 

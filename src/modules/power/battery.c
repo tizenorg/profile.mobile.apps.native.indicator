@@ -603,7 +603,7 @@ static void indicator_battery_update_display(void *data)
 
 	if (battery_percentage < 0)
 	{
-		ERR("Invalid Battery Capacity in percents: %d", battery_percentage);
+		_E("Invalid Battery Capacity in percents: %d", battery_percentage);
 		return;
 	}
 
@@ -640,7 +640,7 @@ static void indicator_battery_check_charging(void *data)
 
 	if (ret != DEVICE_ERROR_NONE)
 	{
-		ERR("Fail to get battery charging status");
+		_E("Fail to get battery charging status");
 		return;
 	} else {
 		_D("Battery charge Status: %d", status);

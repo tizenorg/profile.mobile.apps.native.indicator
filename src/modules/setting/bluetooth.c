@@ -240,9 +240,9 @@ static int register_bluetooth_module(void *data)
 
 	// Register bluetooth adapter state call-back.
 	ret = bt_initialize();
-	if(ret != BT_ERROR_NONE) ERR("bt_initialize failed");
+	if(ret != BT_ERROR_NONE) _E("bt_initialize failed");
 	ret = bt_adapter_set_state_changed_cb(indicator_bluetooth_adapter_state_changed_cb, data);
-	if(ret != BT_ERROR_NONE) ERR("bt_adapter_set_state_changed_cb failed");
+	if(ret != BT_ERROR_NONE) _E("bt_adapter_set_state_changed_cb failed");
 
 	ret = bt_device_set_connection_state_changed_cb(indicator_bluetooth_change_cb, data);
 	if (ret != BT_ERROR_NONE)
@@ -263,9 +263,9 @@ static int unregister_bluetooth_module(void)
 
 	// Unregister bluetooth adapter state call-back.
 	ret = bt_adapter_unset_state_changed_cb();
-	if(ret != BT_ERROR_NONE) ERR("bt_adapter_unset_state_changed_cb failed");
+	if(ret != BT_ERROR_NONE) _E("bt_adapter_unset_state_changed_cb failed");
 	ret = bt_deinitialize();
-	if(ret != BT_ERROR_NONE) ERR("bt_deinitialize failed");
+	if(ret != BT_ERROR_NONE) _E("bt_deinitialize failed");
 
 	return ret;
 }

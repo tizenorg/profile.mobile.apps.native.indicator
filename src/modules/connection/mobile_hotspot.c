@@ -239,21 +239,21 @@ static int _tethering_data_init(tethering_data_t *data)
 	ret = tethering_set_connection_state_changed_cb(data->handle, TETHERING_TYPE_ALL, _tethering_data_connection_state_changed, data);
 	if (ret != TETHERING_ERROR_NONE) {
 		tethering_destroy(data->handle);
-		ERR("tethering_set_connection_state_changed_cb failed: %d", get_error_message(ret));
+		_E("tethering_set_connection_state_changed_cb failed: %d", get_error_message(ret));
 		return FAIL;
 	}
 
 	ret = tethering_set_enabled_cb(data->handle, TETHERING_TYPE_ALL, _tethering_data_enabled_changed, data);
 	if (ret != TETHERING_ERROR_NONE) {
 		tethering_destroy(data->handle);
-		ERR("tethering_set_enabled_cb failed: %d", get_error_message(ret));
+		_E("tethering_set_enabled_cb failed: %d", get_error_message(ret));
 		return FAIL;
 	}
 
 	ret = tethering_set_disabled_cb(data->handle, TETHERING_TYPE_ALL, _tethering_data_disabled, data);
 	if (ret != TETHERING_ERROR_NONE) {
 		tethering_destroy(data->handle);
-		ERR("tethering_set_disabled_cb failed: %d", get_error_message(ret));
+		_E("tethering_set_disabled_cb failed: %d", get_error_message(ret));
 		return FAIL;
 	}
 
