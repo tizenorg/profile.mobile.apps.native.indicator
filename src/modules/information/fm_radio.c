@@ -85,7 +85,7 @@ static void indicator_fm_radio_change_cb(void *data)
 	retif(data == NULL, , "Invalid parameter!");
 
 	if (ret == OK) {
-		INFO("FM_RADIO state: %d", status);
+		_D("FM_RADIO state: %d", status);
 		if (status == 1)
 			show_image_icon(data);
 		else

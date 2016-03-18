@@ -392,7 +392,7 @@ extern int box_pack(icon_s *icon)
 		_view_system_list = eina_list_prepend(_view_system_list, icon);
 		_D("System prepend (Priority low) : %s",icon->name);
 	} else if(INDICATOR_ICON_AREA_MINICTRL == icon->area) {
-		INFO("Pack to MINICTRL list : %s", icon->name);
+		_D("Pack to MINICTRL list : %s", icon->name);
 		icon_s *data;
 		Eina_List *l;
 

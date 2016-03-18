@@ -104,7 +104,7 @@ static void indicator_nfc_change_cb(bool activated, void *data)
 	}
 	updated_while_lcd_off = 0;
 
-	INFO("NFC STATUS is %s", (activated)? "activated" : "not activated");
+	_D("NFC STATUS is %s", (activated)? "activated" : "not activated");
 
 	if (activated) {
 		/* Show NFC Icon */

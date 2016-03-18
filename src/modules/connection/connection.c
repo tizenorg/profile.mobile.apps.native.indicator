@@ -326,7 +326,7 @@ static void _wifi_status_changed_cb(wifi_connection_state_e state, wifi_ap_h ap,
 
 	ret = wifi_get_connection_state(&status);
 	if (ret == WIFI_ERROR_NONE) {
-		INFO("[CB] WIFI Status: %d", status);
+		_D("[CB] WIFI Status: %d", status);
 		if (status == WIFI_CONNECTION_STATE_CONNECTED) {
 			_D("[CB] WIFI connected, so hide connection icon");
 			hide_image_icon();
