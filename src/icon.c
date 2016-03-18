@@ -582,7 +582,7 @@ void icon_hide(icon_s *icon)
 		ret = box_unpack(icon);
 
 		if (ret == FAIL)
-			SECURE_ERR("Failed to unpack %s!", icon->name);
+			_E("Failed to unpack!");
 
 		_show_others_in_same_priority(icon);
 
@@ -646,7 +646,6 @@ void icon_reset_list(void)
 
 			box_unpack(wish_remove_icon);
 			system_cnt = box_get_count(SYSTEM_LIST);
-			SECURE_DBG("system remove %s %d",wish_remove_icon->name,system_cnt);
 		}
 	} else {
 		while (system_cnt < box_get_enabled_system_count()) {
@@ -662,9 +661,7 @@ void icon_reset_list(void)
 
 			box_pack_append(wish_add_icon);
 			system_cnt = box_get_count(SYSTEM_LIST);
-			SECURE_DBG("system insert %s %d",wish_add_icon->name,system_cnt);
 			if(system_cnt == box_get_enabled_system_count()) {
-				SECURE_DBG("quit adding %d %d",system_cnt,box_get_enabled_system_count());
 				break;
 			}
 		}
@@ -686,7 +683,6 @@ void icon_reset_list(void)
 
 			box_unpack(wish_remove_icon);
 			minictrl_cnt = box_get_count(MINICTRL_LIST);
-			SECURE_DBG("minictrl remove %s %d",wish_remove_icon->name,minictrl_cnt);
 		}
 	} else {
 		while (minictrl_cnt < box_get_minictrl_list()) {
@@ -702,9 +698,7 @@ void icon_reset_list(void)
 
 			box_pack_append(wish_add_icon);
 			minictrl_cnt = box_get_count(MINICTRL_LIST);
-			SECURE_DBG("minictrl insert %s %d",wish_add_icon->name,minictrl_cnt);
 			if(minictrl_cnt==box_get_minictrl_list()) {
-				SECURE_DBG("quit adding %d %d", minictrl_cnt, box_get_minictrl_list());
 				break;
 			}
 		}
@@ -723,7 +717,6 @@ void icon_reset_list(void)
 
 			box_unpack(wish_remove_icon);
 			noti_cnt = box_get_count(NOTI_LIST);
-			SECURE_DBG("remove %s %d",wish_remove_icon->name,noti_cnt);
 		}
 	} else {
 		while (noti_cnt < box_get_enabled_noti_count()) {
@@ -739,9 +732,7 @@ void icon_reset_list(void)
 
 			box_pack_append(wish_add_icon);
 			noti_cnt = box_get_count(NOTI_LIST);
-			SECURE_DBG("insert %s %d", wish_add_icon->name, noti_cnt);
 			if(noti_cnt==box_get_enabled_noti_count()) {
-				SECURE_DBG("quit adding %d %d", noti_cnt, box_get_enabled_noti_count());
 				break;
 			}
 		}

@@ -489,7 +489,6 @@ int box_unpack(icon_s *icon)
 {
 	retv_if(!icon, 0);
 
-	SECURE_DBG("[box_unpack] %s!",icon->name);
 	switch (icon->area) {
 	case INDICATOR_ICON_AREA_FIXED:
 		icon->exist_in_view = EINA_FALSE;

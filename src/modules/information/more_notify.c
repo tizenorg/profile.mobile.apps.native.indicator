@@ -119,7 +119,7 @@ static void indicator_more_notify_change_cb(const char *key, void *data)
 	if (strcmp(key, INDICATOR_MORE_NOTI) == 0) {
 		win = &(ad->win);
 	} else {
-		SECURE_ERR("invalid val %s",key);
+		_E("invalid value!");
 		return;
 	}
 

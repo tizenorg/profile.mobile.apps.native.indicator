@@ -411,8 +411,6 @@ static void _handle_message_by_win(char *message, void *data)
 	}
 	msg_type = 0;
 
-	SECURE_DBG("message %s", message);
-
 	temp = strdup(message);
 
 	util_char_replace(temp,'\n',' ');
@@ -580,7 +578,6 @@ static void __buffer_msg_callback(const char *message, void *data)
 			ERR("QUEUE FULL");
 			return;
 		}
-		SECURE_DBG("buffering... %d,%s",current_buf_cnt,message);
 		if(msg_queue[current_buf_cnt].data!=NULL)
 		{
 			free(msg_queue[current_buf_cnt].data);

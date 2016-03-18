@@ -100,10 +100,6 @@ void util_signal_emit(void* data, const char *emission, const char *source)
 
 	char *filter1 = "indicator.connection.updown";
 	char *filter2 = "indicator.wifi.updown";
-	if (strncmp(filter1, emission, strlen(filter1)) != 0
-			&& strncmp(filter2, emission, strlen(filter2)) != 0) {
-		SECURE_DBG("emission %s",emission);
-	}
 
 	edje = elm_layout_edje_get(ad->win.layout);
 	ret_if(!edje);
@@ -572,10 +568,9 @@ int util_dynamic_state_get(void)
 
 Ecore_File_Monitor* util_file_monitor_add(const char* file_path, Ecore_File_Monitor_Cb callback_func, void *ad)
 {
-	SECURE_DBG("File path : %s", file_path);
 	Ecore_File_Monitor* pFileMonitor = NULL;
 	pFileMonitor = ecore_file_monitor_add(file_path, callback_func, ad);
-	if(pFileMonitor == NULL) SECURE_DBG("ecore_file_monitor_add return NULL !!");
+	if(pFileMonitor == NULL) _D("ecore_file_monitor_add return NULL !!");
 
 	return pFileMonitor;
 }
