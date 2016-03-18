@@ -93,7 +93,7 @@ static void indicator_dock_change_cb(keynode_t *node, void *data)
 	int status;
 	int ret;
 
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 
 	/* First, check dock status */
 	ret = vconf_get_int(VCONFKEY_SYSMAN_CRADLE_STATUS, &status);
@@ -117,7 +117,7 @@ static int register_dock_module(void *data)
 {
 	int r = 0, ret = -1;
 
-	retif(data == NULL, FAIL, "Invalid parameter!");
+	retvm_if(data == NULL, FAIL, "Invalid parameter!");
 
 	set_app_state(data);
 

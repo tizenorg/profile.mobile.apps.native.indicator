@@ -51,10 +51,10 @@ typedef struct _QP_TTS {
 static QP_TTS_T * _tts_entry_new(int id, char *message)
 {
 	QP_TTS_T *entry = NULL;
-	retif(message == NULL, NULL, "NULL message");
+	retvm_if(message == NULL, NULL, "NULL message");
 
 	entry = (QP_TTS_T *)calloc(1, sizeof(QP_TTS_T));
-	retif(entry == NULL, NULL, "failed to memory allocation");
+	retvm_if(entry == NULL, NULL, "failed to memory allocation");
 
 	entry->id = id;
 	entry->message = strdup(message);
@@ -66,7 +66,7 @@ static QP_TTS_T * _tts_entry_new(int id, char *message)
 
 static void  _tts_entry_del(QP_TTS_T *entry)
 {
-	retif(entry == NULL, ,"invalid parameter");
+	retm_if(entry == NULL,"invalid parameter");
 
 	if (entry->message != NULL) {
 		free(entry->message);
@@ -86,7 +86,7 @@ static QP_TTS_T *_tts_list_get_first(void)
 
 static void _tts_list_add(QP_TTS_T *entry)
 {
-	retif(entry == NULL, ,"invalid parameter");
+	retm_if(entry == NULL, "invalid parameter");
 
 	s_info.list = eina_list_prepend(s_info.list, entry);
 }
@@ -95,7 +95,7 @@ static void _tts_list_add(QP_TTS_T *entry)
 
 static void _tts_list_del(QP_TTS_T *entry)
 {
-	retif(entry == NULL, ,"invalid parameter");
+	retm_if(entry == NULL, "invalid parameter");
 
 	s_info.list = eina_list_remove(s_info.list, entry);
 }
@@ -119,7 +119,7 @@ static int _is_screenreader_on(void)
 	int ret = -1, status = 0;
 
 	ret = vconf_get_bool(VCONFKEY_SETAPPL_ACCESSIBILITY_TTS, &status);
-	retif(ret != 0, 0, "failed to read VCONFKEY_SETAPPL_ACCESSIBILITY_TTS %d", ret);
+	retvm_if(ret != 0, 0, "failed to read VCONFKEY_SETAPPL_ACCESSIBILITY_TTS %d", ret);
 
 	return status;
 }
@@ -349,7 +349,7 @@ void indicator_service_tts_fini(void *data) {
 void indicator_service_tts_play(char *message) {
 	tts_state_e state = 0;
 	QP_TTS_T *entry = NULL;
-	retif(message == NULL, ,"invalid parameter");
+	retm_if(message == NULL, "invalid parameter");
 
 	if (_is_screenreader_on() == 1) {
 		_tts_init();

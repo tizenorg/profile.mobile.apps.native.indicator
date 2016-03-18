@@ -120,7 +120,7 @@ static void indicator_uploading_change_cb(keynode_t *node, void *data)
 	/*int status = 0;*/
 	int result = 0;
 
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 
 	if(icon_get_update_flag()==0)
 	{
@@ -148,7 +148,7 @@ static void indicator_uploading_pm_state_change_cb(keynode_t *node, void *data)
 {
 	int status = 0;
 
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 
 	vconf_get_int(VCONFKEY_PM_STATE, &status);
 
@@ -176,7 +176,7 @@ static int register_uploading_module(void *data)
 {
 	int ret = 0;
 
-	retif(data == NULL, FAIL, "Invalid parameter!");
+	retvm_if(data == NULL, FAIL, "Invalid parameter!");
 
 	set_app_state(data);
 

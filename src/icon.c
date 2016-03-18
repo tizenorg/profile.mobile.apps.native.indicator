@@ -275,7 +275,7 @@ char *icon_label_set(const char *buf, char *font_name, char *font_style, int fon
 	int label_font_size = ICON_FONT_SIZE;
 	Eina_Bool buf_result = EINA_FALSE;
 
-	retif(data == NULL || buf == NULL, NULL, "Invalid parameter!");
+	retvm_if(data == NULL || buf == NULL, NULL, "Invalid parameter!");
 
 	temp_buf = eina_strbuf_new();
 	if (font_name != NULL)
@@ -328,7 +328,7 @@ Eina_Bool icon_add(win_info *win, icon_s *icon)
 Eina_Bool icon_del(icon_s *icon)
 {
 	Evas_Object *icon_obj;
-	retif(icon == NULL, EINA_FALSE, "Invalid parameter!");
+	retvm_if(icon == NULL, EINA_FALSE, "Invalid parameter!");
 
 	_reset_on_timer_icon_animation(icon);
 
@@ -356,7 +356,7 @@ static int _show_others_in_same_priority(icon_s *icon)
 {
 	icon_s *wish_add_icon;
 	int area = icon->area;
-	retif(icon == NULL, FAIL, "Invalid parameter!");
+	retvm_if(icon == NULL, FAIL, "Invalid parameter!");
 
 	wish_add_icon = list_try_to_find_icon_to_show(icon->area, icon->priority);
 	if (wish_add_icon == NULL)
@@ -387,7 +387,7 @@ static int _show_others_in_same_priority(icon_s *icon)
 static int _hide_others_in_view_list(icon_s *icon)
 {
 	icon_s *wish_remove_icon = NULL;
-	retif(icon == NULL, FAIL, "Invalid parameter!");
+	retvm_if(icon == NULL, FAIL, "Invalid parameter!");
 
 	if (INDICATOR_ICON_AREA_SYSTEM == icon->area || INDICATOR_ICON_AREA_NOTI == icon->area || INDICATOR_ICON_AREA_MINICTRL == icon->area)
 	{
@@ -406,19 +406,19 @@ static int _hide_others_in_view_list(icon_s *icon)
 			wish_remove_icon = list_try_to_find_icon_to_remove(INDICATOR_ICON_AREA_NOTI,0);
 			box_unpack(wish_remove_icon);
 
-			retif(wish_remove_icon == NULL, FAIL, "Unexpected Error : CAN_ADD_WITH_DEL_NOTI");
+			retvm_if(wish_remove_icon == NULL, FAIL, "Unexpected Error : CAN_ADD_WITH_DEL_NOTI");
 			break;
 		case CAN_ADD_WITH_DEL_SYSTEM:
 			wish_remove_icon = list_try_to_find_icon_to_remove(INDICATOR_ICON_AREA_SYSTEM,0);
 
 			box_unpack(wish_remove_icon);
-			retif(wish_remove_icon == NULL, FAIL, "Unexpected Error : CAN_ADD_WITH_DEL_SYSTEM");
+			retvm_if(wish_remove_icon == NULL, FAIL, "Unexpected Error : CAN_ADD_WITH_DEL_SYSTEM");
 			break;
 		case CAN_ADD_WITH_DEL_MINICTRL:
 			wish_remove_icon = list_try_to_find_icon_to_remove(INDICATOR_ICON_AREA_MINICTRL,0);
 
 			box_unpack(wish_remove_icon);
-			retif(wish_remove_icon == NULL, FAIL, "Unexpected Error : CAN_ADD_WITH_DEL_MINICTRL");
+			retvm_if(wish_remove_icon == NULL, FAIL, "Unexpected Error : CAN_ADD_WITH_DEL_MINICTRL");
 			break;
 		case CAN_ADD_WITHOUT_DEL:
 			break;
@@ -484,7 +484,7 @@ static int _icon_update(icon_s *icon)
 	Evas_Object *img_eo;
 	char buf[PATH_MAX];
 
-	retif(icon == NULL || icon->ad == NULL, FAIL, "Invalid parameter!");
+	retvm_if(icon == NULL || icon->ad == NULL, FAIL, "Invalid parameter!");
 	ad = icon->ad;
 
 	memset(buf, 0x00, sizeof(buf));
@@ -509,13 +509,13 @@ static int _icon_update(icon_s *icon)
 		util_start_noti_ani(icon);
 
 		/* Check absolute path */
-		retif(icon->img_obj.data == NULL, FAIL,"Invalid parameter!");
+		retvm_if(icon->img_obj.data == NULL, FAIL,"Invalid parameter!");
 
 		if (strncmp(icon->img_obj.data, "/", 1) != 0) {
 			snprintf(buf, sizeof(buf), "%s/%s", util_get_icon_dir(),icon->img_obj.data);
 			elm_image_file_set(img_eo, buf, NULL);
 		} else {
-			retif(icon->img_obj.data[0] == '\0', FAIL,"Invalid parameter!");
+			retvm_if(icon->img_obj.data[0] == '\0', FAIL,"Invalid parameter!");
 			elm_image_file_set(img_eo, icon->img_obj.data, NULL);
 		}
 
@@ -573,7 +573,7 @@ void icon_hide(icon_s *icon)
 {
 	int ret;
 
-	retif(icon == NULL, , "Invalid parameter!");
+	retm_if(icon == NULL, "Invalid parameter!");
 	struct appdata *ad = (struct appdata *)icon->ad;
 
 	icon->wish_to_show = EINA_FALSE;
@@ -598,7 +598,7 @@ void icon_event_count_set(int count, void *data)
 	static int _cnt = -1;
 	char buf[1024];
 
-	retif(data == NULL, , "Cannot get layout!");
+	retm_if(data == NULL, "Cannot get layout!");
 
 	if (_cnt != count) {
 		memset(buf, 0x00, sizeof(buf));
@@ -749,7 +749,7 @@ static void _show_hide_more_noti(win_info* win, bool show)
 
 void icon_handle_more_notify_icon(win_info* win)
 {
-	retif(win == NULL, , "Invalid parameter!");
+	retm_if(win == NULL, "Invalid parameter!");
 	_D("icon_handle_more_notify_icon called !!");
 /*	int system_cnt = box_get_count(SYSTEM_LIST);
 	int minictrl_cnt = box_get_count(MINICTRL_LIST);
@@ -778,7 +778,7 @@ void* icon_util_make(void* input)
 {
 	icon_s *icon = (icon_s *)input;
 
-	retif(input == NULL,NULL, "Invalid parameter!");
+	retvm_if(input == NULL, NULL, "Invalid parameter!");
 
 	icon_s *obj = NULL;
 	obj = calloc(1, sizeof(icon_s));

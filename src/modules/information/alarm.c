@@ -99,7 +99,7 @@ static void indicator_alarm_change_cb(keynode_t *node, void *data)
 	int status = 0;
 	int ret;
 
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 
 	ret = vconf_get_int(VCONFKEY_ALARM_STATE, &status);
 	if (ret == OK) {
@@ -145,7 +145,7 @@ static int register_alarm_module(void *data)
 {
 	int ret = -1;
 
-	retif(data == NULL, FAIL, "Invalid parameter!");
+	retvm_if(data == NULL, FAIL, "Invalid parameter!");
 
 	set_app_state(data);
 	if (ret < 0)

@@ -167,7 +167,7 @@ static bool _storage_register_cb(int storage_id, storage_type_e type, storage_st
 static int register_ext_storage_module(void *data)
 {
 	int ret;
-	retif(data == NULL, FAIL, "Invalid parameter!");
+	retvm_if(data == NULL, FAIL, "Invalid parameter!");
 
 	set_app_state(data);
 

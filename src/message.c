@@ -66,7 +66,7 @@ static MsgBuf msg_queue[QUEUE_SIZE];
 
 static Eina_Bool _ani_temp_timeout_cb(void *data)
 {
-	retif(data == NULL, ECORE_CALLBACK_CANCEL, "Invalid parameter!");
+	retvm_if(data == NULL, ECORE_CALLBACK_CANCEL, "Invalid parameter!");
 
 	if (ani_temp_timer)
 	{
@@ -81,7 +81,7 @@ static Eina_Bool _ani_temp_timeout_cb(void *data)
 
 void start_temp_ani_timer(void* data)
 {
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 	win_info* win = (win_info*)data;
 
 	if(ani_temp_timer != NULL)
@@ -97,7 +97,7 @@ void start_temp_ani_timer(void* data)
 
 static void _hide_message(void* data)
 {
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 	win_info* win = NULL;
 	win = (win_info*)data;
 
@@ -111,7 +111,7 @@ static void _hide_message(void* data)
 
 static void _hide_message_all(void* data)
 {
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 
 	util_signal_emit(data,"message.line2.hide.noeffect","indicator.prog");
 }
@@ -120,7 +120,7 @@ static void _hide_message_all(void* data)
 
 static void _show_message(void* data)
 {
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 	win_info* win = NULL;
 	win = (win_info*)data;
 	struct appdata* ad = (struct appdata*)win->data;
@@ -142,7 +142,7 @@ static void _show_message(void* data)
 
 static void _show_message_line2(void* data)
 {
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 	win_info* win = NULL;
 	win = (win_info*)data;
 
@@ -156,7 +156,7 @@ static void _show_message_line2(void* data)
 
 static Eina_Bool _msg_timeout_cb(void *data)
 {
-	retif(data == NULL, ECORE_CALLBACK_CANCEL, "Invalid parameter!");
+	retvm_if(data == NULL, ECORE_CALLBACK_CANCEL, "Invalid parameter!");
 
 	win_info* win = (win_info*)data;
 
@@ -191,7 +191,7 @@ static Eina_Bool _msg_timeout_cb(void *data)
 
 static Eina_Bool _retry_timeout_cb(void *data)
 {
-	retif(data == NULL, EINA_TRUE , "Invalid parameter!");
+	retvm_if(data == NULL, EINA_TRUE, "Invalid parameter!");
 
 	if(message_buf!=NULL)
 	{
@@ -215,8 +215,8 @@ static int __get_block_width(void* data, const char* part)
 	Evas_Object * eo = NULL;
 	int geo_dx = 0;
 	int geo_dy = 0;
-	retif(data == NULL,-1, "Invalid parameter!");
-	retif(part == NULL,-1, "Invalid parameter!");
+	retvm_if(data == NULL,-1, "Invalid parameter!");
+	retvm_if(part == NULL,-1, "Invalid parameter!");
 
 	win_info* win = (win_info*)data;
 
@@ -234,8 +234,8 @@ static int __get_string_width(void* data, const char* part)
 	Evas_Object * eo = NULL;
 	int text_dx = 0;
 	int text_dy = 0;
-	retif(data == NULL,-1, "Invalid parameter!");
-	retif(part == NULL,-1, "Invalid parameter!");
+	retvm_if(data == NULL,-1, "Invalid parameter!");
+	retvm_if(part == NULL,-1, "Invalid parameter!");
 
 	win_info* win = (win_info*)data;
 
@@ -250,9 +250,9 @@ static int __get_string_width(void* data, const char* part)
 
 static void __handle_2line(win_info* win,char* origin, char* part1, char* part2)
 {
-	retif(origin == NULL, , "Invalid parameter!");
-	retif(part1 == NULL, , "Invalid parameter!");
-	retif(part2 == NULL, , "Invalid parameter!");
+	retm_if(origin == NULL, "Invalid parameter!");
+	retm_if(part1 == NULL, "Invalid parameter!");
+	retm_if(part2 == NULL, "Invalid parameter!");
 	int index = 0;
 	Eina_Unicode *uni_out = NULL;
 	Eina_Unicode buf[STR_BUF_SIZE] = {0,};
@@ -401,8 +401,8 @@ static void _handle_message_by_win(char *message, void *data)
 	char *text = NULL;
 	double time_clk = 0;
 	char* temp = NULL;
-	retif(message == NULL, , "Invalid parameter!");
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(message == NULL, "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 
 	win = data;
 
@@ -551,7 +551,7 @@ static void _buf_timeout_callback(void* data)
 static void __buffer_msg_callback(const char *message, void *data)
 {
 	struct appdata *ad = NULL;
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 	ad = data;
 
 	win_info *win = NULL;

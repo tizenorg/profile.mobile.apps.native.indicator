@@ -80,7 +80,7 @@ static void _update_window(win_info *win)
 	int root_w, root_h;
 	Ecore_X_Window xwin, root;
 
-	retif(win == NULL, , "Invalid parameter!");
+	retm_if(win == NULL, "Invalid parameter!");
 
 	xwin = elm_win_xwindow_get(win->win);
 	if (!xwin) return;
@@ -985,7 +985,7 @@ int box_handle_animated_gif(icon_s *icon)
 	display_state_e state;
 	Evas_Object *icon_eo = evas_object_data_get(icon->img_obj.obj, DATA_KEY_IMG_ICON);
 
-	retif(icon == NULL, FAIL, "Invalid parameter!");
+	retvm_if(icon == NULL, FAIL, "Invalid parameter!");
 
 	if (elm_image_animated_available_get(icon_eo) == EINA_FALSE) {
 		return FAIL;

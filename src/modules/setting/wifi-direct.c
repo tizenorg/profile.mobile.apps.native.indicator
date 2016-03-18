@@ -175,7 +175,7 @@ static int register_wifi_direct_module(void *data)
 {
 	int ret;
 
-	retif(data == NULL, FAIL, "Invalid parameter!");
+	retvm_if(data == NULL, FAIL, "Invalid parameter!");
 
 	set_app_state(data);
 

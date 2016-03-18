@@ -67,7 +67,7 @@ char *util_set_label_text_color(const char *txt)
 	Eina_Bool buf_result = EINA_FALSE;
 	char *ret_str = NULL;
 
-	retif(txt == NULL, NULL, "Invalid parameter!");
+	retvm_if(txt == NULL, NULL, "Invalid parameter!");
 
 	temp_buf = eina_strbuf_new();
 	buf_result = eina_strbuf_append_printf(temp_buf,
@@ -108,10 +108,10 @@ void util_signal_emit(void* data, const char *emission, const char *source)
 void util_part_text_emit(void* data, const char *part, const char *text)
 {
 	struct appdata *ad = (struct appdata *)data;
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 	Evas_Object *edje;
 
-	retif(ad->win.layout == NULL, , "Invalid parameter!");
+	retm_if(ad->win.layout == NULL, "Invalid parameter!");
 	edje = elm_layout_edje_get(ad->win.layout);
 	edje_object_part_text_set(edje, part, text);
 }
@@ -139,10 +139,10 @@ void util_signal_emit_by_win(void* data, const char *emission, const char *sourc
 void util_part_text_emit_by_win(void* data, const char *part, const char *text)
 {
 	win_info *win = (win_info*)data;
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 	Evas_Object *edje;
 
-	retif(win->layout == NULL, , "Invalid parameter!");
+	retm_if(win->layout == NULL, "Invalid parameter!");
 	edje = elm_layout_edje_get(win->layout);
 	edje_object_part_text_set(edje, part, text);
 }
@@ -152,14 +152,14 @@ void util_part_text_emit_by_win(void* data, const char *part, const char *text)
 void util_battery_percentage_part_content_set(void* data, const char *part, const char *img_path)
 {
 	struct appdata *ad = (struct appdata *)data;
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 	Evas_Object *icon = NULL;
 	char path[PATH_MAX];
 
-	retif(ad->win.layout == NULL, , "Invalid parameter!");
+	retm_if(ad->win.layout == NULL, "Invalid parameter!");
 
 	icon = elm_image_add(ad->win.layout);
-	retif(!icon, , "Cannot create elm icon object!");
+	retm_if(!icon, "Cannot create elm icon object!");
 
 	if (strncmp(img_path, "/", 1) != 0)
 	{
@@ -186,7 +186,7 @@ void util_send_status_message_start(void* data,double duration)
 {
 	Ecore_Evas *ee_port;
 	win_info* win = (win_info*)data;
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 	struct appdata *ad = win->data;
 	Indicator_Data_Animation msg = {0,};
 
@@ -422,8 +422,8 @@ int util_get_block_width(void* data, const char* part)
 	Evas_Object * eo = NULL;
 	int geo_dx = 0;
 	int geo_dy = 0;
-	retif(data == NULL,-1, "Invalid parameter!");
-	retif(part == NULL,-1, "Invalid parameter!");
+	retvm_if(data == NULL, -1, "Invalid parameter!");
+	retvm_if(part == NULL, -1, "Invalid parameter!");
 
 	win_info* win = (win_info*)data;
 
@@ -441,8 +441,8 @@ int util_get_string_width(void* data, const char* part)
 	Evas_Object * eo = NULL;
 	int text_dx = 0;
 	int text_dy = 0;
-	retif(data == NULL,-1, "Invalid parameter!");
-	retif(part == NULL,-1, "Invalid parameter!");
+	retvm_if(data == NULL, -1, "Invalid parameter!");
+	retvm_if(part == NULL, -1, "Invalid parameter!");
 
 	win_info* win = (win_info*)data;
 
@@ -477,7 +477,7 @@ int util_check_noti_ani(const char* path)
 void util_start_noti_ani(void* data)
 {
 	icon_s *icon = (icon_s *)data;
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 
 	if(util_check_noti_ani(icon->img_obj.data))
 	{
@@ -498,7 +498,7 @@ void util_start_noti_ani(void* data)
 void util_stop_noti_ani(void* data)
 {
 	icon_s *icon = (icon_s *)data;
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 
 	if(util_check_noti_ani(icon->img_obj.data))
 	{
@@ -520,7 +520,7 @@ void util_stop_noti_ani(void* data)
 
 void util_char_replace(char *text, char s, char t)
 {
-	retif(text == NULL, , "invalid argument");
+	retm_if(text == NULL, "invalid argument");
 
 	int i = 0, text_len = 0;
 

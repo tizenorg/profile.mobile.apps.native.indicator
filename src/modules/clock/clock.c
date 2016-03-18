@@ -367,7 +367,7 @@ static int register_clock_module(void *data)
 	int ret = -1;
 	int i;
 
-	retif(data == NULL, FAIL, "Invalid parameter!");
+	retvm_if(data == NULL, FAIL, "Invalid parameter!");
 
 	set_app_state(data);
 
@@ -428,8 +428,8 @@ void indicator_get_apm_by_region(char* output,void *data)
 {
 	int ret = -1;
 	char *locale = NULL;
-	retif(data == NULL, , "Data parameter is NULL");
-	retif(output == NULL, , "output parameter is NULL");
+	retm_if(data == NULL, "Data parameter is NULL");
+	retm_if(output == NULL, "output parameter is NULL");
 
 	i18n_uchar u_custom_skeleton[CLOCK_STR_LEN] = { 0, };
 	i18n_uchar u_timezone[64] = {0,};
@@ -532,8 +532,8 @@ void indicator_get_time_by_region(char* output,void *data)
 {
 	int ret = -1;
 	char *locale;
-	retif(data == NULL, , "Data parameter is NULL");
-	retif(output == NULL, , "output parameter is NULL");
+	retm_if(data == NULL, "Data parameter is NULL");
+	retm_if(output == NULL, "output parameter is NULL");
 
 	i18n_uchar u_custom_skeleton[CLOCK_STR_LEN] = { 0, };
 	i18n_uchar u_timezone[64] = {0,};
@@ -706,7 +706,7 @@ static char *_access_info_cb(void *data, Evas_Object *obj)
 	time_t ctime;
 	int len;
 
-	retif(data == NULL,NULL, "Invalid parameter!");
+	retvm_if(data == NULL, NULL, "Invalid parameter!");
 	char *timezone = util_get_timezone_str();
 	ICU_set_timezone(timezone);
 	if(timezone!=NULL)
@@ -792,7 +792,7 @@ static int register_clock_tts(void *data,int win_type)
 {
 	int r = 0, ret = -1;
 
-	retif(data == NULL, FAIL, "Invalid parameter!");
+	retvm_if(data == NULL, FAIL, "Invalid parameter!");
 
 	Evas_Object *to = NULL;
 	Evas_Object *ao = NULL;

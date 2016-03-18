@@ -82,7 +82,7 @@ static void indicator_fm_radio_change_cb(void *data)
 	int ret = -1;
 
 	_D("indicator_fm_radio_change_cb called!");
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 
 	if (ret == OK) {
 		_D("FM_RADIO state: %d", status);
@@ -112,7 +112,7 @@ static int register_fm_radio_module(void *data)
 	int ret = -1;
 
 	_D("register_fm_radio_module called!");
-	retif(data == NULL, FAIL, "Invalid parameter!");
+	retvm_if(data == NULL, FAIL, "Invalid parameter!");
 
 	set_app_state(data);
 

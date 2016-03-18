@@ -88,7 +88,7 @@ static void show_video_icon(void *data)
 	int status;
 	int ret;
 
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 
 
 	if (icon_get_update_flag() == 0) {
@@ -111,7 +111,7 @@ static void show_video_icon(void *data)
 
 static void indicator_video_play_change_cb(keynode_t *node, void *data)
 {
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 
 	show_video_icon(data);
 
@@ -136,7 +136,7 @@ static int wake_up_cb(void *data)
 static int register_video_play_module(void *data)
 {
 
-	retif(data == NULL, FAIL, "Invalid parameter!");
+	retvm_if(data == NULL, FAIL, "Invalid parameter!");
 
 	set_app_state(data);
 

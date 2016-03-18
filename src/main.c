@@ -242,7 +242,7 @@ static void _change_opacity(void *data, enum indicator_opacity_mode mode)
 {
 	struct appdata *ad = NULL;
 	const char *signal = NULL;
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 
 	ad = data;
 
@@ -864,7 +864,7 @@ static void _indicator_mouse_down_cb(void *data, Evas * e, Evas_Object * obj, vo
 	win_info *win = (win_info*)data;
 	Evas_Event_Mouse_Down *ev = NULL;
 
-	retif(data == NULL || event == NULL, , "Invalid parameter!");
+	retm_if(data == NULL || event == NULL, "Invalid parameter!");
 	ev = event;
 
 	win->mouse_event.x = ev->canvas.x;
@@ -915,7 +915,7 @@ static void _indicator_mouse_move_cb(void *data, Evas * e, Evas_Object * obj, vo
 	Evas_Event_Mouse_Move *ev = NULL;
 	win_info* win = (win_info*)data;
 
-	retif(data == NULL || event == NULL, , "Invalid parameter!");
+	retm_if(data == NULL || event == NULL, "Invalid parameter!");
 
 	ev = event;
 
@@ -937,7 +937,7 @@ static void _indicator_mouse_up_cb(void *data, Evas * e, Evas_Object * obj, void
 	Evas_Event_Mouse_Up *ev = NULL;
 	win_info *win = (win_info *)data;
 
-	retif(data == NULL || event == NULL, , "Invalid parameter!");
+	retm_if(data == NULL || event == NULL, "Invalid parameter!");
 
 	ev = event;
 
@@ -1000,7 +1000,7 @@ static void _indicator_mouse_up_cb(void *data, Evas * e, Evas_Object * obj, void
 #if 0
 static void _app_terminate_cb(app_context_h app_context, app_context_status_e status, void *data)
 {
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 	_D("_app_terminate_cb");
 	char *app_id = NULL;
 	app_context_get_app_id(app_context, &app_id);
@@ -1031,7 +1031,7 @@ static void _app_terminate_cb(app_context_h app_context, app_context_status_e st
 
 static void register_app_terminate_cb(void* data)
 {
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 	app_manager_set_app_context_status_cb(_app_terminate_cb, MP_APP_ID, data);
 	app_manager_set_app_context_status_cb(_app_terminate_cb, FMRADIO_APP_ID, data);
 	app_manager_set_app_context_status_cb(_app_terminate_cb, VR_APP_ID, data);

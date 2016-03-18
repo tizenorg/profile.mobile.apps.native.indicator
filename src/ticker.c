@@ -282,7 +282,7 @@ static char *_get_pkginfo_icon(const char *pkgid)
 	char *icon_path = NULL;
 	app_info_h app_info;
 
-	retif(pkgid == NULL, NULL, "invalid parameter");
+	retvm_if(pkgid == NULL, NULL, "invalid parameter");
 
 	ret = app_info_create(pkgid, &app_info);
 	if (ret != APP_MANAGER_ERROR_NONE) {
@@ -309,7 +309,7 @@ static Evas_Object *_ticker_create_icon(Evas_Object *parent, notification_h noti
 	char *icon_default = NULL;
 	Evas_Object *icon = NULL;
 
-	retif(noti == NULL || parent == NULL, NULL, "Invalid parameter!");
+	retvm_if(noti == NULL || parent == NULL, NULL, "Invalid parameter!");
 
 	notification_get_pkgname(noti, &pkgname);
 	if (NOTIFICATION_ERROR_NONE != notification_get_image(noti, NOTIFICATION_IMAGE_TYPE_ICON, &icon_path)) {
@@ -365,7 +365,7 @@ static inline void _strbuf_add(Eina_Strbuf *str_buf, char *text, const char *del
 static int _is_phone_number(const char *address)
 {
 	int digit_count = 0;
-	retif(address == NULL, 0, "address is NULL");
+	retvm_if(address == NULL, 0, "address is NULL");
 
 	int addr_len = 0;
 	addr_len = strlen(address);
@@ -419,8 +419,8 @@ static void _char_set(char *dst, char s, int index, int size)
 
 static void _make_phone_number_tts(char *dst, const char *src, int size)
 {
-	retif(dst == NULL, , "invalid argument");
-	retif(src == NULL, , "invalid argument");
+	retm_if(dst == NULL, "invalid argument");
+	retm_if(src == NULL, "invalid argument");
 
 	int no_op = 0;
 	int i = 0, j = 0, text_len = 0;
@@ -489,7 +489,7 @@ static char *_ticker_get_label_layout_default(notification_h noti, int is_screen
 	Eina_Strbuf *line2 = NULL;
 	char buf[TICKER_MSG_LEN] = { 0, };
 
-	retif(noti == NULL, NULL, "Invalid parameter!");
+	retvm_if(noti == NULL, NULL, "Invalid parameter!");
 
 	notification_get_text_domain(noti, &domain, &dir);
 	if (domain != NULL && dir != NULL) {
@@ -642,7 +642,7 @@ static char *_ticker_get_label_layout_single(notification_h noti, int is_screenr
 	const char *tmp = NULL;
 	char buf[TICKER_MSG_LEN] = { 0, };
 
-	retif(noti == NULL, NULL, "Invalid parameter!");
+	retvm_if(noti == NULL, NULL, "Invalid parameter!");
 
 	notification_get_text_domain(noti, &domain, &dir);
 	if (domain != NULL && dir != NULL)
@@ -763,7 +763,7 @@ static char *_ticker_get_text(notification_h noti, int is_screenreader, char **l
 	char *result = NULL;
 	notification_ly_type_e layout;
 
-	retif(noti == NULL, NULL, "Invalid parameter!");
+	retvm_if(noti == NULL, NULL, "Invalid parameter!");
 
 	notification_get_layout(noti, &layout);
 
