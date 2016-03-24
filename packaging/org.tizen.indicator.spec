@@ -1,7 +1,6 @@
 %define PKGNAME org.tizen.indicator
 %define PREFIX    /usr/apps/%{PKGNAME}
 %define RESDIR    %{PREFIX}/res
-%define PREFIXRW  /opt/usr/apps/%{PKGNAME}
 
 Name:       org.tizen.indicator
 Summary:    indicator window
@@ -80,7 +79,7 @@ CFLAGS+=" -fvisibility=hidden"; export CFLAGS
 CXXFLAGS+=" -fvisibility=hidden -fvisibility-inlines-hidden"; export CXXFLAGS
 FFLAGS+=" -fvisibility=hidden -fvisibility-inlines-hidden"; export FFLAGS
 
-cmake . -DCMAKE_INSTALL_PREFIX=%{PREFIX} -DCMAKE_INSTALL_PREFIXRW=%{PREFIXRW} \
+cmake . -DCMAKE_INSTALL_PREFIX=%{PREFIX}
 
 
 make %{?jobs:-j%jobs}
@@ -112,7 +111,6 @@ rm -rf %{buildroot}
 %{RESDIR}/icons/*
 %{RESDIR}/edje/*
 /usr/share/packages/%{PKGNAME}.xml
-%attr(775,app,app) %{PREFIXRW}/data
 %attr(755,-,-) %{_sysconfdir}/init.d/indicator
 /usr/share/license/%{PKGNAME}
 /usr/apps/%{PKGNAME}/author-signature.xml
