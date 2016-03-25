@@ -232,7 +232,7 @@ static int register_silent_module(void *data)
 
 static int unregister_silent_module(void)
 {
-	int ret;
+	int ret = 0;
 
 //	ret = system_settings_unset_changed_cb(SYSTEM_SETTINGS_KEY_SOUND_SILENT_MODE);
 	ret = ret | vconf_ignore_key_changed(VCONFKEY_SETAPPL_VIBRATION_STATUS_BOOL, _silent_change_cb);

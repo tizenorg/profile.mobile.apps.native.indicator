@@ -158,7 +158,7 @@ static void _indicator_notify_pm_state_cb(keynode_t * node, void *data)
 			nIndex = 1;
 		{
 			char temp[30] = {0,};
-			sprintf(temp,"indicator.padding.resize.%d",nMove);
+			snprintf(temp,sizeof(temp), "indicator.padding.resize.%d",nMove);
 			util_signal_emit(data,temp,"indicator.prog");
 		}
 		icon_set_update_flag(0);
@@ -617,7 +617,7 @@ static void _create_layout(struct appdata *ad, const char *file, const char *gro
 	if (EINA_FALSE == elm_layout_file_set(ad->win.layout, file, group)) {
 		_E("Failed to set file of layout");
 		evas_object_del(ad->win.layout);
-		return NULL;
+		return;
 	}
 
 	evas_object_size_hint_min_set(ad->win.layout, ad->win.w, ad->win.h);
@@ -1047,6 +1047,7 @@ static bool app_create(void *data)
 {
 	struct appdata *ad = data;
 	int ret;
+	char buf[256];
 
 	retv_if(!ad, false);
 
@@ -1060,15 +1061,15 @@ static bool app_create(void *data)
 
 	ret = sigemptyset(&act.sa_mask);
 	if (ret < 0) {
-		_E("Failed to sigemptyset[%s]", strerror(errno));
+		_E("Failed to sigemptyset[%s]", strerror_r(errno, buf, sizeof(buf)));
 	}
 	ret = sigaddset(&act.sa_mask, SIGTERM);
 	if (ret < 0) {
-		_E("Failed to sigaddset[%s]", strerror(errno));
+		_E("Failed to sigaddset[%s]", strerror_r(errno, buf, sizeof(buf)));
 	}
 	ret = sigaction(SIGTERM, &act, NULL);
 	if (ret < 0) {
-		_E("Failed to sigaction[%s]", strerror(errno));
+		_E("Failed to sigaction[%s]", strerror_r(errno, buf, sizeof(buf)));
 	}
 
 	ret = _start_indicator(ad);

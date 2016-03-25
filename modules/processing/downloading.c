@@ -83,9 +83,12 @@ static void hide_image_icon(void)
 
 static Eina_Bool show_downloading_icon_cb(void* data)
 {
+	int possible_index = 0;
 
 	show_image_icon(data,icon_index);
-	icon_index = (++icon_index % ICON_NUM) ? icon_index : 0;
+	possible_index = ++icon_index % ICON_NUM;
+
+	icon_index = possible_index ? icon_index : 0;
 
 	return ECORE_CALLBACK_RENEW;
 }
@@ -135,12 +138,13 @@ static void indicator_downloading_change_cb(keynode_t *node, void *data)
 		ERR("Error getting VCONFKEY_WIFI_DIRECT_RECEIVING_STATE value");
 	}*/
 
-	if (result == 1) {
+/*	if (result == 1) {
 		show_downloading_icon(data);
 
 	} else {
 		hide_downloading_icon();
-	}
+	}*/
+	hide_downloading_icon();
 }
 
 static void indicator_downloading_pm_state_change_cb(keynode_t *node, void *data)

@@ -108,7 +108,13 @@ static void show_mp_icon(void* data)
 	FILE* fp = fopen(MUSIC_STATUS_FILE_PATH, "r");
 	char line[MAX_NAM_LEN+1];
 
-	retif(data == NULL, , "Invalid parameter!");
+	if (data == NULL) {
+		ERR("Invalid parameter");
+		if (fp) {
+			fclose(fp);
+		}
+		return;
+	}
 	if(fp == NULL)
 	{
 		ERR("Invalid file path !!");
