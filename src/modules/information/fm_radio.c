@@ -26,6 +26,7 @@
 #include "icon.h"
 #include "modules.h"
 #include "main.h"
+#include "log.h"
 
 #define ICON_PRIORITY	INDICATOR_PRIORITY_MINICTRL2
 #define MODULE_NAME		"FM_Radio"
@@ -80,11 +81,11 @@ static void indicator_fm_radio_change_cb(void *data)
 	int status = 0;
 	int ret = -1;
 
-	DBG("indicator_fm_radio_change_cb called!");
-	retif(data == NULL, , "Invalid parameter!");
+	_D("indicator_fm_radio_change_cb called!");
+	retm_if(data == NULL, "Invalid parameter!");
 
 	if (ret == OK) {
-		INFO("FM_RADIO state: %d", status);
+		_D("FM_RADIO state: %d", status);
 		if (status == 1)
 			show_image_icon(data);
 		else
@@ -92,7 +93,7 @@ static void indicator_fm_radio_change_cb(void *data)
 	}
 	else
 	{
-		DBG("Fail to get vconfkey (ret:%d)", ret);
+		_D("Fail to get vconfkey (ret:%d)", ret);
 	}
 	return;
 }
@@ -110,8 +111,8 @@ static int register_fm_radio_module(void *data)
 {
 	int ret = -1;
 
-	DBG("register_fm_radio_module called!");
-	retif(data == NULL, FAIL, "Invalid parameter!");
+	_D("register_fm_radio_module called!");
+	retvm_if(data == NULL, FAIL, "Invalid parameter!");
 
 	set_app_state(data);
 
@@ -124,7 +125,7 @@ static int register_fm_radio_module(void *data)
 
 static int unregister_fm_radio_module(void)
 {
-	DBG("unregister_fm_radio_module called!");
+	_D("unregister_fm_radio_module called!");
 
 	return OK;
 }

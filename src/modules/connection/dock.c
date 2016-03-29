@@ -27,6 +27,7 @@
 #include "icon.h"
 #include "modules.h"
 #include "main.h"
+#include "log.h"
 
 #define ICON_PRIORITY	INDICATOR_PRIORITY_NOTI_2
 #define MODULE_NAME		"dock"
@@ -92,13 +93,13 @@ static void indicator_dock_change_cb(keynode_t *node, void *data)
 	int status;
 	int ret;
 
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 
 	/* First, check dock status */
 	ret = vconf_get_int(VCONFKEY_SYSMAN_CRADLE_STATUS, &status);
 	if (ret == OK) {
 		if (status > 0) {
-			DBG("dock Status: %d", status);
+			_D("dock Status: %d", status);
 			show_image_icon();
 		}
 		else
@@ -116,7 +117,7 @@ static int register_dock_module(void *data)
 {
 	int r = 0, ret = -1;
 
-	retif(data == NULL, FAIL, "Invalid parameter!");
+	retvm_if(data == NULL, FAIL, "Invalid parameter!");
 
 	set_app_state(data);
 

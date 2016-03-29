@@ -455,7 +455,7 @@ static void show_battery_icon(int mode, int level)
 
 static void show_digits()
 {
-	DBG("Show digits: %d", battery_percentage);
+	_D("Show digits: %d", battery_percentage);
 
 	if (battery_percentage < 10) {
 		digit.img_obj.data = percentage_battery_digit_icon_path[battery_percentage];
@@ -486,7 +486,7 @@ static void show_digits()
 
 static void hide_digits()
 {
-	DBG("Hide digits");
+	_D("Hide digits");
 
 	icon_hide(&digit);
 	icon_hide(&digit_additional);
@@ -509,7 +509,7 @@ static void indicator_battery_level_init(void)
 static Eina_Bool indicator_battery_charging_ani_cb(void *data)
 {
 
-	retif(data == NULL, FAIL, "Invalid parameter!");
+	retvm_if(data == NULL, FAIL, "Invalid parameter!");
 
 	if (_level.current_level == _level.max_level) {
 		aniIndex = _level.max_level;
@@ -532,7 +532,7 @@ static Eina_Bool indicator_battery_charging_ani_cb(void *data)
 
 static int indicator_change_battery_image_level(void *data, int level)
 {
-	retif(data == NULL, FAIL, "Invalid parameter!");
+	retvm_if(data == NULL, FAIL, "Invalid parameter!");
 
 	if(is_battery_percentage_shown)
 	{
@@ -588,7 +588,7 @@ static void indicator_battery_update_display(void *data)
 	int ret;
 	int level = 0;
 
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 
 	if(icon_get_update_flag()==0)
 	{
@@ -603,7 +603,7 @@ static void indicator_battery_update_display(void *data)
 
 	if (battery_percentage < 0)
 	{
-		ERR("Invalid Battery Capacity in percents: %d", battery_percentage);
+		_E("Invalid Battery Capacity in percents: %d", battery_percentage);
 		return;
 	}
 
@@ -614,7 +614,7 @@ static void indicator_battery_update_display(void *data)
 
 	_level.current_percentage = battery_percentage;
 
-	DBG("Battery capacity percentage: %d", battery_percentage);
+	_D("Battery capacity percentage: %d", battery_percentage);
 
 	/* Check Battery Level */
 	level = __battery_percentage_to_level(battery_percentage);
@@ -640,10 +640,10 @@ static void indicator_battery_check_charging(void *data)
 
 	if (ret != DEVICE_ERROR_NONE)
 	{
-		ERR("Fail to get battery charging status");
+		_E("Fail to get battery charging status");
 		return;
 	} else {
-		DBG("Battery charge Status: %d", status);
+		_D("Battery charge Status: %d", status);
 	}
 
 	battery_charging = (int)status;
@@ -679,7 +679,7 @@ static void indicator_battery_pm_state_change_cb(device_callback_e type, void *v
 {
 	display_state_e display_state;
 
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 
 	display_state = device_display_get_state(&display_state);
 
@@ -717,7 +717,7 @@ static int register_battery_module(void *data)
 	int r = 0;
 	int ret = -1;
 
-	retif(data == NULL, FAIL, "Invalid parameter!");
+	retvm_if(data == NULL, FAIL, "Invalid parameter!");
 
 	/* DO NOT change order of below fuctions */
 	set_app_state(data);

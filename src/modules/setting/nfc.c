@@ -76,7 +76,7 @@ static void show_image_icon(void *data, int index)
 		index = NFC_ON;
 
 	if(prevIndex == index) {
-		DBG("same icon");
+		_D("same icon");
 		return;
 	}
 
@@ -95,16 +95,16 @@ static void hide_image_icon(void)
 
 static void indicator_nfc_change_cb(bool activated, void *data)
 {
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 
 	if(icon_get_update_flag()==0) {
 		updated_while_lcd_off = 1;
-		DBG("need to update %d",updated_while_lcd_off);
+		_D("need to update %d",updated_while_lcd_off);
 		return;
 	}
 	updated_while_lcd_off = 0;
 
-	INFO("NFC STATUS is %s", (activated)? "activated" : "not activated");
+	_D("NFC STATUS is %s", (activated)? "activated" : "not activated");
 
 	if (activated) {
 		/* Show NFC Icon */
@@ -136,12 +136,12 @@ static int register_nfc_module(void *data)
 	int ret;
 	bool status;
 
-	retif(data == NULL, FAIL, "Invalid parameter!");
+	retvm_if(data == NULL, FAIL, "Invalid parameter!");
 
 	set_app_state(data);
 
 	ret = nfc_manager_set_activation_changed_cb(indicator_nfc_change_cb, data);
-	retif(ret != NFC_ERROR_NONE, FAIL, "Failed to register callback!");
+	retvm_if(ret != NFC_ERROR_NONE, FAIL, "Failed to register callback!");
 
 	status = nfc_manager_is_activated();
 	ret = get_last_result();
@@ -157,7 +157,7 @@ static int unregister_nfc_module(void)
 	nfc_manager_unset_activation_changed_cb();
 
 	if (get_last_result() != NFC_ERROR_NONE)
-		ERR("Failed to unregister callback!");
+		_E("Failed to unregister callback!");
 
 	return OK;
 }

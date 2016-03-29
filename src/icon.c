@@ -32,8 +32,6 @@
 
 #define PRIVATE_DATA_KEY_ICON_B_ANI "p_i_ba"
 
-extern int current_angle;
-
 #define ON_TIMER_ICON_ANIMATION_FRAME_TIME 0.3
 #define UPLOAD_ICON_ANIMATION_SIGNAL 	"indicator.ani.uploading.%d"
 #define DOWNLOAD_ICON_ANIMATION_SIGNAL "indicator.ani.downloading.%d"
@@ -277,7 +275,7 @@ char *icon_label_set(const char *buf, char *font_name, char *font_style, int fon
 	int label_font_size = ICON_FONT_SIZE;
 	Eina_Bool buf_result = EINA_FALSE;
 
-	retif(data == NULL || buf == NULL, NULL, "Invalid parameter!");
+	retvm_if(data == NULL || buf == NULL, NULL, "Invalid parameter!");
 
 	temp_buf = eina_strbuf_new();
 	if (font_name != NULL)
@@ -330,7 +328,7 @@ Eina_Bool icon_add(win_info *win, icon_s *icon)
 Eina_Bool icon_del(icon_s *icon)
 {
 	Evas_Object *icon_obj;
-	retif(icon == NULL, EINA_FALSE, "Invalid parameter!");
+	retvm_if(icon == NULL, EINA_FALSE, "Invalid parameter!");
 
 	_reset_on_timer_icon_animation(icon);
 
@@ -358,7 +356,7 @@ static int _show_others_in_same_priority(icon_s *icon)
 {
 	icon_s *wish_add_icon;
 	int area = icon->area;
-	retif(icon == NULL, FAIL, "Invalid parameter!");
+	retvm_if(icon == NULL, FAIL, "Invalid parameter!");
 
 	wish_add_icon = list_try_to_find_icon_to_show(icon->area, icon->priority);
 	if (wish_add_icon == NULL)
@@ -389,7 +387,7 @@ static int _show_others_in_same_priority(icon_s *icon)
 static int _hide_others_in_view_list(icon_s *icon)
 {
 	icon_s *wish_remove_icon = NULL;
-	retif(icon == NULL, FAIL, "Invalid parameter!");
+	retvm_if(icon == NULL, FAIL, "Invalid parameter!");
 
 	if (INDICATOR_ICON_AREA_SYSTEM == icon->area || INDICATOR_ICON_AREA_NOTI == icon->area || INDICATOR_ICON_AREA_MINICTRL == icon->area)
 	{
@@ -408,19 +406,19 @@ static int _hide_others_in_view_list(icon_s *icon)
 			wish_remove_icon = list_try_to_find_icon_to_remove(INDICATOR_ICON_AREA_NOTI,0);
 			box_unpack(wish_remove_icon);
 
-			retif(wish_remove_icon == NULL, FAIL, "Unexpected Error : CAN_ADD_WITH_DEL_NOTI");
+			retvm_if(wish_remove_icon == NULL, FAIL, "Unexpected Error : CAN_ADD_WITH_DEL_NOTI");
 			break;
 		case CAN_ADD_WITH_DEL_SYSTEM:
 			wish_remove_icon = list_try_to_find_icon_to_remove(INDICATOR_ICON_AREA_SYSTEM,0);
 
 			box_unpack(wish_remove_icon);
-			retif(wish_remove_icon == NULL, FAIL, "Unexpected Error : CAN_ADD_WITH_DEL_SYSTEM");
+			retvm_if(wish_remove_icon == NULL, FAIL, "Unexpected Error : CAN_ADD_WITH_DEL_SYSTEM");
 			break;
 		case CAN_ADD_WITH_DEL_MINICTRL:
 			wish_remove_icon = list_try_to_find_icon_to_remove(INDICATOR_ICON_AREA_MINICTRL,0);
 
 			box_unpack(wish_remove_icon);
-			retif(wish_remove_icon == NULL, FAIL, "Unexpected Error : CAN_ADD_WITH_DEL_MINICTRL");
+			retvm_if(wish_remove_icon == NULL, FAIL, "Unexpected Error : CAN_ADD_WITH_DEL_MINICTRL");
 			break;
 		case CAN_ADD_WITHOUT_DEL:
 			break;
@@ -486,7 +484,7 @@ static int _icon_update(icon_s *icon)
 	Evas_Object *img_eo;
 	char buf[PATH_MAX];
 
-	retif(icon == NULL || icon->ad == NULL, FAIL, "Invalid parameter!");
+	retvm_if(icon == NULL || icon->ad == NULL, FAIL, "Invalid parameter!");
 	ad = icon->ad;
 
 	memset(buf, 0x00, sizeof(buf));
@@ -511,13 +509,13 @@ static int _icon_update(icon_s *icon)
 		util_start_noti_ani(icon);
 
 		/* Check absolute path */
-		retif(icon->img_obj.data == NULL, FAIL,"Invalid parameter!");
+		retvm_if(icon->img_obj.data == NULL, FAIL,"Invalid parameter!");
 
 		if (strncmp(icon->img_obj.data, "/", 1) != 0) {
 			snprintf(buf, sizeof(buf), "%s/%s", util_get_icon_dir(),icon->img_obj.data);
 			elm_image_file_set(img_eo, buf, NULL);
 		} else {
-			retif(icon->img_obj.data[0] == '\0', FAIL,"Invalid parameter!");
+			retvm_if(icon->img_obj.data[0] == '\0', FAIL,"Invalid parameter!");
 			elm_image_file_set(img_eo, icon->img_obj.data, NULL);
 		}
 
@@ -575,7 +573,7 @@ void icon_hide(icon_s *icon)
 {
 	int ret;
 
-	retif(icon == NULL, , "Invalid parameter!");
+	retm_if(icon == NULL, "Invalid parameter!");
 	struct appdata *ad = (struct appdata *)icon->ad;
 
 	icon->wish_to_show = EINA_FALSE;
@@ -584,7 +582,7 @@ void icon_hide(icon_s *icon)
 		ret = box_unpack(icon);
 
 		if (ret == FAIL)
-			SECURE_ERR("Failed to unpack %s!", icon->name);
+			_E("Failed to unpack!");
 
 		_show_others_in_same_priority(icon);
 
@@ -600,7 +598,7 @@ void icon_event_count_set(int count, void *data)
 	static int _cnt = -1;
 	char buf[1024];
 
-	retif(data == NULL, , "Cannot get layout!");
+	retm_if(data == NULL, "Cannot get layout!");
 
 	if (_cnt != count) {
 		memset(buf, 0x00, sizeof(buf));
@@ -627,7 +625,7 @@ unsigned int icon_get_update_flag(void)
 
 void icon_set_update_flag(unsigned int val)
 {
-	DBG("SET UPDATE FLAG %d",val);
+	_D("SET UPDATE FLAG %d",val);
 	update_icon_flag = val;
 }
 
@@ -648,7 +646,6 @@ void icon_reset_list(void)
 
 			box_unpack(wish_remove_icon);
 			system_cnt = box_get_count(SYSTEM_LIST);
-			SECURE_DBG("system remove %s %d",wish_remove_icon->name,system_cnt);
 		}
 	} else {
 		while (system_cnt < box_get_enabled_system_count()) {
@@ -664,9 +661,7 @@ void icon_reset_list(void)
 
 			box_pack_append(wish_add_icon);
 			system_cnt = box_get_count(SYSTEM_LIST);
-			SECURE_DBG("system insert %s %d",wish_add_icon->name,system_cnt);
 			if(system_cnt == box_get_enabled_system_count()) {
-				SECURE_DBG("quit adding %d %d",system_cnt,box_get_enabled_system_count());
 				break;
 			}
 		}
@@ -675,20 +670,19 @@ void icon_reset_list(void)
 	int minictrl_cnt = box_get_count(MINICTRL_LIST);
 
 	if (minictrl_cnt > box_get_minictrl_list()) {
-		DBG("11 minictrl_cnt : %d //  box_get_minictrl_list : %d", minictrl_cnt, box_get_minictrl_list());
+		_D("11 minictrl_cnt : %d //  box_get_minictrl_list : %d", minictrl_cnt, box_get_minictrl_list());
 		while (minictrl_cnt > box_get_minictrl_list()) {
-			DBG("22 minictrl_cnt : %d //  box_get_minictrl_list : %d", minictrl_cnt, box_get_minictrl_list());
+			_D("22 minictrl_cnt : %d //  box_get_minictrl_list : %d", minictrl_cnt, box_get_minictrl_list());
 			icon_s *wish_remove_icon = NULL;
 			wish_remove_icon = list_try_to_find_icon_to_remove(INDICATOR_ICON_AREA_MINICTRL,0);
 
 			if (wish_remove_icon == NULL) {
-				DBG("icon_reset_list NULL!");
+				_D("icon_reset_list NULL!");
 				break;
 			}
 
 			box_unpack(wish_remove_icon);
 			minictrl_cnt = box_get_count(MINICTRL_LIST);
-			SECURE_DBG("minictrl remove %s %d",wish_remove_icon->name,minictrl_cnt);
 		}
 	} else {
 		while (minictrl_cnt < box_get_minictrl_list()) {
@@ -704,9 +698,7 @@ void icon_reset_list(void)
 
 			box_pack_append(wish_add_icon);
 			minictrl_cnt = box_get_count(MINICTRL_LIST);
-			SECURE_DBG("minictrl insert %s %d",wish_add_icon->name,minictrl_cnt);
 			if(minictrl_cnt==box_get_minictrl_list()) {
-				SECURE_DBG("quit adding %d %d", minictrl_cnt, box_get_minictrl_list());
 				break;
 			}
 		}
@@ -725,7 +717,6 @@ void icon_reset_list(void)
 
 			box_unpack(wish_remove_icon);
 			noti_cnt = box_get_count(NOTI_LIST);
-			SECURE_DBG("remove %s %d",wish_remove_icon->name,noti_cnt);
 		}
 	} else {
 		while (noti_cnt < box_get_enabled_noti_count()) {
@@ -741,9 +732,7 @@ void icon_reset_list(void)
 
 			box_pack_append(wish_add_icon);
 			noti_cnt = box_get_count(NOTI_LIST);
-			SECURE_DBG("insert %s %d", wish_add_icon->name, noti_cnt);
 			if(noti_cnt==box_get_enabled_noti_count()) {
-				SECURE_DBG("quit adding %d %d", noti_cnt, box_get_enabled_noti_count());
 				break;
 			}
 		}
@@ -760,25 +749,25 @@ static void _show_hide_more_noti(win_info* win, bool show)
 
 void icon_handle_more_notify_icon(win_info* win)
 {
-	retif(win == NULL, , "Invalid parameter!");
-	DBG("icon_handle_more_notify_icon called !!");
+	retm_if(win == NULL, "Invalid parameter!");
+	_D("icon_handle_more_notify_icon called !!");
 /*	int system_cnt = box_get_count(SYSTEM_LIST);
 	int minictrl_cnt = box_get_count(MINICTRL_LIST);
 	int noti_cnt = list_get_noti_count();
 
-	DBG("System count : %d, Minictrl count : %d, Notification count : %d", system_cnt, minictrl_cnt, noti_cnt);
+	_D("System count : %d, Minictrl count : %d, Notification count : %d", system_cnt, minictrl_cnt, noti_cnt);
 	if(win->type == INDICATOR_WIN_PORT)
 	{
-		DBG("PORT :: %d", (system_cnt + minictrl_cnt + noti_cnt));
+		_D("PORT :: %d", (system_cnt + minictrl_cnt + noti_cnt));
 		if((system_cnt + minictrl_cnt + noti_cnt) > MAX_NOTI_ICONS_PORT)
 		{
 			_show_hide_more_noti(win, true);
-			DBG("PORT :: handle_more_notify_show");
+			_D("PORT :: handle_more_notify_show");
 		}
 		else
 		{*/
 			_show_hide_more_noti(win, false);
-			DBG("PORT :: handle_more_notify_hide");
+			_D("PORT :: handle_more_notify_hide");
 		/*}
 	}*/
 }
@@ -789,7 +778,7 @@ void* icon_util_make(void* input)
 {
 	icon_s *icon = (icon_s *)input;
 
-	retif(input == NULL,NULL, "Invalid parameter!");
+	retvm_if(input == NULL, NULL, "Invalid parameter!");
 
 	icon_s *obj = NULL;
 	obj = calloc(1, sizeof(icon_s));

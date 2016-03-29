@@ -27,6 +27,7 @@
 #include "util.h"
 #include "tts.h"
 #include "box.h"
+#include "log.h"
 
 
 #define MSG_TIMEOUT 3
@@ -50,7 +51,6 @@ static int msg_type = 0;
 static Ecore_Timer *msg_timer = NULL;
 static Ecore_Timer *ani_temp_timer = NULL;
 
-extern int current_angle;
 static int block_width = 0;
 static int string_width = 0;
 static char* message_buf = NULL;
@@ -66,7 +66,7 @@ static MsgBuf msg_queue[QUEUE_SIZE];
 
 static Eina_Bool _ani_temp_timeout_cb(void *data)
 {
-	retif(data == NULL, ECORE_CALLBACK_CANCEL, "Invalid parameter!");
+	retvm_if(data == NULL, ECORE_CALLBACK_CANCEL, "Invalid parameter!");
 
 	if (ani_temp_timer)
 	{
@@ -81,7 +81,7 @@ static Eina_Bool _ani_temp_timeout_cb(void *data)
 
 void start_temp_ani_timer(void* data)
 {
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 	win_info* win = (win_info*)data;
 
 	if(ani_temp_timer != NULL)
@@ -97,7 +97,7 @@ void start_temp_ani_timer(void* data)
 
 static void _hide_message(void* data)
 {
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 	win_info* win = NULL;
 	win = (win_info*)data;
 
@@ -111,7 +111,7 @@ static void _hide_message(void* data)
 
 static void _hide_message_all(void* data)
 {
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 
 	util_signal_emit(data,"message.line2.hide.noeffect","indicator.prog");
 }
@@ -120,7 +120,7 @@ static void _hide_message_all(void* data)
 
 static void _show_message(void* data)
 {
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 	win_info* win = NULL;
 	win = (win_info*)data;
 	struct appdata* ad = (struct appdata*)win->data;
@@ -128,7 +128,7 @@ static void _show_message(void* data)
 	start_temp_ani_timer(data);
 	if(ad->opacity_mode==INDICATOR_OPACITY_TRANSPARENT)
 	{
-		DBG("Transparent");
+		_D("Transparent");
 		util_signal_emit_by_win(win,"message.show.noeffect", "indicator.prog");
 		evas_object_show(win->win);
 	}
@@ -142,7 +142,7 @@ static void _show_message(void* data)
 
 static void _show_message_line2(void* data)
 {
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 	win_info* win = NULL;
 	win = (win_info*)data;
 
@@ -156,7 +156,7 @@ static void _show_message_line2(void* data)
 
 static Eina_Bool _msg_timeout_cb(void *data)
 {
-	retif(data == NULL, ECORE_CALLBACK_CANCEL, "Invalid parameter!");
+	retvm_if(data == NULL, ECORE_CALLBACK_CANCEL, "Invalid parameter!");
 
 	win_info* win = (win_info*)data;
 
@@ -191,7 +191,7 @@ static Eina_Bool _msg_timeout_cb(void *data)
 
 static Eina_Bool _retry_timeout_cb(void *data)
 {
-	retif(data == NULL, EINA_TRUE , "Invalid parameter!");
+	retvm_if(data == NULL, EINA_TRUE, "Invalid parameter!");
 
 	if(message_buf!=NULL)
 	{
@@ -215,8 +215,8 @@ static int __get_block_width(void* data, const char* part)
 	Evas_Object * eo = NULL;
 	int geo_dx = 0;
 	int geo_dy = 0;
-	retif(data == NULL,-1, "Invalid parameter!");
-	retif(part == NULL,-1, "Invalid parameter!");
+	retvm_if(data == NULL,-1, "Invalid parameter!");
+	retvm_if(part == NULL,-1, "Invalid parameter!");
 
 	win_info* win = (win_info*)data;
 
@@ -234,8 +234,8 @@ static int __get_string_width(void* data, const char* part)
 	Evas_Object * eo = NULL;
 	int text_dx = 0;
 	int text_dy = 0;
-	retif(data == NULL,-1, "Invalid parameter!");
-	retif(part == NULL,-1, "Invalid parameter!");
+	retvm_if(data == NULL,-1, "Invalid parameter!");
+	retvm_if(part == NULL,-1, "Invalid parameter!");
 
 	win_info* win = (win_info*)data;
 
@@ -250,9 +250,9 @@ static int __get_string_width(void* data, const char* part)
 
 static void __handle_2line(win_info* win,char* origin, char* part1, char* part2)
 {
-	retif(origin == NULL, , "Invalid parameter!");
-	retif(part1 == NULL, , "Invalid parameter!");
-	retif(part2 == NULL, , "Invalid parameter!");
+	retm_if(origin == NULL, "Invalid parameter!");
+	retm_if(part1 == NULL, "Invalid parameter!");
+	retm_if(part2 == NULL, "Invalid parameter!");
 	int index = 0;
 	Eina_Unicode *uni_out = NULL;
 	Eina_Unicode buf[STR_BUF_SIZE] = {0,};
@@ -296,7 +296,7 @@ static void __handle_2line(win_info* win,char* origin, char* part1, char* part2)
 			if(width > block_width)
 			{
 				exceed_index = exceed_index -1;
-				DBG("reduce exceed index(%d)",exceed_index,width);
+				_D("reduce exceed index(%d)",exceed_index,width);
 			}
 			else
 			{
@@ -323,7 +323,7 @@ static void __handle_2line(win_info* win,char* origin, char* part1, char* part2)
 			if(width < block_width)
 			{
 				exceed_index = exceed_index +1;
-				DBG("increase exceed index(%d)",exceed_index,width);
+				_D("increase exceed index(%d)",exceed_index,width);
 			}
 			else
 			{
@@ -341,7 +341,7 @@ static void __handle_2line(win_info* win,char* origin, char* part1, char* part2)
 
 	if(exceed_index<0)
 	{
-		ERR("INDEX %d",exceed_index);
+		_E("INDEX %d",exceed_index);
 		goto __CATCH;
 	}
 
@@ -401,8 +401,8 @@ static void _handle_message_by_win(char *message, void *data)
 	char *text = NULL;
 	double time_clk = 0;
 	char* temp = NULL;
-	retif(message == NULL, , "Invalid parameter!");
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(message == NULL, "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 
 	win = data;
 
@@ -411,8 +411,6 @@ static void _handle_message_by_win(char *message, void *data)
 		ecore_timer_del(msg_timer);
 	}
 	msg_type = 0;
-
-	SECURE_DBG("message %s", message);
 
 	temp = strdup(message);
 
@@ -439,7 +437,7 @@ static void _handle_message_by_win(char *message, void *data)
 		msg_type = 2;
 	}
 
-	DBG("msg_type %d",  msg_type);
+	_D("msg_type %d",  msg_type);
 
 	_show_message(win);
 
@@ -515,7 +513,7 @@ static void _buf_timeout_callback(void* data)
 	if(current_buf_index<QUEUE_SIZE)
 	if(msg_queue[current_buf_index].data!=NULL)
 	{
-		DBG("index %d,%s",current_buf_index,msg_queue[current_buf_index].data);
+		_D("index %d,%s",current_buf_index,msg_queue[current_buf_index].data);
 		__message_callback(msg_queue[current_buf_index].data,data);
 		if(msg_queue[current_buf_index].data!=NULL)
 		{
@@ -545,7 +543,7 @@ static void _buf_timeout_callback(void* data)
 	}
 	current_buf_cnt = 0;
 	current_buf_index = 0;
-	DBG("quit buffering..");
+	_D("quit buffering..");
 }
 
 
@@ -553,7 +551,7 @@ static void _buf_timeout_callback(void* data)
 static void __buffer_msg_callback(const char *message, void *data)
 {
 	struct appdata *ad = NULL;
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 	ad = data;
 
 	win_info *win = NULL;
@@ -578,10 +576,9 @@ static void __buffer_msg_callback(const char *message, void *data)
 	{
 		if(current_buf_cnt>=QUEUE_SIZE)
 		{
-			ERR("QUEUE FULL");
+			_E("QUEUE FULL");
 			return;
 		}
-		SECURE_DBG("buffering... %d,%s",current_buf_cnt,message);
 		if(msg_queue[current_buf_cnt].data!=NULL)
 		{
 			free(msg_queue[current_buf_cnt].data);
@@ -639,7 +636,7 @@ void indicator_message_display_trigger(void)
 		return;
 	}
 
-	DBG("retry message");
+	_D("retry message");
 
 	msg_retry = 1;
 

@@ -27,6 +27,7 @@
 #include "icon.h"
 #include "modules.h"
 #include "main.h"
+#include "log.h"
 
 #define ICON_PRIORITY	INDICATOR_PRIORITY_NOTI_1
 #define MODULE_NAME		"VIDEO_PLAY"
@@ -87,7 +88,7 @@ static void show_video_icon(void *data)
 	int status;
 	int ret;
 
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 
 
 	if (icon_get_update_flag() == 0) {
@@ -98,7 +99,7 @@ static void show_video_icon(void *data)
 
 	ret = vconf_get_bool(VCONF_VIDEO_PLAY_PLAYSTATUS, &status);
 	if (ret == OK) {
-		DBG("VIDEO PLAY state: %d", status);
+		_D("VIDEO PLAY state: %d", status);
 		if (status == 1)
 			show_image_icon(data);
 		else
@@ -110,7 +111,7 @@ static void show_video_icon(void *data)
 
 static void indicator_video_play_change_cb(keynode_t *node, void *data)
 {
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 
 	show_video_icon(data);
 
@@ -135,7 +136,7 @@ static int wake_up_cb(void *data)
 static int register_video_play_module(void *data)
 {
 
-	retif(data == NULL, FAIL, "Invalid parameter!");
+	retvm_if(data == NULL, FAIL, "Invalid parameter!");
 
 	set_app_state(data);
 

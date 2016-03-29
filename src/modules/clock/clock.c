@@ -326,7 +326,7 @@ static int language_changed_cb(void *data)
 	ret = system_settings_get_value_string(SYSTEM_SETTINGS_KEY_LOCALE_LANGUAGE, &pa_lang);
 	retv_if(ret != SYSTEM_SETTINGS_ERROR_NONE, FAIL);
 
-	DBG("language_changed_cb %s",pa_lang);
+	_D("language_changed_cb %s",pa_lang);
 	indicator_clock_changed_cb(data);
 
 	free(pa_lang);
@@ -355,7 +355,7 @@ static int wake_up_cb(void *data)
 
 static void time_format_changed(system_settings_key_e key, void *data)
 {
-	DBG("time format changed");
+	_D("time format changed");
 	clock_format_changed(data);
 }
 
@@ -367,7 +367,7 @@ static int register_clock_module(void *data)
 	int ret = -1;
 	int i;
 
-	retif(data == NULL, FAIL, "Invalid parameter!");
+	retvm_if(data == NULL, FAIL, "Invalid parameter!");
 
 	set_app_state(data);
 
@@ -428,8 +428,8 @@ void indicator_get_apm_by_region(char* output,void *data)
 {
 	int ret = -1;
 	char *locale = NULL;
-	retif(data == NULL, , "Data parameter is NULL");
-	retif(output == NULL, , "output parameter is NULL");
+	retm_if(data == NULL, "Data parameter is NULL");
+	retm_if(output == NULL, "output parameter is NULL");
 
 	i18n_uchar u_custom_skeleton[CLOCK_STR_LEN] = { 0, };
 	i18n_uchar u_timezone[64] = {0,};
@@ -449,7 +449,7 @@ void indicator_get_apm_by_region(char* output,void *data)
 	ret = system_settings_get_value_string(SYSTEM_SETTINGS_KEY_LOCALE_COUNTRY, &locale);
 	ret_if(ret != SYSTEM_SETTINGS_ERROR_NONE);
 
-	DBG("Locale: %s", locale);
+	_D("Locale: %s", locale);
 
 	retm_if(locale == NULL, "[Error] get value of fail.");
 
@@ -473,7 +473,7 @@ void indicator_get_apm_by_region(char* output,void *data)
 	i18n_ustring_copy_ua(u_best_pattern, "a");
 
 	char *timezone_id = util_get_timezone_str();
-	DBG("TimeZone is %s", timezone_id);
+	_D("TimeZone is %s", timezone_id);
 
 	if (s_best_pattern[0] == 'a') {
 		apm_position = 0;
@@ -485,7 +485,7 @@ void indicator_get_apm_by_region(char* output,void *data)
 	i18n_udate date;
 	ret = i18n_ucalendar_get_now(&date);
 	if (ret != I18N_ERROR_NONE) {
-		ERR("i18n_ucalendar_get_now failed: %d", ret);
+		_E("i18n_ucalendar_get_now failed: %d", ret);
 		free(locale);
 		free(timezone_id);
 		return;
@@ -532,8 +532,8 @@ void indicator_get_time_by_region(char* output,void *data)
 {
 	int ret = -1;
 	char *locale;
-	retif(data == NULL, , "Data parameter is NULL");
-	retif(output == NULL, , "output parameter is NULL");
+	retm_if(data == NULL, "Data parameter is NULL");
+	retm_if(output == NULL, "output parameter is NULL");
 
 	i18n_uchar u_custom_skeleton[CLOCK_STR_LEN] = { 0, };
 	i18n_uchar u_timezone[64] = {0,};
@@ -561,10 +561,10 @@ void indicator_get_time_by_region(char* output,void *data)
 
 	ret = system_settings_get_value_string(SYSTEM_SETTINGS_KEY_LOCALE_COUNTRY, &locale);
 	retm_if(ret != SYSTEM_SETTINGS_ERROR_NONE, "Cannot get LOCALE_COUNTRY string");
-	DBG("Locale: %s", locale);
+	_D("Locale: %s", locale);
 
 	if (locale == NULL) {
-		ERR("[Error] get value of fail.");
+		_E("[Error] get value of fail.");
 		return;
 	}
 
@@ -595,18 +595,18 @@ void indicator_get_time_by_region(char* output,void *data)
 
 	i18n_ustring_copy_au(s_best_pattern, u_best_pattern);
 
-	DBG("BestPattern is %s", s_best_pattern);
+	_D("BestPattern is %s", s_best_pattern);
 
 	i18n_udate date;
 	ret = i18n_ucalendar_get_now(&date);
 	if (ret != I18N_ERROR_NONE) {
-		ERR("i18n_ucalendar_get_now failed: %d", ret);
+		_E("i18n_ucalendar_get_now failed: %d", ret);
 		free(locale);
 		return;
 	}
 
 	char* timezone_id = util_get_timezone_str();
-	DBG("TimeZone is %s", timezone_id);
+	_D("TimeZone is %s", timezone_id);
 
 	if (timezone_id) {
 		i18n_ustring_copy_ua_n(u_timezone, timezone_id, ARRAY_SIZE(u_timezone));
@@ -632,16 +632,16 @@ void indicator_get_time_by_region(char* output,void *data)
 	i18n_udate_destroy(formatter);
 
 	i18n_ustring_copy_au(s_formatted, u_formatted);
-	DBG("DATE & TIME is %s %s %d %s", locale, s_formatted, i18n_ustring_get_length(u_formatted), s_best_pattern);
+	_D("DATE & TIME is %s %s %d %s", locale, s_formatted, i18n_ustring_get_length(u_formatted), s_best_pattern);
 
 	free(locale);
 
-	DBG("24H :: Before change %s", s_formatted);
+	_D("24H :: Before change %s", s_formatted);
 	s_convert_formatted = _string_replacer(s_formatted, colon, ratio);
-	DBG("24H :: After change %s", s_convert_formatted);
+	_D("24H :: After change %s", s_convert_formatted);
 
 	if (!s_convert_formatted) {
-		DBG("_string_replacer return NULL");
+		_D("_string_replacer return NULL");
 		return;
 	}
 
@@ -664,19 +664,19 @@ static void ICU_set_timezone(const char *timezone)
 	i18n_timezone_h tmz;
 
 	if (timezone == NULL) {
-		ERR("TIMEZONE is NULL");
+		_E("TIMEZONE is NULL");
 		return;
 	}
 
 	int ret = i18n_timezone_create(&tmz, timezone);
 	if (ret != I18N_ERROR_NONE) {
-		ERR("Unable to create timezone handle from %s: %d", timezone, ret);
+		_E("Unable to create timezone handle from %s: %d", timezone, ret);
 		return;
 	}
 
 	ret = i18n_timezone_set_default(tmz);
 	if (ret != I18N_ERROR_NONE) {
-		ERR("Unable to set default timezone to %s: %d", timezone, ret);
+		_E("Unable to set default timezone to %s: %d", timezone, ret);
 	}
 
 	i18n_timezone_destroy(tmz);
@@ -706,7 +706,7 @@ static char *_access_info_cb(void *data, Evas_Object *obj)
 	time_t ctime;
 	int len;
 
-	retif(data == NULL,NULL, "Invalid parameter!");
+	retvm_if(data == NULL, NULL, "Invalid parameter!");
 	char *timezone = util_get_timezone_str();
 	ICU_set_timezone(timezone);
 	if(timezone!=NULL)
@@ -780,7 +780,7 @@ static char *_access_info_cb(void *data, Evas_Object *obj)
 
 	snprintf(buf, sizeof(buf), "%s, %s, %s", time_str, buf1, _("IDS_IDLE_BODY_STATUS_BAR_ITEM"));
 
-	DBG("buf: %s", buf);
+	_D("buf: %s", buf);
 	tmp = strdup(buf);
 	if (!tmp) return NULL;
 	return tmp;
@@ -792,7 +792,7 @@ static int register_clock_tts(void *data,int win_type)
 {
 	int r = 0, ret = -1;
 
-	retif(data == NULL, FAIL, "Invalid parameter!");
+	retvm_if(data == NULL, FAIL, "Invalid parameter!");
 
 	Evas_Object *to = NULL;
 	Evas_Object *ao = NULL;

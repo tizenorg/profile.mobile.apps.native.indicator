@@ -17,8 +17,6 @@
  *
  */
 
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <wifi.h>
@@ -26,6 +24,7 @@
 #include <system_settings.h>
 #include <runtime_info.h>
 #include <vconf.h>
+#include <app_event.h>
 
 #include "common.h"
 #include "indicator.h"
@@ -45,10 +44,13 @@ static int wake_up_cb(void *data);
 static void __deinit_tel(void);
 
 static int transfer_state = -1;
-int isBTIconShowing = 0;
+static int isBTIconShowing = 0;
 static telephony_handle_list_s tel_list;
 static int updated_while_lcd_off = 0;
 static int prevIndex = -1;
+static bool mobile_data_status = false;
+static event_handler_h event;
+
 
 icon_s conn = {
 	.type = INDICATOR_IMG_ICON,
@@ -90,87 +92,58 @@ static const char *icon_path[LEVEL_LAST] = {
 	[LEVEL_BT_TETHERING] = "Bluetooth, NFC, GPS/B03_BT_tethering_network.png"
 };
 
-
-
-static void set_app_state(void* data)
+static void set_app_state(void *data)
 {
 	conn.ad = data;
 }
 
-
-
-static void show_connection_transfer_icon(void* data)
+static void show_connection_transfer_icon(void *data)
 {
 	int state = 0;
 	int ret = 0;
-	int type = -1;
 
 	ret = vconf_get_int(VCONFKEY_PACKET_STATE, &state);
+
 	if (ret == OK) {
+
+		if (transfer_state == state) {
+			_D("same transfer state");
+			return;
+		}
+
+		_D("type %d",state);
+		transfer_state = state;
+
 		switch (state) {
 		case VCONFKEY_PACKET_RX:
-			type = TRANSFER_DOWN;
+			util_signal_emit(conn.ad, "indicator.connection.updown.download", "indicator.prog");
 			break;
 		case VCONFKEY_PACKET_TX:
-			type = TRANSFER_UP;
+			util_signal_emit(conn.ad, "indicator.connection.updown.upload", "indicator.prog");
 			break;
 		case VCONFKEY_PACKET_RXTX:
-			type = TRANSFER_UPDOWN;
+			util_signal_emit(conn.ad, "indicator.connection.updown.updownload", "indicator.prog");
 			break;
 		case VCONFKEY_PACKET_NORMAL:
-			type = TRANSFER_NONE;
+			util_signal_emit(conn.ad, "indicator.connection.updown.none", "indicator.prog");
 			break;
 		default:
-			type = -1;
 			break;
 		}
 	}
-
-	if(transfer_state==type)
-	{
-		DBG("same transfer state");
-		return;
-	}
-
-	DBG("type %d",type);
-	transfer_state = type;
-	switch (type)
-	{
-		case TRANSFER_NONE:
-			util_signal_emit(conn.ad,"indicator.connection.updown.none","indicator.prog");
-			break;
-		case TRANSFER_DOWN:
-			util_signal_emit(conn.ad,"indicator.connection.updown.download","indicator.prog");
-			break;
-		case TRANSFER_UP:
-			util_signal_emit(conn.ad,"indicator.connection.updown.upload","indicator.prog");
-			break;
-		case TRANSFER_UPDOWN:
-			util_signal_emit(conn.ad,"indicator.connection.updown.updownload","indicator.prog");
-			break;
-		default:
-			break;
-
-	}
 }
-
-
 
 static void show_image_icon(int type)
 {
-	if(prevIndex == type)
-	{
+	if (prevIndex == type)
 		return;
-	}
 
 	conn.img_obj.data = icon_path[type];
 	icon_show(&conn);
 
 	prevIndex = type;
-	util_signal_emit(conn.ad,"indicator.connection.show","indicator.prog");
+	util_signal_emit(conn.ad, "indicator.connection.show", "indicator.prog");
 }
-
-
 
 static void hide_image_icon(void)
 {
@@ -178,14 +151,16 @@ static void hide_image_icon(void)
 
 	icon_hide(&conn);
 
-	util_signal_emit(conn.ad,"indicator.connection.hide","indicator.prog");
-	util_signal_emit(conn.ad,"indicator.connection.updown.hide","indicator.prog");
+	util_signal_emit(conn.ad, "indicator.connection.hide", "indicator.prog");
+	util_signal_emit(conn.ad, "indicator.connection.updown.hide", "indicator.prog");
 
 	prevIndex = -1;
 }
 
 static icon_e _icon_level_for_network_type(telephony_network_type_e net_type)
 {
+	_D("network_type:%d", net_type);
+
 	switch (net_type) {
 	case TELEPHONY_NETWORK_TYPE_GSM:
 	case TELEPHONY_NETWORK_TYPE_GPRS:
@@ -205,6 +180,8 @@ static icon_e _icon_level_for_network_type(telephony_network_type_e net_type)
 
 static icon_e _icon_level_for_ps_network_type(telephony_network_ps_type_e net_type)
 {
+	_D("network_ps_type:%d", net_type);
+
 	switch (net_type) {
 	case TELEPHONY_NETWORK_PS_TYPE_HSDPA:
 	case TELEPHONY_NETWORK_PS_TYPE_HSUPA:
@@ -220,16 +197,16 @@ static icon_e _icon_level_for_ps_network_type(telephony_network_ps_type_e net_ty
 static void _view_icon_update_ps_network(telephony_network_ps_type_e ps_type, void *data)
 {
 	icon_e icon = _icon_level_for_ps_network_type(ps_type);
+
 	if (icon != LEVEL_LAST) {
 		show_image_icon(icon);
 		show_connection_transfer_icon(data);
-	}
-	else {
+	} else
 		hide_image_icon();
-	}
 }
 
-static void _view_icon_update_network(telephony_network_service_state_e state, telephony_network_type_e network_type, void *data)
+static void _view_icon_update_network(telephony_network_service_state_e state,
+		telephony_network_type_e network_type, void *data)
 {
 	icon_e icon;
 
@@ -239,10 +216,8 @@ static void _view_icon_update_network(telephony_network_service_state_e state, t
 			if (icon != LEVEL_LAST) {
 				show_image_icon(icon);
 				show_connection_transfer_icon(data);
-			}
-			else {
+			} else
 				hide_image_icon();
-			}
 			break;
 		case TELEPHONY_NETWORK_SERVICE_STATE_OUT_OF_SERVICE:
 		case TELEPHONY_NETWORK_SERVICE_STATE_EMERGENCY_ONLY:
@@ -258,103 +233,90 @@ static void _view_icon_update(telephony_h handle, void *data)
 	telephony_network_service_state_e service_state;
 	telephony_network_type_e network_type;
 
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 
 	int ret = telephony_network_get_ps_type(handle, &ps_type);
-	retm_if(ret != TELEPHONY_ERROR_NONE, "telephony_network_get_ps_type failed %s", get_error_message(ret));
+	retm_if(ret != TELEPHONY_ERROR_NONE, "telephony_network_get_ps_type failed %s",
+			get_error_message(ret));
 
 	ret = telephony_network_get_type(handle, &network_type);
-	retm_if(ret != TELEPHONY_ERROR_NONE, "telephony_network_get_type failed %s", get_error_message(ret));
+	retm_if(ret != TELEPHONY_ERROR_NONE, "telephony_network_get_type failed %s",
+			get_error_message(ret));
 
 	ret = telephony_network_get_service_state(handle, &service_state);
-	retm_if(ret != TELEPHONY_ERROR_NONE, "telephony_network_get_service_state failed %s", get_error_message(ret));
+	retm_if(ret != TELEPHONY_ERROR_NONE, "telephony_network_get_service_state failed %s",
+			get_error_message(ret));
 
-	if (ps_type != TELEPHONY_NETWORK_PS_TYPE_UNKNOWN) {
+	if (ps_type != TELEPHONY_NETWORK_PS_TYPE_UNKNOWN)
 		_view_icon_update_ps_network(ps_type, data);
-	}
-	else {
+	else
 		_view_icon_update_network(service_state, network_type, data);
-	}
 }
 
-static void on_noti(telephony_h handle, const char *noti_id, void *data, void *user_data)
+static void on_noti(telephony_h handle, void *user_data)
 {
-	telephony_network_default_data_subs_e default_subscription;
 	wifi_connection_state_e state;
 
 	int ret = 0;
 	bool val;
-	retif(user_data == NULL, , "invalid parameter!!");
+	retm_if(user_data == NULL, "invalid parameter!!");
 
 	ret = wifi_get_connection_state(&state);
-	DBG("WIFI Status : %d", state);
-	retm_if(ret != WIFI_ERROR_NONE, "wifi_get_connection_state failed: %s", get_error_message(ret));
+	_D("WIFI Status : %d", state);
+	retm_if(ret != WIFI_ERROR_NONE, "wifi_get_connection_state failed: %s",
+			get_error_message(ret));
 
 	if (state == WIFI_CONNECTION_STATE_CONNECTED) {
-		DBG("WIFI connected, so hide connection icon");
+		_D("WIFI connected, so hide connection icon");
 		hide_image_icon();
 		return;
 	}
 
 	ret = system_settings_get_value_bool(SYSTEM_SETTINGS_KEY_NETWORK_FLIGHT_MODE, &val);
-	retm_if(ret != SYSTEM_SETTINGS_ERROR_NONE, "system_settings_get_value_bool failed: %s", get_error_message(ret));
+	retm_if(ret != SYSTEM_SETTINGS_ERROR_NONE, "system_settings_get_value_bool failed: %s",
+			get_error_message(ret));
 
 	if (val) {
-		DBG("FLIGHT MODE ON");
+		_D("FLIGHT MODE ON");
 		hide_image_icon();
 		return;
 	}
 
 	ret = runtime_info_get_value_bool(RUNTIME_INFO_KEY_BLUETOOTH_TETHERING_ENABLED, &val);
-	retm_if(ret != RUNTIME_INFO_ERROR_NONE, "runtime_info_get_value_bool failed: %s", get_error_message(ret));
+	retm_if(ret != RUNTIME_INFO_ERROR_NONE, "runtime_info_get_value_bool failed: %s",
+			get_error_message(ret));
 
 	if (val) {
-		DBG("bluetooth tethering On");
+		_D("bluetooth tethering on");
 		isBTIconShowing = 1;
 		show_image_icon(LEVEL_BT_TETHERING);
-		util_signal_emit(conn.ad,"indicator.connection.updown.hide","indicator.prog");
+		util_signal_emit(conn.ad, "indicator.connection.updown.hide", "indicator.prog");
 		return;
-	}
-	else {
-		DBG("bluetooth tethering Off");
-		if(isBTIconShowing == 1)
-		{
+	} else {
+		_D("bluetooth tethering off");
+		if (isBTIconShowing == 1) {
 			isBTIconShowing = 0;
 			hide_image_icon();
 		}
 	}
+	if (mobile_data_status)
+		_view_icon_update(handle, user_data);
 
-	ret = telephony_network_get_default_data_subscription(handle, &default_subscription);
-	retm_if(ret != TELEPHONY_ERROR_NONE, "telephony_network_get_default_data_subscription failed %s", get_error_message(ret));
-
-	switch (default_subscription) {
-		case TELEPHONY_NETWORK_DEFAULT_DATA_SUBS_SIM1:
-			_view_icon_update(handle, user_data);
-			break;
-		case TELEPHONY_NETWORK_DEFAULT_DATA_SUBS_SIM2:
-		case TELEPHONY_NETWORK_DEFAULT_DATA_SUBS_UNKNOWN:
-		default:
-			hide_image_icon();
-			break;
-	}
 }
 
 static int wake_up_cb(void *data)
 {
-	if(updated_while_lcd_off==0)
-	{
+	if (updated_while_lcd_off == 0)
 		return OK;
-	}
-	on_noti(tel_list.handle[0], NULL, NULL, data);
+
+	on_noti(tel_list.handle[0], data);
 	return OK;
 }
 
 
-
-
 static void _update_status_ri(runtime_info_key_e key, void *user_data)
 {
-	on_noti(tel_list.handle[0], NULL, NULL, user_data);
+	on_noti(tel_list.handle[0], user_data);
 }
 
 static void _wifi_status_changed_cb(wifi_connection_state_e state, wifi_ap_h ap, void *user_data)
@@ -364,39 +326,33 @@ static void _wifi_status_changed_cb(wifi_connection_state_e state, wifi_ap_h ap,
 
 	ret = wifi_get_connection_state(&status);
 	if (ret == WIFI_ERROR_NONE) {
-		INFO("[CB] WIFI Status: %d", status);
-		if(status == WIFI_CONNECTION_STATE_CONNECTED) {
-			DBG("[CB] WIFI connected, so hide connection icon");
+		_D("[CB] WIFI Status: %d", status);
+		if (status == WIFI_CONNECTION_STATE_CONNECTED) {
+			_D("[CB] WIFI connected, so hide connection icon");
 			hide_image_icon();
-		}
-		else {
-			on_noti(tel_list.handle[0], NULL, NULL, user_data);
-		}
+		} else
+			on_noti(tel_list.handle[0], user_data);
 	}
 }
 
-
-
 static void _flight_mode(system_settings_key_e key, void *user_data)
 {
-	on_noti(tel_list.handle[0], NULL, NULL, user_data);
+	on_noti(tel_list.handle[0], user_data);
 }
-
-
 
 static void _update_status(telephony_h handle, telephony_noti_e noti_id, void *data, void *user_data)
 {
-	on_noti(tel_list.handle[0], NULL, NULL, data);
+	on_noti(tel_list.handle[0], data);
 }
 
 /* Initialize TAPI */
 static int __init_tel(void *data)
 {
-	DBG("__init_tel");
+	_D("__init_tel");
 	int ret, i;
 
 	if (!tel_list.count) {
-		DBG("Not SIM handle returned by telephony_init");
+		_D("Not SIM handle returned by telephony_init");
 		__deinit_tel();
 		return FAIL;
 	}
@@ -409,6 +365,7 @@ static int __init_tel(void *data)
 		/* Currently handle only first SIM */
 		ret = telephony_set_noti_cb(tel_list.handle[0], events[i], _update_status, data);
 		if (ret != TELEPHONY_ERROR_NONE) {
+			_E("telephony_set_noti_cb failed: %s", get_error_message(ret));
 			__deinit_tel();
 			return FAIL;
 		}
@@ -416,26 +373,30 @@ static int __init_tel(void *data)
 
 	ret = util_wifi_set_connection_state_changed_cb(_wifi_status_changed_cb, data);
 	if (ret != 0) {
-		ERR("util_wifi_set_connection_state_changed_cb");
+		_E("util_wifi_set_connection_state_changed_cb");
 		__deinit_tel();
 		return FAIL;
 	}
 
-	ret = util_system_settings_set_changed_cb(SYSTEM_SETTINGS_KEY_NETWORK_FLIGHT_MODE, _flight_mode, data);
+	ret = util_system_settings_set_changed_cb(SYSTEM_SETTINGS_KEY_NETWORK_FLIGHT_MODE,
+			_flight_mode, data);
+
 	if (ret != 0) {
-		ERR("util_system_settings_set_changed_cb failed");
+		_E("util_system_settings_set_changed_cb failed");
 		__deinit_tel();
 		return FAIL;
 	}
 
-	ret = util_runtime_info_set_changed_cb(RUNTIME_INFO_KEY_BLUETOOTH_TETHERING_ENABLED, _update_status_ri, data);
+	ret = util_runtime_info_set_changed_cb(RUNTIME_INFO_KEY_BLUETOOTH_TETHERING_ENABLED,
+			_update_status_ri, data);
+
 	if (ret != 0) {
-		ERR("util_runtime_info_set_changed_cb failed");
+		_E("util_runtime_info_set_changed_cb failed");
 		__deinit_tel();
 		return FAIL;
 	}
 
-	on_noti(tel_list.handle[0], NULL, NULL, data);
+	on_noti(tel_list.handle[0], data);
 
 	return OK;
 }
@@ -443,7 +404,7 @@ static int __init_tel(void *data)
 /* De-initialize telephony */
 static void __deinit_tel()
 {
-	DBG("__deinit_tel");
+	_D("__deinit_tel");
 
 	util_system_settings_unset_changed_cb(SYSTEM_SETTINGS_KEY_NETWORK_FLIGHT_MODE, _flight_mode);
 	util_wifi_unset_connection_state_changed_cb(_wifi_status_changed_cb);
@@ -458,12 +419,30 @@ static void __deinit_tel()
 
 static void tel_ready_cb(telephony_state_e state, void *user_data)
 {
-	if (state == TELEPHONY_STATE_READY) {    /* Telephony State - READY */
+	if (state == TELEPHONY_STATE_READY)
 		__init_tel(user_data);
-	}
-	else if (state == TELEPHONY_STATE_NOT_READY) {                   /* Telephony State – NOT READY */
-		/* De-initialization is optional here (ONLY if required) */
+	else if (state == TELEPHONY_STATE_NOT_READY)
 		__deinit_tel();
+}
+
+static void data_event_cb(const char *event_name, bundle *event_data, void *user_data)
+{
+	char *value;
+	int ret;
+	ret = bundle_get_str(event_data, EVENT_KEY_MOBILE_DATA_STATE, &value);
+	if (ret != BUNDLE_ERROR_NONE) {
+		_E("bundle_get_str failed: %s", get_error_message(ret));
+		hide_image_icon();
+		return;
+	}
+	_D("bundle value:%s", value);
+
+	if (!strcmp(value, "off")) {
+		mobile_data_status = false;
+		hide_image_icon();
+	} else {
+		mobile_data_status = true;
+		on_noti(tel_list.handle[0], user_data);
 	}
 }
 
@@ -471,38 +450,40 @@ static int register_conn_module(void *data)
 {
 	int ret;
 	telephony_state_e state;
+	event_handler_h event;
 
-	retif(data == NULL, FAIL, "Invalid parameter!");
+	retvm_if(data == NULL, FAIL, "Invalid parameter!");
 
 	set_app_state(data);
 
 	ret = telephony_get_state(&state);
-	if (ret != TELEPHONY_ERROR_NONE) {
-		ERR("telephony_get_state failed: %s", get_error_message(ret));
-		return FAIL;
-	}
+	retvm_if(ret != TELEPHONY_ERROR_NONE, FAIL, "telephony_get_state failed: %s",
+			get_error_message(ret));
 
 	ret = telephony_init(&tel_list);
-	if (ret != TELEPHONY_ERROR_NONE) {
-		ERR("telephony_init failed %d", ret);
-		return FAIL;
-	}
+	retvm_if(ret != TELEPHONY_ERROR_NONE, FAIL, "telephony_init failed: %s",
+			get_error_message(ret));
 
 	if (state == TELEPHONY_STATE_READY) {
-		DBG("Telephony ready");
-		if (__init_tel(data) != OK)
-			return FAIL;
-	}
-	else if (state == TELEPHONY_STATE_NOT_READY) {
-		DBG("Telephony not ready");
-	}
+		_D("Telephony ready");
+		retv_if(__init_tel(data) != OK, FAIL);
+	} else if (state == TELEPHONY_STATE_NOT_READY)
+		_D("Telephony not ready");
 
 	ret = telephony_set_state_changed_cb(tel_ready_cb, data);
 	if (ret != TELEPHONY_ERROR_NONE) {
-		ERR("telephony_set_state_changed_cb failed: %s", get_error_message(ret));
+		_E("telephony_set_state_changed_cb failed: %s", get_error_message(ret));
 		__deinit_tel();
 		return FAIL;
 	}
+
+	ret = event_add_event_handler(SYSTEM_EVENT_MOBILE_DATA_STATE, data_event_cb, data, &event);
+	if (ret != EVENT_ERROR_NONE) {
+		_E("event_add_event_handler failed: %s", get_error_message(ret));
+		__deinit_tel();
+		return FAIL;
+	}
+
 	return OK;
 }
 
@@ -510,6 +491,7 @@ static int unregister_conn_module(void)
 {
 	telephony_unset_state_changed_cb(tel_ready_cb);
 	__deinit_tel();
+	event_remove_event_handler(event);
 
 	return OK;
 }

@@ -27,6 +27,7 @@
 #include "main.h"
 #include "modules.h"
 #include "icon.h"
+#include "log.h"
 
 #define ICON_PRIORITY	INDICATOR_PRIORITY_SYSTEM_1
 #define MODULE_NAME		"alarm"
@@ -98,20 +99,20 @@ static void indicator_alarm_change_cb(keynode_t *node, void *data)
 	int status = 0;
 	int ret;
 
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 
 	ret = vconf_get_int(VCONFKEY_ALARM_STATE, &status);
 	if (ret == OK) {
 		if (status > 0) {
-			DBG("ALARM COUNT: %d", status);
+			_D("ALARM COUNT: %d", status);
 			show_image_icon(data);
 			return;
 		}
-		DBG("ALARM COUNT: %d", status);
+		_D("ALARM COUNT: %d", status);
 		hide_image_icon();
 		return;
 	}
-	ERR("Failed to get alarm count!");
+	_E("Failed to get alarm count!");
 	return;
 }
 
@@ -144,12 +145,12 @@ static int register_alarm_module(void *data)
 {
 	int ret = -1;
 
-	retif(data == NULL, FAIL, "Invalid parameter!");
+	retvm_if(data == NULL, FAIL, "Invalid parameter!");
 
 	set_app_state(data);
 	if (ret < 0)
 	{
-		ERR("Fail to init alarmdb.");
+		_E("Fail to init alarmdb.");
 		return FAIL;
 	}
 

@@ -282,7 +282,7 @@ static char *_get_pkginfo_icon(const char *pkgid)
 	char *icon_path = NULL;
 	app_info_h app_info;
 
-	retif(pkgid == NULL, NULL, "invalid parameter");
+	retvm_if(pkgid == NULL, NULL, "invalid parameter");
 
 	ret = app_info_create(pkgid, &app_info);
 	if (ret != APP_MANAGER_ERROR_NONE) {
@@ -309,7 +309,7 @@ static Evas_Object *_ticker_create_icon(Evas_Object *parent, notification_h noti
 	char *icon_default = NULL;
 	Evas_Object *icon = NULL;
 
-	retif(noti == NULL || parent == NULL, NULL, "Invalid parameter!");
+	retvm_if(noti == NULL || parent == NULL, NULL, "Invalid parameter!");
 
 	notification_get_pkgname(noti, &pkgname);
 	if (NOTIFICATION_ERROR_NONE != notification_get_image(noti, NOTIFICATION_IMAGE_TYPE_ICON, &icon_path)) {
@@ -365,7 +365,7 @@ static inline void _strbuf_add(Eina_Strbuf *str_buf, char *text, const char *del
 static int _is_phone_number(const char *address)
 {
 	int digit_count = 0;
-	retif(address == NULL, 0, "address is NULL");
+	retvm_if(address == NULL, 0, "address is NULL");
 
 	int addr_len = 0;
 	addr_len = strlen(address);
@@ -405,7 +405,7 @@ static int _is_phone_number(const char *address)
 
 		return 1;
 	} else {
-		DBG("invalid address length [%d]", addr_len);
+		_D("invalid address length [%d]", addr_len);
 		return 0;
 	}
 }
@@ -419,8 +419,8 @@ static void _char_set(char *dst, char s, int index, int size)
 
 static void _make_phone_number_tts(char *dst, const char *src, int size)
 {
-	retif(dst == NULL, , "invalid argument");
-	retif(src == NULL, , "invalid argument");
+	retm_if(dst == NULL, "invalid argument");
+	retm_if(src == NULL, "invalid argument");
 
 	int no_op = 0;
 	int i = 0, j = 0, text_len = 0;
@@ -489,7 +489,7 @@ static char *_ticker_get_label_layout_default(notification_h noti, int is_screen
 	Eina_Strbuf *line2 = NULL;
 	char buf[TICKER_MSG_LEN] = { 0, };
 
-	retif(noti == NULL, NULL, "Invalid parameter!");
+	retvm_if(noti == NULL, NULL, "Invalid parameter!");
 
 	notification_get_text_domain(noti, &domain, &dir);
 	if (domain != NULL && dir != NULL) {
@@ -642,7 +642,7 @@ static char *_ticker_get_label_layout_single(notification_h noti, int is_screenr
 	const char *tmp = NULL;
 	char buf[TICKER_MSG_LEN] = { 0, };
 
-	retif(noti == NULL, NULL, "Invalid parameter!");
+	retvm_if(noti == NULL, NULL, "Invalid parameter!");
 
 	notification_get_text_domain(noti, &domain, &dir);
 	if (domain != NULL && dir != NULL)
@@ -763,7 +763,7 @@ static char *_ticker_get_text(notification_h noti, int is_screenreader, char **l
 	char *result = NULL;
 	notification_ly_type_e layout;
 
-	retif(noti == NULL, NULL, "Invalid parameter!");
+	retvm_if(noti == NULL, NULL, "Invalid parameter!");
 
 	notification_get_layout(noti, &layout);
 
@@ -1026,9 +1026,9 @@ static void _ticker_noti_detailed_changed_cb(void *data, notification_type_e typ
 		ret = notification_op_get_data(op_list, NOTIFICATION_OP_DATA_NOTI, &noti_from_master);
 		ret_if(ret != NOTIFICATION_ERROR_NONE);
 
-		DBG("op_type:%d", op_type);
-		DBG("op_priv_id:%d", priv_id);
-		DBG("noti:%p", noti_from_master);
+		_D("op_type:%d", op_type);
+		_D("op_priv_id:%d", priv_id);
+		_D("noti:%p", noti_from_master);
 
 		if (op_type != NOTIFICATION_OP_INSERT &&
 				op_type != NOTIFICATION_OP_UPDATE) {
@@ -1045,7 +1045,7 @@ static void _ticker_noti_detailed_changed_cb(void *data, notification_type_e typ
 #ifdef QP_EMERGENCY_MODE_ENABLE
 		if (quickpanel_emergency_mode_is_on()) {
 			if (quickpanel_emergency_mode_notification_filter(noti, 1)) {
-				DBG("notification filtered");
+				_D("notification filtered");
 				notification_free(noti);
 				return;
 			}
@@ -1058,7 +1058,7 @@ static void _ticker_noti_detailed_changed_cb(void *data, notification_type_e typ
 	notification_get_display_applist(noti, &applist);
 	if (!((applist & NOTIFICATION_DISPLAY_APP_TICKER)
 				|| (applist & NOTIFICATION_DISPLAY_APP_INDICATOR))) {
-		DBG("displaying ticker option is off");
+		_D("displaying ticker option is off");
 		notification_free(noti);
 		return;
 	}
@@ -1066,7 +1066,7 @@ static void _ticker_noti_detailed_changed_cb(void *data, notification_type_e typ
 	/* Check setting's event notification */
 	ret = _ticker_check_ticker_off(noti);
 	if (ret == 1) {
-		DBG("Disabled tickernoti ret : %d", ret);
+		_D("Disabled tickernoti ret : %d", ret);
 		/* delete temporary here only ticker noti display item */
 		__ticker_only_noti_del(noti);
 		notification_free(noti);
@@ -1077,7 +1077,7 @@ static void _ticker_noti_detailed_changed_cb(void *data, notification_type_e typ
 	/* Skip if previous ticker is still shown */
 /*
 	if (ticker_info->win != NULL) {
-		DBG("delete ticker noti");
+		_D("delete ticker noti");
 		_destroy_tickernoti();
 		ticker_info->win = NULL;
 	}
@@ -1087,7 +1087,7 @@ static void _ticker_noti_detailed_changed_cb(void *data, notification_type_e typ
 	notification_get_property(noti, &flags);
 
 	if (flags & NOTIFICATION_PROP_DISABLE_TICKERNOTI) {
-		DBG("NOTIFICATION_PROP_DISABLE_TICKERNOTI");
+		_D("NOTIFICATION_PROP_DISABLE_TICKERNOTI");
 		__ticker_only_noti_del(noti);
 		notification_free(noti);
 	} else if ((applist & NOTIFICATION_DISPLAY_APP_TICKER)

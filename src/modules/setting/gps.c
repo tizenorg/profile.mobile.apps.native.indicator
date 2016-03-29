@@ -114,7 +114,7 @@ static int indicator_gps_state_get(void)
 
 	if (runtime_info_get_value_int(RUNTIME_INFO_KEY_GPS_STATUS, (int *)&gps_status) < 0)
 	{
-		ERR("Error getting RUNTIME_INFO_KEY_GPS_STATUS value");
+		_E("Error getting RUNTIME_INFO_KEY_GPS_STATUS value");
 		return 0;
 	}
 
@@ -130,7 +130,7 @@ static int indicator_gps_state_get(void)
 
 static void _gps_state_icon_set(int status, void *data)
 {
-	DBG("GPS STATUS: %d", status);
+	_D("GPS STATUS: %d", status);
 	int ret;
 	display_state_e display_state = DISPLAY_STATE_NORMAL;
 
@@ -160,7 +160,7 @@ static void _gps_state_icon_set(int status, void *data)
 
 	default:
 		hide_image_icon();
-		ERR("Invalid value!");
+		_E("Invalid value!");
 		break;
 	}
 
@@ -212,7 +212,7 @@ static int register_gps_module(void *data)
 {
 	int ret;
 
-	retif(data == NULL, FAIL, "Invalid parameter!");
+	retvm_if(data == NULL, FAIL, "Invalid parameter!");
 
 	set_app_state(data);
 

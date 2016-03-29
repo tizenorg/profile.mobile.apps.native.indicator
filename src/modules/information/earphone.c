@@ -88,7 +88,7 @@ void check_jack_port(void *data)
 	bool is_tv_out_connected;
 	int ret;
 
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 
 	if(icon_get_update_flag()==0) {
 		updated_while_lcd_off = 1;
@@ -102,7 +102,7 @@ void check_jack_port(void *data)
 	retm_if(ret != RUNTIME_INFO_ERROR_NONE, "runtime_info_get_value_bool failed[%s]", get_error_message(ret));
 
 	if (is_jack_connected || is_tv_out_connected) {
-		DBG("Earphone connected");
+		_D("Earphone connected");
 		show_image_icon();
 	}
 	else
@@ -127,7 +127,7 @@ static int register_earphone_module(void *data)
 {
 	int ret;
 
-	retif(data == NULL, FAIL, "Invalid parameter!");
+	retvm_if(data == NULL, FAIL, "Invalid parameter!");
 
 	set_app_state(data);
 

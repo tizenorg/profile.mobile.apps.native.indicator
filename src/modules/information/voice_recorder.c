@@ -27,6 +27,7 @@
 #include "icon.h"
 #include "modules.h"
 #include "main.h"
+#include "log.h"
 
 #define ICON_PRIORITY	INDICATOR_PRIORITY_MINICTRL1
 #define MODULE_NAME		"VOICE_RECORDER"
@@ -114,7 +115,7 @@ static void hide_image_icon(void)
 
 static void show_voicerecoder_icon(void *data)
 {
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 
 	if(icon_get_update_flag() == 0) {
 		updated_while_lcd_off = 1;
@@ -122,7 +123,7 @@ static void show_voicerecoder_icon(void *data)
 	}
 	updated_while_lcd_off = 0;
 
-	DBG("VOICE RECORDER state: %d", vr_state);
+	_D("VOICE RECORDER state: %d", vr_state);
 	switch (vr_state) {
 	case VOICE_RECORDER_RECORDING:
 		show_image_icon(data, VOICE_RECORDER_RECORDING);
@@ -147,7 +148,7 @@ static void show_voicerecoder_icon(void *data)
 #if 0
 static void indicator_voice_recorder_change_cb(keynode_t *node, void *data)
 {
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 
 	show_voicerecoder_icon(data);
 	return;
@@ -179,7 +180,7 @@ void hide_voice_recorder_icon(void)
 static int register_voice_recorder_module(void *data)
 {
 
-	retif(data == NULL, FAIL, "Invalid parameter!");
+	retvm_if(data == NULL, FAIL, "Invalid parameter!");
 
 	set_app_state(data);
 	show_voicerecoder_icon(data);

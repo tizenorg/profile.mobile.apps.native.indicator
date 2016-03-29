@@ -132,9 +132,9 @@ static void show_bluetooth_icon(void *data, int status)
 
 static void indicator_bluetooth_adapter_state_changed_cb(int result, bt_adapter_state_e adapter_state, void *user_data)
 {
-	DBG("BT STATUS: %d", adapter_state);
+	_D("BT STATUS: %d", adapter_state);
 	if (adapter_state != BT_ADAPTER_ENABLED) {    // If adapter_state is NULL. hide_image_icon().
-		DBG("BT is not enabled. So hide BT icon.");
+		_D("BT is not enabled. So hide BT icon.");
 		hide_image_icon();
 	} else
 		show_bluetooth_icon(user_data, NO_DEVICE);
@@ -146,11 +146,11 @@ static bool _connected_cb(bt_profile_e profile, void *user_data)
 
 	if (profile == BT_PROFILE_HSP) {
 		*result = (*result | HEADSET_CONNECTED);
-		DBG("BT_HEADSET_CONNECTED(%x)", result);
+		_D("BT_HEADSET_CONNECTED(%x)", result);
 	}
 	else {
 		*result = (*result | DEVICE_CONNECTED);
-		DBG("BT_DEVICE_CONNECTED(%x)", result);
+		_D("BT_DEVICE_CONNECTED(%x)", result);
 	}
 
 	return true;
@@ -160,19 +160,19 @@ static bool _bt_cb(bt_device_info_s *device_info, void *user_data)
 {
 	// For every paired device check if it's connected with any profile
 	int ret = bt_device_foreach_connected_profiles(device_info->remote_address, _connected_cb, user_data);
-	retif(ret != BT_ERROR_NONE, true, "bt_device_foreach_connected_profiles failed[%d]", ret);
+	retvm_if(ret != BT_ERROR_NONE, true, "bt_device_foreach_connected_profiles failed[%d]", ret);
 
 	return true;
 }
 
 static void indicator_bluetooth_change_cb(bool connected, bt_device_connection_info_s *conn_info, void *data)
 {
-	DBG("indicator_bluetooth_change_cb");
+	_D("indicator_bluetooth_change_cb");
 	int ret = 0;
 	int result = NO_DEVICE;
 	bt_adapter_state_e adapter_state = BT_ADAPTER_DISABLED;
 
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 
 	if (icon_get_update_flag() == 0) {
 		updated_while_lcd_off = 1;
@@ -181,14 +181,14 @@ static void indicator_bluetooth_change_cb(bool connected, bt_device_connection_i
 	updated_while_lcd_off = 0;
 
 	ret = bt_adapter_get_state(&adapter_state);
-	retif(ret != BT_ERROR_NONE, , "bt_adapter_get_state failed");
+	retm_if(ret != BT_ERROR_NONE, "bt_adapter_get_state failed");
 	if (adapter_state != BT_ADAPTER_ENABLED) {  // If adapter_state is NULL. hide_image_icon().
-		DBG("BT is not enabled. So don't need to update BT icon.");
+		_D("BT is not enabled. So don't need to update BT icon.");
 		return;
 	}
 
 	ret = bt_adapter_foreach_bonded_device(_bt_cb, (void *)&result);
-	retif(ret != BT_ERROR_NONE, , "bt_adapter_foreach_bonded_device failed");
+	retm_if(ret != BT_ERROR_NONE, "bt_adapter_foreach_bonded_device failed");
 	show_bluetooth_icon(data, result);
 
 	return;
@@ -234,22 +234,22 @@ static int register_bluetooth_module(void *data)
 	int r = 0, ret = -1;
 	bt_adapter_state_e adapter_state = BT_ADAPTER_DISABLED;
 
-	retif(data == NULL, FAIL, "Invalid parameter!");
+	retvm_if(data == NULL, FAIL, "Invalid parameter!");
 
 	set_app_state(data);
 
 	// Register bluetooth adapter state call-back.
 	ret = bt_initialize();
-	if(ret != BT_ERROR_NONE) ERR("bt_initialize failed");
+	if(ret != BT_ERROR_NONE) _E("bt_initialize failed");
 	ret = bt_adapter_set_state_changed_cb(indicator_bluetooth_adapter_state_changed_cb, data);
-	if(ret != BT_ERROR_NONE) ERR("bt_adapter_set_state_changed_cb failed");
+	if(ret != BT_ERROR_NONE) _E("bt_adapter_set_state_changed_cb failed");
 
 	ret = bt_device_set_connection_state_changed_cb(indicator_bluetooth_change_cb, data);
 	if (ret != BT_ERROR_NONE)
 		r = -1;
 
 	ret = bt_adapter_get_state(&adapter_state);
-	retif(ret != BT_ERROR_NONE, -1, "bt_adapter_get_state failed");
+	retvm_if(ret != BT_ERROR_NONE, -1, "bt_adapter_get_state failed");
 
 	indicator_bluetooth_change_cb(false, NULL, data);
 	indicator_bluetooth_adapter_state_changed_cb(0, adapter_state, data);
@@ -263,9 +263,9 @@ static int unregister_bluetooth_module(void)
 
 	// Unregister bluetooth adapter state call-back.
 	ret = bt_adapter_unset_state_changed_cb();
-	if(ret != BT_ERROR_NONE) ERR("bt_adapter_unset_state_changed_cb failed");
+	if(ret != BT_ERROR_NONE) _E("bt_adapter_unset_state_changed_cb failed");
 	ret = bt_deinitialize();
-	if(ret != BT_ERROR_NONE) ERR("bt_deinitialize failed");
+	if(ret != BT_ERROR_NONE) _E("bt_deinitialize failed");
 
 	return ret;
 }

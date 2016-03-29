@@ -67,14 +67,14 @@ char *util_set_label_text_color(const char *txt)
 	Eina_Bool buf_result = EINA_FALSE;
 	char *ret_str = NULL;
 
-	retif(txt == NULL, NULL, "Invalid parameter!");
+	retvm_if(txt == NULL, NULL, "Invalid parameter!");
 
 	temp_buf = eina_strbuf_new();
 	buf_result = eina_strbuf_append_printf(temp_buf,
 				LABEL_STRING, FONT_COLOR, txt);
 
 	if (buf_result == EINA_FALSE)
-		DBG("Failed to make label string!");
+		_D("Failed to make label string!");
 	else
 		ret_str = eina_strbuf_string_steal(temp_buf);
 
@@ -98,13 +98,6 @@ void util_signal_emit(void* data, const char *emission, const char *source)
 
 	ad = (struct appdata *)data;
 
-	char *filter1 = "indicator.connection.updown";
-	char *filter2 = "indicator.wifi.updown";
-	if (strncmp(filter1, emission, strlen(filter1)) != 0
-			&& strncmp(filter2, emission, strlen(filter2)) != 0) {
-		SECURE_DBG("emission %s",emission);
-	}
-
 	edje = elm_layout_edje_get(ad->win.layout);
 	ret_if(!edje);
 	edje_object_signal_emit(edje, emission, source);
@@ -115,10 +108,10 @@ void util_signal_emit(void* data, const char *emission, const char *source)
 void util_part_text_emit(void* data, const char *part, const char *text)
 {
 	struct appdata *ad = (struct appdata *)data;
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 	Evas_Object *edje;
 
-	retif(ad->win.layout == NULL, , "Invalid parameter!");
+	retm_if(ad->win.layout == NULL, "Invalid parameter!");
 	edje = elm_layout_edje_get(ad->win.layout);
 	edje_object_part_text_set(edje, part, text);
 }
@@ -146,10 +139,10 @@ void util_signal_emit_by_win(void* data, const char *emission, const char *sourc
 void util_part_text_emit_by_win(void* data, const char *part, const char *text)
 {
 	win_info *win = (win_info*)data;
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 	Evas_Object *edje;
 
-	retif(win->layout == NULL, , "Invalid parameter!");
+	retm_if(win->layout == NULL, "Invalid parameter!");
 	edje = elm_layout_edje_get(win->layout);
 	edje_object_part_text_set(edje, part, text);
 }
@@ -159,14 +152,14 @@ void util_part_text_emit_by_win(void* data, const char *part, const char *text)
 void util_battery_percentage_part_content_set(void* data, const char *part, const char *img_path)
 {
 	struct appdata *ad = (struct appdata *)data;
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 	Evas_Object *icon = NULL;
 	char path[PATH_MAX];
 
-	retif(ad->win.layout == NULL, , "Invalid parameter!");
+	retm_if(ad->win.layout == NULL, "Invalid parameter!");
 
 	icon = elm_image_add(ad->win.layout);
-	retif(!icon, , "Cannot create elm icon object!");
+	retm_if(!icon, "Cannot create elm icon object!");
 
 	if (strncmp(img_path, "/", 1) != 0)
 	{
@@ -179,7 +172,7 @@ void util_battery_percentage_part_content_set(void* data, const char *part, cons
 
 	if (!ecore_file_exists(path))
 	{
-		ERR("icon file does not exist!!: %s",path);
+		_E("icon file does not exist!!: %s",path);
 		return;
 	}
 	elm_image_file_set(icon, path, NULL);
@@ -193,14 +186,14 @@ void util_send_status_message_start(void* data,double duration)
 {
 	Ecore_Evas *ee_port;
 	win_info* win = (win_info*)data;
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 	struct appdata *ad = win->data;
 	Indicator_Data_Animation msg = {0,};
 
 	msg.xwin = ad->active_indi_win;
 	msg.duration = duration;
 
-	DBG("status start %x, %f",ad->active_indi_win,duration);
+	_D("status start %x, %f",ad->active_indi_win,duration);
 	ee_port = ecore_evas_ecore_evas_get(evas_object_evas_get(win->win));
 	ecore_evas_msg_send(ee_port, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_ANI_START, &(msg), sizeof(Indicator_Data_Animation));
 
@@ -222,7 +215,7 @@ void util_launch_search(void* data)
 	}
 
 	if (util_check_system_status() == FAIL) {
-		DBG("util_check_system_status failed");
+		_D("util_check_system_status failed");
 		return;
 	}
 
@@ -233,7 +226,7 @@ void util_launch_search(void* data)
 	ret = app_control_send_launch_request(service, NULL, NULL);
 
 	if(ret != APP_CONTROL_ERROR_NONE) {
-		ERR("Cannot launch app");
+		_E("Cannot launch app");
 	}
 
 	app_control_destroy(service);
@@ -260,7 +253,7 @@ int util_check_system_status(void)
 Evas_Object *util_access_object_register(Evas_Object *object, Evas_Object *layout)
 {
 	if ((object == NULL) || (layout == NULL)) {
-		ERR("Access object doesn't exist!!! %x %x",object,layout);
+		_E("Access object doesn't exist!!! %x %x",object,layout);
 		return NULL;
 	}
 
@@ -272,7 +265,7 @@ Evas_Object *util_access_object_register(Evas_Object *object, Evas_Object *layou
 void util_access_object_unregister(Evas_Object *object)
 {
 	if (object == NULL) {
-		ERR("Access object doesn't exist!!! %x",object);
+		_E("Access object doesn't exist!!! %x",object);
 		return NULL;
 	}
 
@@ -284,7 +277,7 @@ void util_access_object_unregister(Evas_Object *object)
 void util_access_object_info_set(Evas_Object *object, int info_type, char *info_text)
 {
 	if ((object == NULL) || (info_text == NULL)) {
-		ERR("Access info set fails %x, %x!!!",object,info_text);
+		_E("Access info set fails %x, %x!!!",object,info_text);
 		return;
 	}
 
@@ -296,7 +289,7 @@ void util_access_object_info_set(Evas_Object *object, int info_type, char *info_
 void util_access_object_activate_cb_set(Evas_Object *object, Elm_Access_Activate_Cb activate_cb, void *cb_data)
 {
 	if ((object == NULL) || (activate_cb == NULL)) {
-		ERR("Access activated cb set fails %x %x!!!",object,activate_cb);
+		_E("Access activated cb set fails %x %x!!!",object,activate_cb);
 		return;
 	}
 
@@ -308,7 +301,7 @@ void util_access_object_activate_cb_set(Evas_Object *object, Elm_Access_Activate
 void util_access_object_info_cb_set(Evas_Object *object, int type, Elm_Access_Info_Cb info_cb, void *cb_data)
 {
 	if ((object == NULL) || (info_cb == NULL)) {
-		ERR("Access info cb set fails  %x %x!!!",object,info_cb);
+		_E("Access info cb set fails  %x %x!!!",object,info_cb);
 		return;
 	}
 
@@ -322,7 +315,7 @@ void util_icon_access_register(icon_s *icon)
 
 	if(icon == NULL)
 	{
-		ERR("ICON NULL");
+		_E("ICON NULL");
 		return;
 	}
 
@@ -346,7 +339,7 @@ void util_icon_access_unregister(icon_s *icon)
 {
 	if(icon == NULL)
 	{
-		ERR("ICON NULL");
+		_E("ICON NULL");
 		return;
 	}
 
@@ -366,7 +359,7 @@ static char* _get_timezone_from_vconf(void)
 	szTimezone = vconf_get_str(VCONFKEY_SETAPPL_TIMEZONE_ID);
 	if(szTimezone == NULL)
 	{
-		ERR("Cannot get time zone.");
+		_E("Cannot get time zone.");
 		return strdup("N/A");
 	}
 
@@ -387,7 +380,7 @@ char* util_get_timezone_str(void)
 	}
 	else
 	{
-		ERR("NO TIMEZONEINFO");
+		_E("NO TIMEZONEINFO");
 		return _get_timezone_from_vconf();
 	}
 	return (char*)strdup(buf+20);	// Asia/Seoul
@@ -429,8 +422,8 @@ int util_get_block_width(void* data, const char* part)
 	Evas_Object * eo = NULL;
 	int geo_dx = 0;
 	int geo_dy = 0;
-	retif(data == NULL,-1, "Invalid parameter!");
-	retif(part == NULL,-1, "Invalid parameter!");
+	retvm_if(data == NULL, -1, "Invalid parameter!");
+	retvm_if(part == NULL, -1, "Invalid parameter!");
 
 	win_info* win = (win_info*)data;
 
@@ -448,8 +441,8 @@ int util_get_string_width(void* data, const char* part)
 	Evas_Object * eo = NULL;
 	int text_dx = 0;
 	int text_dy = 0;
-	retif(data == NULL,-1, "Invalid parameter!");
-	retif(part == NULL,-1, "Invalid parameter!");
+	retvm_if(data == NULL, -1, "Invalid parameter!");
+	retvm_if(part == NULL, -1, "Invalid parameter!");
 
 	win_info* win = (win_info*)data;
 
@@ -484,11 +477,11 @@ int util_check_noti_ani(const char* path)
 void util_start_noti_ani(void* data)
 {
 	icon_s *icon = (icon_s *)data;
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 
 	if(util_check_noti_ani(icon->img_obj.data))
 	{
-		DBG("%s",icon->name);
+		_D("%s",icon->name);
 		if(!strcmp(icon->img_obj.data,"reserved://indicator/ani/downloading"))
 		{
 			icon_ani_set(icon,ICON_ANI_DOWNLOADING);
@@ -505,13 +498,13 @@ void util_start_noti_ani(void* data)
 void util_stop_noti_ani(void* data)
 {
 	icon_s *icon = (icon_s *)data;
-	retif(data == NULL, , "Invalid parameter!");
+	retm_if(data == NULL, "Invalid parameter!");
 
 	if(util_check_noti_ani(icon->img_obj.data))
 	{
 		Evas_Object *img_edje;
 		img_edje = elm_layout_edje_get(icon->img_obj.obj);
-		DBG("%s",icon->name);
+		_D("%s",icon->name);
 		if(!strcmp(icon->img_obj.data,"reserved://indicator/ani/downloading"))
 		{
 			edje_object_signal_emit(img_edje, "indicator.ani.downloading.stop","elm.swallow.icon");
@@ -527,7 +520,7 @@ void util_stop_noti_ani(void* data)
 
 void util_char_replace(char *text, char s, char t)
 {
-	retif(text == NULL, , "invalid argument");
+	retm_if(text == NULL, "invalid argument");
 
 	int i = 0, text_len = 0;
 
@@ -572,10 +565,9 @@ int util_dynamic_state_get(void)
 
 Ecore_File_Monitor* util_file_monitor_add(const char* file_path, Ecore_File_Monitor_Cb callback_func, void *ad)
 {
-	SECURE_DBG("File path : %s", file_path);
 	Ecore_File_Monitor* pFileMonitor = NULL;
 	pFileMonitor = ecore_file_monitor_add(file_path, callback_func, ad);
-	if(pFileMonitor == NULL) SECURE_DBG("ecore_file_monitor_add return NULL !!");
+	if(pFileMonitor == NULL) _D("ecore_file_monitor_add return NULL !!");
 
 	return pFileMonitor;
 }
@@ -605,9 +597,6 @@ const char *util_get_file_path(enum app_subdir dir, const char *relative)
 	case APP_DIR_RESOURCE:
 		prefix = app_get_resource_path();
 		break;
-	case APP_DIR_SHARED_DATA:
-		prefix = app_get_shared_data_path();
-		break;
 	case APP_DIR_SHARED_RESOURCE:
 		prefix = app_get_shared_resource_path();
 		break;
@@ -620,17 +609,14 @@ const char *util_get_file_path(enum app_subdir dir, const char *relative)
 	case APP_DIR_EXTERNAL_CACHE:
 		prefix = app_get_external_cache_path();
 		break;
-	case APP_DIR_EXTERNAL_SHARED_DATA:
-		prefix = app_get_external_shared_data_path();
-		break;
 	default:
-		LOGE("Not handled directory type.");
+		_E("Not handled directory type.");
 		return NULL;
 	}
 	size_t res = eina_file_path_join(buf, sizeof(buf), prefix, relative);
 	free(prefix);
 	if (res > sizeof(buf)) {
-		LOGE("Path exceeded PATH_MAX");
+		_E("Path exceeded PATH_MAX");
 		return NULL;
 	}
 
@@ -706,7 +692,7 @@ int util_system_settings_set_changed_cb(system_settings_key_e key, system_settin
 	system_settings_unset_changed_cb(key);
 	int err = system_settings_set_changed_cb(key, _system_settings_cb, NULL);
 	if (err != SYSTEM_SETTINGS_ERROR_NONE) {
-		ERR("system_settings_set_changed_cb failed: %s", get_error_message(err));
+		_E("system_settings_set_changed_cb failed: %s", get_error_message(err));
 		free(handler);
 		return -1;
 	}
@@ -763,7 +749,7 @@ int util_runtime_info_set_changed_cb(runtime_info_key_e key, runtime_info_change
 	runtime_info_unset_changed_cb(key);
 	int err = runtime_info_set_changed_cb(key, _runtime_info_cb, NULL);
 	if (err != RUNTIME_INFO_ERROR_NONE) {
-		ERR("runtime_info_set_changed_cb failed: %s", get_error_message(err));
+		_E("runtime_info_set_changed_cb failed: %s", get_error_message(err));
 		free(handler);
 		return -1;
 	}
