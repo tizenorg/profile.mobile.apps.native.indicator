@@ -111,6 +111,20 @@ const char *util_get_file_path(enum app_subdir dir, const char *relative);
 #define util_get_external_cache_file_path(x) util_get_file_path(APP_DIR_EXTERNAL_CACHE, (x))
 
 /**
+ * @brief Initializes WiFi using wifi_initialize API
+ * @remarks If WiFi is already initialized, #WIFI_ERROR_NONE will be returned.
+ * @return 0 on success, other value on failure
+ */
+int util_wifi_initialize(void);
+
+/**
+ * @brief Deinitializes WiFi using wifi_deinitialize API
+ * @remarks Only last call of that function is effective to avoid unwanted deinitialization.
+ * @return 0 on success, other value on failure
+ */
+int util_wifi_deinitialize(void);
+
+/**
  * @brief Allows to set multiple callbacks using wifi_set_connection_state_changed_cb API
  *
  * @param cb callback
@@ -125,6 +139,23 @@ int util_wifi_set_connection_state_changed_cb(wifi_connection_state_changed_cb, 
  * @param cb callback
  */
 void util_wifi_unset_connection_state_changed_cb(wifi_connection_state_changed_cb);
+
+/**
+ * @brief Allows to set multiple callbacks using wifi_set_device_state_changed_cb API
+ *
+ * @param cb callback
+ * @param data user_data passed to callback function.
+ * @return 0 on success, other value on failure
+ */
+int util_wifi_set_device_state_changed_cb(wifi_device_state_changed_cb cb, void *data);
+
+/**
+ * @brief Unregisters callback set with util_wifi_set_device_state_changed_cb.
+ *
+ * @param cb callback
+ */
+void util_wifi_unset_device_state_changed_cb(wifi_device_state_changed_cb cb);
+
 
 /**
  * @brief Allows to register multiple callbacks using system_settings_changed_cb API.

@@ -46,6 +46,11 @@ typedef struct {
 } wifi_handler_t;
 
 typedef struct {
+	wifi_device_state_changed_cb cb;
+	void *data;
+} wifi_device_handler_t;
+
+typedef struct {
 	system_settings_key_e key;
 	system_settings_changed_cb cb;
 	void *data;
@@ -58,9 +63,10 @@ typedef struct {
 } runtime_info_handler_t;
 
 static Eina_List *wifi_callbacks;
+static Eina_List *wifi_device_callbacks;
 static Eina_List *ss_callbacks;
 static Eina_List *ri_callbacks;
-
+static int wifi_init_cnt = 0;
 char *util_set_label_text_color(const char *txt)
 {
 	Eina_Strbuf *temp_buf = NULL;
@@ -623,6 +629,35 @@ const char *util_get_file_path(enum app_subdir dir, const char *relative)
 	return &buf[0];
 }
 
+int util_wifi_initialize(void)
+{
+	_D("util_wifi_initialize");
+
+	wifi_init_cnt++;
+
+	int ret = wifi_initialize();
+	if (ret == WIFI_ERROR_INVALID_OPERATION) {
+		_W("WiFi already initialized");
+		return OK;
+	}
+	retv_if(ret != WIFI_ERROR_NONE, ret);
+
+	return OK;
+}
+
+int util_wifi_deinitialize(void)
+{
+	_D("util_wifi_deinitialize");
+
+	wifi_init_cnt--;
+
+	if (wifi_init_cnt == 0) {
+		int ret = wifi_deinitialize();
+		retv_if(ret != WIFI_ERROR_NONE, ret);
+	}
+	return OK;
+}
+
 static void _wifi_state_cb(wifi_connection_state_e state, wifi_ap_h ap, void *user_data)
 {
 	Eina_List *l;
@@ -669,6 +704,60 @@ void util_wifi_unset_connection_state_changed_cb(wifi_connection_state_changed_c
 	if (!wifi_callbacks)
 		wifi_unset_connection_state_changed_cb();
 }
+
+/** WIFI DEVICE STATE CB **/
+
+static void _wifi_device_state_cb(wifi_device_state_e state, void *user_data)
+{
+	Eina_List *l;
+	wifi_device_handler_t *hdl;
+
+	EINA_LIST_FOREACH(wifi_device_callbacks, l, hdl) {
+		if (hdl->cb) hdl->cb(state, hdl->data);
+	}
+}
+
+int util_wifi_set_device_state_changed_cb(wifi_device_state_changed_cb cb, void *data)
+{
+	wifi_device_handler_t *hdl = malloc(sizeof(wifi_device_handler_t));
+	if (!hdl) {
+		_D("malloc failed");
+		return WIFI_ERROR_OUT_OF_MEMORY;
+	}
+
+	if (!wifi_device_callbacks) {
+		int err = wifi_set_device_state_changed_cb(_wifi_device_state_cb, NULL);
+		if (err != WIFI_ERROR_NONE) {
+			free(hdl);
+
+			_D("wifi_set_device_state_changed_cb failed[%d]:%s", err, get_error_message(err));
+			return err;
+		}
+	}
+
+	hdl->cb = cb;
+	hdl->data = data;
+	wifi_device_callbacks = eina_list_append(wifi_device_callbacks, hdl);
+
+	return 0;
+}
+
+void util_wifi_unset_device_state_changed_cb(wifi_device_state_changed_cb cb)
+{
+	Eina_List *l, *l2;
+	wifi_device_handler_t *hdl;
+
+	EINA_LIST_FOREACH_SAFE(wifi_device_callbacks, l, l2, hdl) {
+		if (hdl->cb == cb) {
+			wifi_device_callbacks = eina_list_remove_list(wifi_device_callbacks, l);
+			free(hdl);
+		}
+	}
+	if (!wifi_device_callbacks)
+		wifi_unset_device_state_changed_cb();
+}
+
+/** SYSTEM SETTINGS CB **/
 
 static void _system_settings_cb(system_settings_key_e key, void *data)
 {
