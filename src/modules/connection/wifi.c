@@ -247,12 +247,12 @@ static int register_wifi_module(void *data)
 
 	set_app_state(data);
 
-	int ret = wifi_initialize();
-	retvm_if(ret != WIFI_ERROR_NONE, FAIL, "wifi_initialize failed : %s", get_error_message(ret));
+	int ret = util_wifi_initialize();
+	retvm_if(ret != WIFI_ERROR_NONE, FAIL, "util_wifi_initialize failed : %s", get_error_message(ret));
 
-	ret = wifi_set_device_state_changed_cb(_wifi_device_state_changed, data);
+	ret = util_wifi_set_device_state_changed_cb(_wifi_device_state_changed, data);
 	if (ret != WIFI_ERROR_NONE) {
-		_E("wifi_set_device_state_changed_cb failed: %s", get_error_message(ret));
+		_E("util_wifi_set_device_state_changed_cb failed: %s", get_error_message(ret));
 		unregister_wifi_module();
 		return FAIL;
 	}
@@ -285,14 +285,15 @@ static int register_wifi_module(void *data)
 
 static int unregister_wifi_module(void)
 {
+	util_wifi_unset_device_state_changed_cb(_wifi_device_state_changed);
 	util_wifi_unset_connection_state_changed_cb(_wifi_connection_state_changed);
-	wifi_unset_device_state_changed_cb();
 	wifi_unset_rssi_level_changed_cb();
 	vconf_ignore_key_changed(VCONFKEY_WIFI_TRANSFER_STATE, _wifi_changed_cb);
 
-	int ret = wifi_deinitialize();
+
+	int ret = util_wifi_deinitialize();
 	if (ret != WIFI_ERROR_NONE) {
-		_E("wifi_deinitialize failed : %s", get_error_message(ret));
+		_E("util_wifi_deinitialize failed : %s", get_error_message(ret));
 	}
 
 	return OK;

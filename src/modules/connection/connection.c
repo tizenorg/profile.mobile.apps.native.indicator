@@ -48,7 +48,6 @@ static int isBTIconShowing = 0;
 static telephony_handle_list_s tel_list;
 static int updated_while_lcd_off = 0;
 static int prevIndex = -1;
-static bool mobile_data_status = false;
 static event_handler_h event;
 
 
@@ -299,7 +298,10 @@ static void on_noti(telephony_h handle, void *user_data)
 			hide_image_icon();
 		}
 	}
-	if (mobile_data_status)
+
+	bool is_3G = false;
+	system_settings_get_value_bool(SYSTEM_SETTINGS_KEY_3G_DATA_NETWORK_ENABLED, &is_3G);
+	if (is_3G)
 		_view_icon_update(handle, user_data);
 
 }
@@ -319,7 +321,7 @@ static void _update_status_ri(runtime_info_key_e key, void *user_data)
 	on_noti(tel_list.handle[0], user_data);
 }
 
-static void _wifi_status_changed_cb(wifi_connection_state_e state, wifi_ap_h ap, void *user_data)
+static void _wifi_status_changed_cb(wifi_device_state_e state, void *user_data)
 {
 	int status = 0;
 	int ret = 0;
@@ -333,6 +335,12 @@ static void _wifi_status_changed_cb(wifi_connection_state_e state, wifi_ap_h ap,
 		} else
 			on_noti(tel_list.handle[0], user_data);
 	}
+}
+
+static void _wifi_connection_status_changed_cb(wifi_connection_state_e state, wifi_ap_h ap, void *user_data)
+{
+	/*First parameter of below function is not used*/
+	_wifi_status_changed_cb(0, user_data);
 }
 
 static void _flight_mode(system_settings_key_e key, void *user_data)
@@ -371,9 +379,23 @@ static int __init_tel(void *data)
 		}
 	}
 
-	ret = util_wifi_set_connection_state_changed_cb(_wifi_status_changed_cb, data);
+	ret = util_wifi_initialize();
 	if (ret != 0) {
-		_E("util_wifi_set_connection_state_changed_cb");
+		_E("util_wifi_initialize failed[%d]:%s", ret, get_error_message(ret));
+		__deinit_tel();
+		return FAIL;
+	}
+
+	ret = util_wifi_set_device_state_changed_cb(_wifi_status_changed_cb, data);
+	if (ret != 0) {
+		_E("util_wifi_set_device_state_changed_cb failed");
+		__deinit_tel();
+		return FAIL;
+	}
+
+	ret = util_wifi_set_connection_state_changed_cb(_wifi_connection_status_changed_cb, data);
+	if (ret != 0) {
+		_E("util_wifi_set_connection_state_changed_cb failed");
 		__deinit_tel();
 		return FAIL;
 	}
@@ -407,12 +429,14 @@ static void __deinit_tel()
 	_D("__deinit_tel");
 
 	util_system_settings_unset_changed_cb(SYSTEM_SETTINGS_KEY_NETWORK_FLIGHT_MODE, _flight_mode);
-	util_wifi_unset_connection_state_changed_cb(_wifi_status_changed_cb);
+	util_wifi_unset_device_state_changed_cb(_wifi_status_changed_cb);
 	util_runtime_info_unset_changed_cb(RUNTIME_INFO_KEY_BLUETOOTH_TETHERING_ENABLED, _update_status_ri);
 
 	if (tel_list.count)
 		telephony_deinit(&tel_list);
 	tel_list.count = 0;
+
+	util_wifi_deinitialize();
 
 	hide_image_icon();
 }
@@ -437,13 +461,10 @@ static void data_event_cb(const char *event_name, bundle *event_data, void *user
 	}
 	_D("bundle value:%s", value);
 
-	if (!strcmp(value, "off")) {
-		mobile_data_status = false;
+	if (!strcmp(value, "off"))
 		hide_image_icon();
-	} else {
-		mobile_data_status = true;
+	else
 		on_noti(tel_list.handle[0], user_data);
-	}
 }
 
 static int register_conn_module(void *data)
