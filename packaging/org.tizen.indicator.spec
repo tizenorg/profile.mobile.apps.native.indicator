@@ -5,7 +5,6 @@ Release:    1
 Group:      utils
 License:    Apache-2.0
 Source0:    %{name}-%{version}.tar.gz
-Source1:    indicator.service
 
 %if "%{?profile}" == "wearable"
 ExcludeArch: %{arm} %ix86 x86_64
@@ -98,9 +97,6 @@ cd -
 mkdir -p %{buildroot}/%{_sys_license_dir}
 cp LICENSE %{buildroot}/%{_sys_license_dir}/%{name}
 
-mkdir -p %{buildroot}/usr/lib/systemd/user/default.target.wants
-install -m 0644 %SOURCE1 %{buildroot}/usr/lib/systemd/user/indicator.service
-ln -s ../indicator.service %{buildroot}/usr/lib/systemd/user/default.target.wants/
 %find_lang indicator-win
 
 
@@ -111,8 +107,6 @@ ln -s ../indicator.service %{buildroot}/usr/lib/systemd/user/default.target.want
 %{_pkg_dir}/res/resource/icons/*
 %{_pkg_dir}/res/resource/*.edj
 %{_sys_packages_dir}/%{name}.xml
-/usr/lib/systemd/user/indicator.service
-/usr/lib/systemd/user/default.target.wants/indicator.service
 %{_sys_license_dir}/%{name}
 %{_pkg_dir}/author-signature.xml
 %{_pkg_dir}/signature1.xml
