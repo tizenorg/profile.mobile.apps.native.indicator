@@ -139,7 +139,6 @@ char *__indicator_ui_get_pkginfo_icon(const char *pkgid)
 	ret = app_info_create(pkgid, &app_info);
 
 	retvm_if(ret != APP_MANAGER_ERROR_NONE, NULL, "app_info_create for %s failed %d", pkgid, ret);
-		return NULL;
 
 	/* Icon path */
 	ret = app_info_get_icon(app_info, &icon_path);
@@ -440,12 +439,13 @@ static void _change_icon_status(void *data, notification_list_h noti_list)
 		if (noti_ret != NOTIFICATION_ERROR_NONE) continue;
 		if (!(applist & NOTIFICATION_DISPLAY_APP_INDICATOR)) continue;
 
-		noti_ret = notification_get_pkgname(noti, &pkgname);
 		noti_ret = notification_get_id(noti, NULL, &prev_id);
 
 		snprintf(prev_id_str, sizeof(prev_id_str), "%d", prev_id);
 
 		if (noti_ret != NOTIFICATION_ERROR_NONE) {
+			noti_ret = notification_get_pkgname(noti, &pkgname);
+			if (noti_ret != NOTIFICATION_ERROR_NONE) continue;
 			_D("Cannot Get pkgname of notication! : %p %p", noti, pkgname);
 		} else {
 			status_exist = _is_exist_by_privid(prev_id_str);
