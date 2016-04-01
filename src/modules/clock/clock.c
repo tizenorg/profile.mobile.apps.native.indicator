@@ -553,10 +553,10 @@ void indicator_get_time_by_region(char* output,void *data)
 	int32_t best_pattern_len, formatted_len;
 
 	if (clock_mode == INDICATOR_CLOCK_MODE_12H) {
-		strcpy(s_time_skeleton, "hm");
+		strncpy(s_time_skeleton, "hm", 2);
 	}
 	else {
-		strcpy(s_time_skeleton, "Hm");
+		strncpy(s_time_skeleton, "Hm", 2);
 	}
 
 	ret = system_settings_get_value_string(SYSTEM_SETTINGS_KEY_LOCALE_COUNTRY, &locale);
