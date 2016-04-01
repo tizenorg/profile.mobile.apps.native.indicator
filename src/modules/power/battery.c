@@ -34,6 +34,7 @@
 #include "util.h"
 #include "box.h"
 #include "log.h"
+#include <vconf.h>
 
 #define ICON_PRIORITY	INDICATOR_PRIORITY_FIXED9
 #define MODULE_NAME		"battery"
@@ -432,9 +433,19 @@ static void show_battery_icon(int mode, int level)
 		if (batt_full == 1) {
 			battery.img_obj.data = percentage_battery_icon_path[LEVEL_PERCENTAGE_MAX];
 		} else if (battery_charging==EINA_TRUE) {
-			battery.img_obj.data = percentage_battery_charging_icon_path[level];
+			if (level == 0)
+				battery.img_obj.data = percentage_battery_charging_icon_path[0];
+			else {
+				int percentage_level = (level / 2) + 1;
+				battery.img_obj.data = percentage_battery_charging_icon_path[percentage_level];
+			}
 		} else {
-			battery.img_obj.data = percentage_battery_icon_path[level];
+			if (level == 0)
+				battery.img_obj.data = percentage_battery_icon_path[0];
+			else {
+				int percentage_level = (level / 2) + 1;
+				battery.img_obj.data = percentage_battery_icon_path[percentage_level];
+			}
 		}
 		icon_show(&battery);
 	} else {
@@ -693,16 +704,29 @@ static void indicator_battery_batt_percentage_cb(device_callback_e type, void *v
 {
 	struct appdata* ad = NULL;
 
+	int status = 0;
+
 	ret_if(!data);
 
 	ad = (struct appdata*)data;
 
-	//remove battery percentage
-	is_battery_percentage_shown = EINA_FALSE;
-	_level.max_level = LEVEL_MAX;
-	indicator_battery_update_display(data);
-	hide_digits();
-	box_update_display(&(ad->win));
+	vconf_get_bool(VCONFKEY_SETAPPL_BATTERY_PERCENTAGE_BOOL, &status);
+
+	if(status == 1) {
+		is_battery_percentage_shown = EINA_TRUE;
+		_level.max_level = LEVEL_PERCENTAGE_MAX;
+		indicator_battery_update_display(data);
+		show_digits();
+		box_update_display(&(ad->win));
+	}
+	else {
+		//remove battery percentage
+		is_battery_percentage_shown = EINA_FALSE;
+		_level.max_level = LEVEL_MAX;
+		indicator_battery_update_display(data);
+		hide_digits();
+		box_update_display(&(ad->win));
+	}
 }
 
 static int wake_up_cb(void *data)
