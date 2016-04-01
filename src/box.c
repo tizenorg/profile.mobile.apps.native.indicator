@@ -813,8 +813,6 @@ Icon_AddType box_is_enable_to_insert_in_non_fixed_list(icon_s *obj)
 			} else {
 				if (higher_cnt >= box_get_enabled_system_count()) {
 					return CANNOT_ADD;
-				} else if (higher_cnt+same_cnt >= box_get_enabled_system_count()) {
-					return CAN_ADD_WITH_DEL_SYSTEM;
 				} else {
 					return CAN_ADD_WITH_DEL_SYSTEM;
 				}
@@ -833,8 +831,6 @@ Icon_AddType box_is_enable_to_insert_in_non_fixed_list(icon_s *obj)
 			} else {
 				if (higher_cnt >= box_get_minictrl_list()) {
 					return CANNOT_ADD;
-				} else if (higher_cnt+same_cnt >= box_get_minictrl_list()) {
-					return CAN_ADD_WITH_DEL_MINICTRL;
 				} else {
 					return CAN_ADD_WITH_DEL_MINICTRL;
 				}
@@ -949,28 +945,24 @@ extern Eina_Bool box_exist_icon(icon_s *obj)
 		} else {
 			return EINA_FALSE;
 		}
-		break;
 	case INDICATOR_ICON_AREA_SYSTEM:
 		if (eina_list_data_find(_view_system_list, obj)) {
 			return EINA_TRUE;
 		} else {
 			return EINA_FALSE;
 		}
-		break;
 	case INDICATOR_ICON_AREA_MINICTRL:
 		if (eina_list_data_find(_view_minictrl_list, obj)) {
 			return EINA_TRUE;
 		} else {
 			return EINA_FALSE;
 		}
-		break;
 	case INDICATOR_ICON_AREA_NOTI:
 		if (eina_list_data_find(_view_noti_list, obj)) {
 			return EINA_TRUE;
 		} else {
 			return EINA_FALSE;
 		}
-		break;
 	default:
 		break;
 	}
