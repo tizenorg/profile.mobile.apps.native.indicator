@@ -148,14 +148,10 @@ static int register_alarm_module(void *data)
 	retvm_if(data == NULL, FAIL, "Invalid parameter!");
 
 	set_app_state(data);
-	if (ret < 0)
-	{
-		_E("Fail to init alarmdb.");
-		return FAIL;
-	}
 
-	ret = vconf_notify_key_changed(VCONFKEY_ALARM_STATE,
-					indicator_alarm_change_cb, data);
+	ret = vconf_notify_key_changed(VCONFKEY_ALARM_STATE, indicator_alarm_change_cb, data);
+
+	retvm_if(ret != 0, FAIL, "vconf_notify_key_changed failed[%d]", ret);
 
 	indicator_alarm_change_cb(NULL, data);
 
@@ -168,8 +164,7 @@ static int unregister_alarm_module(void)
 {
 	int ret;
 
-	ret = vconf_ignore_key_changed(VCONFKEY_ALARM_STATE,
-					indicator_alarm_change_cb);
+	ret = vconf_ignore_key_changed(VCONFKEY_ALARM_STATE, indicator_alarm_change_cb);
 
 	return ret;
 }
