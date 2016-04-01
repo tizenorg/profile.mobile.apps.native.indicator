@@ -424,7 +424,6 @@ static int _hide_others_in_view_list(icon_s *icon)
 			break;
 		case CANNOT_ADD:
 			return FAIL;
-			break;
 		}
 
 		return OK;
