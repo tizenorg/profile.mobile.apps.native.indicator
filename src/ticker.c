@@ -1014,9 +1014,6 @@ static void _ticker_noti_detailed_changed_cb(void *data, notification_type_e typ
 
 	_D("_ticker_noti_changed_cb");
 
-	ticker_info = calloc(1, sizeof(ticker_info_s));
-	ret_if(!ticker_info);
-
 	if (num_op == 1) {
 		//TODO: Functions below are depracated, should not be used
 		ret = notification_op_get_data(op_list, NOTIFICATION_OP_DATA_TYPE, &op_type);
@@ -1074,6 +1071,9 @@ static void _ticker_noti_detailed_changed_cb(void *data, notification_type_e typ
 		return;
 	}
 
+	ticker_info = calloc(1, sizeof(ticker_info_s));
+	ret_if(ticker_info == NULL);
+
 	/* Skip if previous ticker is still shown */
 /*
 	if (ticker_info->win != NULL) {
@@ -1105,6 +1105,7 @@ static void _ticker_noti_detailed_changed_cb(void *data, notification_type_e typ
 			return;
 		}
 	}
+	free(ticker_info);
 }
 
 static Eina_Bool _tickernoti_callback_register_idler_cb(void *data)
