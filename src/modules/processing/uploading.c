@@ -117,8 +117,8 @@ static void hide_uploading_icon(void)
 
 static void indicator_uploading_change_cb(keynode_t *node, void *data)
 {
-	/*int status = 0;*/
-	int result = 0;
+	int status = 0;
+	int ret;
 
 	retm_if(data == NULL, "Invalid parameter!");
 
@@ -129,14 +129,11 @@ static void indicator_uploading_change_cb(keynode_t *node, void *data)
 	}
 	updated_while_lcd_off = 0;
 
-/*	if (vconf_get_int(VCONFKEY_WIFI_DIRECT_SENDING_STATE, &status) == 0)
-	{
-		result = result | status;
-	} else {
-		_E("Failed to get VCONFKEY_WIFI_DIRECT_SENDING_STATE value");
-	}*/
+	ret = vconf_get_int(VCONFKEY_WIFI_DIRECT_SENDING_STATE, &status);
 
-	if (result == 1) {
+	retm_if(ret != 0, "Failed to get VCONFKEY_WIFI_DIRECT_SENDING_STATE value");
+
+	if (status == 1) {
 		show_uploading_icon(data);
 
 	} else {
@@ -180,10 +177,17 @@ static int register_uploading_module(void *data)
 
 	set_app_state(data);
 
-//	ret = ret | vconf_notify_key_changed(VCONFKEY_WIFI_DIRECT_SENDING_STATE, indicator_uploading_change_cb, data);
+	ret = vconf_notify_key_changed(VCONFKEY_WIFI_DIRECT_SENDING_STATE,
+										indicator_uploading_change_cb, data);
+	retvm_if(ret != 0, FAIL, "vconf_notify_key_changed failed[%d]", ret);
 
 	ret = ret | vconf_notify_key_changed(VCONFKEY_PM_STATE,
-					indicator_uploading_pm_state_change_cb, data);
+										indicator_uploading_pm_state_change_cb, data);
+	if(ret != 0) {
+		_E("vconf_notify_key_changed failed[%d]", ret);
+		unregister_uploading_module();
+		return FAIL;
+	}
 
 	indicator_uploading_change_cb(NULL, data);
 
@@ -192,12 +196,11 @@ static int register_uploading_module(void *data)
 
 static int unregister_uploading_module(void)
 {
-	int ret = 0;
+	vconf_ignore_key_changed(VCONFKEY_WIFI_DIRECT_SENDING_STATE,
+										indicator_uploading_change_cb);
 
-//	ret = ret | vconf_ignore_key_changed(VCONFKEY_WIFI_DIRECT_SENDING_STATE, indicator_uploading_change_cb);
-
-	ret = ret | vconf_ignore_key_changed(VCONFKEY_PM_STATE,
-						indicator_uploading_pm_state_change_cb);
+	vconf_ignore_key_changed(VCONFKEY_PM_STATE,
+										indicator_uploading_pm_state_change_cb);
 
 	return OK;
 }
