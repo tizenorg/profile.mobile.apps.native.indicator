@@ -996,6 +996,8 @@ static void _destroy_tickernoti(ticker_info_s *ticker_info)
 		if (noti) {
 			_create_tickernoti(noti, ad, ticker_info);
 		}
+		else
+			free(ticker_info);
 	}
 }
 
@@ -1105,7 +1107,6 @@ static void _ticker_noti_detailed_changed_cb(void *data, notification_type_e typ
 			return;
 		}
 	}
-	free(ticker_info);
 }
 
 static Eina_Bool _tickernoti_callback_register_idler_cb(void *data)
