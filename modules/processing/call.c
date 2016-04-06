@@ -43,15 +43,6 @@ static int register_call_module(void *data);
 static int unregister_call_module(void);
 static void show_call_icon( void *data);
 
-enum {
-	CALL_UI_STATUS_NONE = 0,
-	CALL_UI_STATUS_INCOM,
-	CALL_UI_STATUS_OUTGOING,
-	CALL_UI_STATUS_ACTIVE,
-	CALL_UI_STATUS_HOLD,
-	CALL_UI_STATUS_END,
-};
-
 icon_s call = {
 	.type = INDICATOR_IMG_ICON,
 	.name = MODULE_NAME,
