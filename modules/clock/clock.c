@@ -155,7 +155,7 @@ static void indicator_clock_changed_cb(void *data)
 	char result[CLOCK_STR_LEN] = {0,};
 	char icu_apm[CLOCK_STR_LEN] = {0,};
 
-	struct tm ts;
+	struct tm *ts = NULL;
 	time_t ctime;
 	struct appdata *ad = NULL;
 	int len;
@@ -170,8 +170,9 @@ static void indicator_clock_changed_cb(void *data)
 
 	/* Set time */
 	ctime = time(NULL);
-	if (!localtime_r(&ctime, &ts)) {
-		_E("Fail to get localtime");
+	localtime_r(&ctime, ts);
+	if (ts == NULL) {
+		_E("Fail to get localtime !");
 		return;
 	}
 
@@ -186,13 +187,14 @@ static void indicator_clock_changed_cb(void *data)
 	memset(ampm_buf, 0x00, sizeof(ampm_buf));
 	memset(buf, 0x00, sizeof(buf));
 
-	clock_timer = ecore_timer_add(60 - ts.tm_sec, (void *)indicator_clock_changed_cb, data);
+	clock_timer = ecore_timer_add(60 - ts->tm_sec, (void *)indicator_clock_changed_cb, data);
 	if(!clock_timer) {
 		_E("Fail to add timer !");
 	}
 
-	indicator_get_apm_by_region(icu_apm, data);
-	indicator_get_time_by_region(time_buf, data);
+	indicator_get_apm_by_region(icu_apm,data);
+	indicator_get_time_by_region(time_buf,data);
+
 
 	if (clock_mode == INDICATOR_CLOCK_MODE_12H) {
 		char bf1[32] = { 0, };
@@ -209,7 +211,7 @@ static void indicator_clock_changed_cb(void *data)
 		if (strncmp(region,lang1,strlen(lang1)) == 0) bRegioncheck = 1;
 
 		if (apm_length>=4 || bRegioncheck==1) {
-			if (ts.tm_hour >= 0 && ts.tm_hour < 12) {
+			if (ts->tm_hour >= 0 && ts->tm_hour < 12) {
 				snprintf(ampm_buf, sizeof(ampm_buf),"%s","AM");
 			} else {
 				snprintf(ampm_buf, sizeof(ampm_buf),"%s","PM");
@@ -218,9 +220,9 @@ static void indicator_clock_changed_cb(void *data)
 			snprintf(ampm_buf, sizeof(ampm_buf),"%s",icu_apm);
 		}
 
-		strftime(bf1, sizeof(bf1), "%l", &ts);
+		strftime(bf1, sizeof(bf1), "%l", ts);
 		hour = atoi(bf1);
-		strftime(bf1, sizeof(bf1), ":%M", &ts);
+		strftime(bf1, sizeof(bf1), ":%M", ts);
 
 		font_size = TIME_FONT_SIZE_12;
 		clock_hour = hour;
@@ -485,6 +487,10 @@ static char *_string_replacer(const char *src, const char *pattern, const char *
 	}
 
 	replace_len = strlen(replace);
+	if (replace_len) {
+		ERR("Ratio");
+		return NULL;
+	}
 
 	out_idx = 0;
 	for (state = STATE_START, ptr = src; state != STATE_END; ptr++) {
@@ -508,7 +514,7 @@ static char *_string_replacer(const char *src, const char *pattern, const char *
 				ret[out_idx] = *ptr;
 				out_idx++;
 				if (out_idx == out_sz) {
-					tmp = _extend_heap(ret, &out_sz, replace_len + 1);
+					tmp = _extend_heap(ret, &out_sz, strlen(replace) + 1);
 					if (!tmp) {
 						free(ret);
 						return NULL;
@@ -520,19 +526,20 @@ static char *_string_replacer(const char *src, const char *pattern, const char *
 		case STATE_CHECK:
 			if (!pattern[idx]) {
 				/*!
-				 * If there is no space for copying the replacement,
-				 * Extend size of the return buffer.
-				 */
+     * If there is no space for copying the replacement,
+     * Extend size of the return buffer.
+     */
 				if (out_sz - out_idx < replace_len + 1) {
-					tmp = _extend_heap(ret, &out_sz, replace_len + 1);
+					tmp = _extend_heap(ret, &out_sz, strlen(replace) + 1);
 					if (!tmp) {
 						free(ret);
 						return NULL;
 					}
 					ret = tmp;
 				}
+
 				strncpy(ret + out_idx, replace, replace_len);
-				out_idx += replace_len;
+				out_idx += strlen(replace);
 
 				state = STATE_FIND;
 				ptr--;
@@ -543,11 +550,12 @@ static char *_string_replacer(const char *src, const char *pattern, const char *
 				ret[out_idx] = *ptr;
 				out_idx++;
 				if (out_idx == out_sz) {
-					tmp = _extend_heap(ret, &out_sz, replace_len + 1);
+					tmp = _extend_heap(ret, &out_sz, strlen(replace) + 1);
 					if (!tmp) {
 						free(ret);
 						return NULL;
 					}
+
 					ret = tmp;
 				}
 
