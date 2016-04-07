@@ -9,8 +9,4 @@
 		<icon>@PKGNAME@.png</icon>
 		<label>Indicator</label>
 	</ui-application>
-	<privileges>
-		<privilege>http://tizen.org/privilege/telephony.admin</privilege>
-		<privilege>http://tizen.org/privilege/wifidirect</privilege>
-	</privileges>
 </manifest>
