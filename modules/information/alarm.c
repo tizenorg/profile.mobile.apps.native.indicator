@@ -147,6 +147,11 @@ static int register_alarm_module(void *data)
 	retif(data == NULL, FAIL, "Invalid parameter!");
 
 	set_app_state(data);
+	if (ret < 0)
+	{
+		ERR("Fail to init alarmdb.");
+		return FAIL;
+	}
 
 	ret = vconf_notify_key_changed(VCONFKEY_ALARM_STATE,
 					indicator_alarm_change_cb, data);

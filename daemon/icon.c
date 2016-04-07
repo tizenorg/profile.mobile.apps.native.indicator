@@ -80,7 +80,7 @@ static Eina_Bool _animate_on_timer_cb(void *data)
 	retv_if(!img_edje, ECORE_CALLBACK_CANCEL);
 
 	char signal_to_emit[32] = {'\0',};
-	snprintf(signal_to_emit, sizeof(signal_to_emit), icon->signal_to_emit_prefix,icon->animation_state);
+	sprintf(signal_to_emit,icon->signal_to_emit_prefix,icon->animation_state);
 
 	edje_object_signal_emit(img_edje, signal_to_emit,"prog");
 

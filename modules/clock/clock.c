@@ -170,7 +170,7 @@ static void indicator_clock_changed_cb(void *data)
 
 	/* Set time */
 	ctime = time(NULL);
-	localtime_r(&ctime, ts);
+	ts = localtime(&ctime);
 	if (ts == NULL) {
 		_E("Fail to get localtime !");
 		return;
@@ -423,7 +423,7 @@ static int register_clock_module(void *data)
 
 static int unregister_clock_module(void)
 {
-	int ret = 0;
+	int ret;
 
 	//ret = system_settings_unset_changed_cb(SYSTEM_SETTINGS_KEY_TIME_CHANGED);
 	ret = ret | vconf_ignore_key_changed(VCONFKEY_REGIONFORMAT_TIME1224, regionformat_changed);
@@ -467,8 +467,6 @@ static char *_string_replacer(const char *src, const char *pattern, const char *
 	int idx = 0;
 	int out_idx = 0;
 	int out_sz = 0;
-	int replace_len = 0;
-
 	enum {
 		STATE_START,
 		STATE_FIND,
@@ -483,12 +481,6 @@ static char *_string_replacer(const char *src, const char *pattern, const char *
 	ret = strdup(src);
 	if (!ret) {
 		ERR("Heap");
-		return NULL;
-	}
-
-	replace_len = strlen(replace);
-	if (replace_len) {
-		ERR("Ratio");
 		return NULL;
 	}
 
@@ -529,7 +521,7 @@ static char *_string_replacer(const char *src, const char *pattern, const char *
      * If there is no space for copying the replacement,
      * Extend size of the return buffer.
      */
-				if (out_sz - out_idx < replace_len + 1) {
+				if (out_sz - out_idx < strlen(replace) + 1) {
 					tmp = _extend_heap(ret, &out_sz, strlen(replace) + 1);
 					if (!tmp) {
 						free(ret);
@@ -538,7 +530,7 @@ static char *_string_replacer(const char *src, const char *pattern, const char *
 					ret = tmp;
 				}
 
-				strncpy(ret + out_idx, replace, replace_len);
+				strcpy(ret + out_idx, replace);
 				out_idx += strlen(replace);
 
 				state = STATE_FIND;
@@ -701,11 +693,11 @@ void indicator_get_time_by_region(char* output,void *data)
 
 	if(clock_mode == INDICATOR_CLOCK_MODE_12H)
 	{
-		strncpy(time_skeleton,"hm", 2);
+		strcpy(time_skeleton,"hm");
 	}
 	else
 	{
-		strncpy(time_skeleton,"Hm", 2);
+		strcpy(time_skeleton,"Hm");
 	}
 	char* timezone_id = NULL;
 	timezone_id = util_get_timezone_str();
@@ -739,10 +731,9 @@ void indicator_get_time_by_region(char* output,void *data)
 				    bestPatternCapacity, &status);
 
 	char a_best_pattern[64] = {0,};
-	char *last_pattern = NULL;
 	u_austrcpy(a_best_pattern, bestPattern);
-	char *a_best_pattern_fixed = strtok_r(a_best_pattern, "a", &last_pattern);
-	a_best_pattern_fixed = strtok_r(a_best_pattern_fixed, " ", &last_pattern);
+	char *a_best_pattern_fixed = strtok(a_best_pattern, "a");
+	a_best_pattern_fixed = strtok(a_best_pattern_fixed, " ");
 	if(a_best_pattern_fixed)
 	{
 		u_uastrcpy(bestPattern, a_best_pattern_fixed);

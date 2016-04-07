@@ -619,14 +619,11 @@ static char *_ticker_get_label_layout_default(notification_h noti, int is_screen
 					*str_line1 = strdup(tmp);
 				}
 			}
+
+			eina_strbuf_free(line1);
+			eina_strbuf_free(line2);
 		} else {
 			_E("failed to allocate string buffer");
-		}
-		if (line1 != NULL) {
-			eina_strbuf_free(line1);
-		}
-		if (line2 != NULL) {
-			eina_strbuf_free(line2);
 		}
 	} else {
 		if (title_utf8 == NULL
@@ -752,14 +749,10 @@ static char *_ticker_get_label_layout_single(notification_h noti, int is_screenr
 				}
 			}
 
+			eina_strbuf_free(line1);
+			eina_strbuf_free(line2);
 		} else {
 			_E("failed to allocate string buffer");
-		}
-		if (line1 != NULL) {
-			eina_strbuf_free(line1);
-		}
-		if (line2 != NULL) {
-			eina_strbuf_free(line2);
 		}
 	} else {
 		if (title_utf8 == NULL
