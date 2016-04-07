@@ -1,8 +1,3 @@
-%define PKGNAME org.tizen.indicator
-%define PREFIX    /usr/apps/%{PKGNAME}
-%define RESDIR    %{PREFIX}/res
-%define PREFIXRW  /opt/usr/apps/%{PKGNAME}
-
 Name:       org.tizen.indicator
 Summary:    indicator window
 Version:    0.2.53
@@ -10,8 +5,6 @@ Release:    1
 Group:      utils
 License:    Apache-2.0
 Source0:    %{name}-%{version}.tar.gz
-Source1:    indicator.service.system
-Source2:    indicator.path
 
 %if "%{?profile}" == "wearable"
 ExcludeArch: %{arm} %ix86 x86_64
@@ -48,9 +41,16 @@ BuildRequires: pkgconfig(feedback)
 BuildRequires: pkgconfig(pkgmgr-info)
 BuildRequires: pkgconfig(edbus)
 BuildRequires: pkgconfig(efl-assist)
-BuildRequires: pkgconfig(tapi)
 BuildRequires: pkgconfig(message-port)
 BuildRequires: pkgconfig(tzsh-indicator-service)
+BuildRequires: pkgconfig(libtzplatform-config)
+BuildRequires: pkgconfig(capi-system-device)
+BuildRequires: pkgconfig(capi-telephony)
+BuildRequires: pkgconfig(capi-network-wifi-direct)
+BuildRequires: pkgconfig(capi-network-nfc)
+BuildRequires: pkgconfig(capi-network-tethering)
+BuildRequires: pkgconfig(storage)
+BuildRequires: pkgconfig(capi-base-utils-i18n)
 
 BuildRequires: cmake
 BuildRequires: edje-tools
@@ -58,74 +58,55 @@ BuildRequires: gettext-tools
 BuildRequires: hash-signer
 
 Requires(post): /usr/bin/vconftool
+
 %description
-indicator window.
+Indicator window reference implementation.
 
 %prep
 %setup -q
 
 %build
-%if 0%{?tizen_build_binary_release_type_eng}
-export CFLAGS="$CFLAGS -DTIZEN_ENGINEER_MODE"
-export CXXFLAGS="$CXXFLAGS -DTIZEN_ENGINEER_MODE"
-export FFLAGS="$FFLAGS -DTIZEN_ENGINEER_MODE"
-%endif
 
-%if 0%{?sec_build_binary_debug_enable}
-export CFLAGS="$CFLAGS -DTIZEN_DEBUG_ENABLE"
-export CXXFLAGS="$CXXFLAGS -DTIZEN_DEBUG_ENABLE"
-export FFLAGS="$FFLAGS -DTIZEN_DEBUG_ENABLE"
-%endif
-
-LDFLAGS+="-Wl,--rpath=%{PREFIX}/lib -Wl,--as-needed";export LDFLAGS
-CFLAGS+=" -fvisibility=hidden"; export CFLAGS
-CXXFLAGS+=" -fvisibility=hidden -fvisibility-inlines-hidden"; export CXXFLAGS
-FFLAGS+=" -fvisibility=hidden -fvisibility-inlines-hidden"; export FFLAGS
-
-cmake . -DCMAKE_INSTALL_PREFIX=%{PREFIX} -DCMAKE_INSTALL_PREFIXRW=%{PREFIXRW} \
-
-
-make %{?jobs:-j%jobs}
-
-%install
-rm -rf %{buildroot}
-%make_install
-
-mkdir -p %{buildroot}/usr/share/license
-cp -f LICENSE %{buildroot}/usr/share/license/%{PKGNAME}
-
+%define _pkg_dir %{TZ_SYS_RO_APP}/%{name}
+%define _pkg_shared_dir %{_pkg_dir}/shared
+%define _pkg_data_dir %{_pkg_dir}/data
+%define _sys_icons_dir %{_pkg_shared_dir}/res
+%define _sys_packages_dir %{TZ_SYS_RO_PACKAGES}
+%define _sys_license_dir %{TZ_SYS_SHARE}/license
 %define tizen_sign 1
-%define tizen_sign_base /usr/apps/%{PKGNAME}
+%define tizen_sign_base %{_pkg_dir}
 %define tizen_sign_level public
 %define tizen_author_sign 1
 %define tizen_dist_sign 1
 
-mkdir -p %{buildroot}/usr/lib/systemd/user/default.target.wants
-install -m 0644 %SOURCE1 %{buildroot}/usr/lib/systemd/user/indicator.service
-install -m 0644 %SOURCE2 %{buildroot}/usr/lib/systemd/user/indicator.path
-ln -s ../indicator.path %{buildroot}/usr/lib/systemd/user/default.target.wants/
 
-%clean
+cd CMake
+cmake . -DINSTALL_PREFIX=%{_pkg_dir} \
+	-DSYS_ICONS_DIR=%{_sys_icons_dir} \
+	-DSYS_PACKAGES_DIR=%{_sys_packages_dir}
+make %{?jobs:-j%jobs}
+cd -
+
+
+%install
 rm -rf %{buildroot}
+cd CMake
+%make_install
+cd -
 
-%post
+mkdir -p %{buildroot}/%{_sys_license_dir}
+cp LICENSE %{buildroot}/%{_sys_license_dir}/%{name}
 
-%postun -p /sbin/ldconfig
+%find_lang indicator-win
 
-%files
-%manifest org.tizen.indicator.manifest
+
+%files -f indicator-win.lang
+%manifest %{name}.manifest
 %defattr(-,root,root,-)
-%{PREFIX}/bin/*
-%{RESDIR}/icons/*
-%{RESDIR}/edje/*
-/usr/share/packages/%{PKGNAME}.xml
-%attr(775,app,app) %{PREFIXRW}/data
-%attr(755,-,-) %{_sysconfdir}/init.d/indicator
-/usr/lib/systemd/user/indicator.service
-/usr/lib/systemd/user/default.target.wants/indicator.path
-/usr/lib/systemd/user/indicator.path
-/usr/share/license/%{PKGNAME}
-/usr/apps/%{PKGNAME}/author-signature.xml
-/usr/apps/%{PKGNAME}/signature1.xml
-/usr/apps/%{PKGNAME}/shared/res/tables/org.tizen.indicator_ChangeableColorInfo.xml
-/usr/apps/%{PKGNAME}/shared/res/tables/org.tizen.indicator_ChangeableFontInfo.xml
+%{_pkg_dir}/bin/*
+%{_pkg_dir}/res/resource/icons/*
+%{_pkg_dir}/res/resource/*.edj
+%{_sys_packages_dir}/%{name}.xml
+%{_sys_license_dir}/%{name}
+%{_pkg_dir}/author-signature.xml
+%{_pkg_dir}/signature1.xml
