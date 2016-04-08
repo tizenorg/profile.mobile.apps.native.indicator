@@ -154,6 +154,8 @@ static telephony_noti_e convert_call_status(telephony_call_status_e call_status)
 		return TELEPHONY_NOTI_VOICE_CALL_STATUS_ALERTING;
 	case TELEPHONY_CALL_STATUS_INCOMING:
 		return TELEPHONY_NOTI_VOICE_CALL_STATUS_INCOMING;
+	default:
+		return TELEPHONY_NOTI_VOICE_CALL_STATUS_IDLE;
 	}
 }
 
