@@ -32,10 +32,6 @@
 #include <app_manager.h>
 #include <runtime_info.h>
 #include <efl_util.h>
-#include <unicode/uloc.h>
-#include <unicode/udat.h>
-#include <unicode/udatpg.h>
-#include <unicode/ustring.h>
 
 #include "common.h"
 #include "main.h"
