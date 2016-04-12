@@ -74,8 +74,9 @@ static Eina_Bool _animate_on_timer_cb(void *data)
 	Evas_Object *img_edje = elm_layout_edje_get(icon->img_obj.obj);
 	retv_if(!img_edje, ECORE_CALLBACK_CANCEL);
 
-	char signal_to_emit[32] = {'\0',};
-	sprintf(signal_to_emit,icon->signal_to_emit_prefix,icon->animation_state);
+	char signal_to_emit[SIGNAL_SIZE] = {'\0',};
+
+	snprintf(signal_to_emit, SIGNAL_SIZE, icon->signal_to_emit_prefix, icon->animation_state);
 
 	edje_object_signal_emit(img_edje, signal_to_emit,"prog");
 
