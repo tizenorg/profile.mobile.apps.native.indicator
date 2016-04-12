@@ -86,7 +86,8 @@ static Eina_Bool show_uploading_icon_cb(void* data)
 {
 
 	show_image_icon(data,icon_index);
-	icon_index = (++icon_index % ICON_NUM) ? icon_index : 0;
+	icon_index++;
+	icon_index = (icon_index % ICON_NUM) ? icon_index : 0;
 
 	return ECORE_CALLBACK_RENEW;
 }
