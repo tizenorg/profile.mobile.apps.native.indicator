@@ -163,7 +163,7 @@ static void indicator_clock_changed_cb(void *data)
 	char result[CLOCK_STR_LEN] = {0,};
 	char icu_apm[CLOCK_STR_LEN] = {0,};
 
-	struct tm *ts = NULL;
+	struct tm ts;
 	time_t ctime;
 	struct appdata *ad = NULL;
 	int len;
@@ -178,8 +178,10 @@ static void indicator_clock_changed_cb(void *data)
 
 	/* Set time */
 	ctime = time(NULL);
-	ts = localtime(&ctime);
-	if (ts == NULL) {
+
+	errno = 0;
+	localtime_r(&ctime, &ts);
+	if (errno != 0) {
 		_E("Fail to get localtime !");
 		return;
 	}
@@ -195,7 +197,7 @@ static void indicator_clock_changed_cb(void *data)
 	memset(ampm_buf, 0x00, sizeof(ampm_buf));
 	memset(buf, 0x00, sizeof(buf));
 
-	clock_timer = ecore_timer_add(60 - ts->tm_sec, (void *)indicator_clock_changed_cb, data);
+	clock_timer = ecore_timer_add(60 - ts.tm_sec, (void *)indicator_clock_changed_cb, data);
 	if(!clock_timer) {
 		_E("Fail to add timer !");
 	}
@@ -210,7 +212,7 @@ static void indicator_clock_changed_cb(void *data)
 		static int pre_hour = 0;
 
 		if (apm_length>=4) {
-			if (ts->tm_hour >= 0 && ts->tm_hour < 12) {
+			if (ts.tm_hour >= 0 && ts.tm_hour < 12) {
 				snprintf(ampm_buf, sizeof(ampm_buf),"%s","AM");
 			} else {
 				snprintf(ampm_buf, sizeof(ampm_buf),"%s","PM");
@@ -219,9 +221,9 @@ static void indicator_clock_changed_cb(void *data)
 			snprintf(ampm_buf, sizeof(ampm_buf),"%s",icu_apm);
 		}
 
-		strftime(bf1, sizeof(bf1), "%l", ts);
+		strftime(bf1, sizeof(bf1), "%l", &ts);
 		hour = atoi(bf1);
-		strftime(bf1, sizeof(bf1), ":%M", ts);
+		strftime(bf1, sizeof(bf1), ":%M", &ts);
 
 		font_size = TIME_FONT_SIZE_12;
 		clock_hour = hour;
