@@ -69,6 +69,8 @@
 #define UNLOCK_ENABLED	0
 #define TIMEOUT			5
 
+#define ERROR_MESSAGE_LEN 256
+
 #ifdef HOME_KEY_EMULATION
 /* Predefine string */
 #define PROP_HWKEY_EMULATION "_HWKEY_EMULATION"
@@ -1062,15 +1064,21 @@ static bool app_create(void *data)
 
 	ret = sigemptyset(&act.sa_mask);
 	if (ret < 0) {
-		_E("Failed to sigemptyset[%s]", strerror(errno));
+		char error_message[ERROR_MESSAGE_LEN] = {0,};
+		strerror_r(errno, error_message, ERROR_MESSAGE_LEN);
+		_E("Failed to sigemptyset[%s]", error_message);
 	}
 	ret = sigaddset(&act.sa_mask, SIGTERM);
 	if (ret < 0) {
-		_E("Failed to sigaddset[%s]", strerror(errno));
+		char error_message[ERROR_MESSAGE_LEN] = {0,};
+		strerror_r(errno, error_message, ERROR_MESSAGE_LEN);
+		_E("Failed to sigaddset[%s]", error_message);
 	}
 	ret = sigaction(SIGTERM, &act, NULL);
 	if (ret < 0) {
-		_E("Failed to sigaction[%s]", strerror(errno));
+		char error_message[ERROR_MESSAGE_LEN] = {0,};
+		strerror_r(errno, error_message, ERROR_MESSAGE_LEN);
+		_E("Failed to sigaction[%s]", error_message);
 	}
 
 	ret = _start_indicator(ad);
