@@ -101,9 +101,17 @@ static void show_mp_icon(void* data)
 	FILE* fp = fopen(util_get_data_file_path(MUSIC_STATUS_FILE_PATH), "r");
 	char line[MAX_NAM_LEN+1];
 
-	retm_if(data == NULL, "Invalid parameter!");
+	if (data == NULL) {
+		_E("Invalid parameter!");
+		fclose(fp);
+		return;
+	}
 
-	retm_if(fp == NULL, "Invalid file path !!");
+	if (fp == NULL) {
+		_E("Invalid file path!!");
+		fclose(fp);
+		return;
+	}
 
 	if(icon_get_update_flag() == 0) {
 		updated_while_lcd_off = 1;
