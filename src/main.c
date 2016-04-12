@@ -136,6 +136,7 @@ static void _indicator_window_delete_cb(void *data, Evas_Object * obj, void *eve
 	_terminate_indicator((struct appdata *)data);
 }
 
+#define SIGNAL_NAME_LEN 30
 static void _indicator_notify_pm_state_cb(device_callback_e type, void *value, void *user_data)
 {
 	static int nMove = 0;
@@ -163,9 +164,10 @@ static void _indicator_notify_pm_state_cb(device_callback_e type, void *value, v
 		else if(nMove<=0)
 			nIndex = 1;
 		{
-			char temp[30] = {0,};
-			sprintf(temp,"indicator.padding.resize.%d",nMove);
-			util_signal_emit(user_data,temp,"indicator.prog");
+			char signal_to_emit[SIGNAL_NAME_LEN] = {0,};
+
+			snprintf(signal_to_emit, SIGNAL_NAME_LEN, "indicator.padding.resize.%d", nMove);
+			util_signal_emit(user_data, signal_to_emit, "indicator.prog");
 		}
 		icon_set_update_flag(0);
 		box_noti_ani_handle(0);
