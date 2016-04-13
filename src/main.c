@@ -141,8 +141,6 @@ static void _indicator_window_delete_cb(void *data, Evas_Object * obj, void *eve
 #define SIGNAL_NAME_LEN 30
 static void _indicator_notify_pm_state_cb(device_callback_e type, void *value, void *user_data)
 {
-	static int nMove = 0;
-	static int nIndex = 1;
 	display_state_e state;
 
 	ret_if(!user_data);
@@ -158,19 +156,10 @@ static void _indicator_notify_pm_state_cb(device_callback_e type, void *value, v
 			ecore_timer_del(clock_timer);
 			clock_timer = NULL;
 		}
-	case DISPLAY_STATE_SCREEN_DIM: // lcd off 2
-		/* FIXME */
-		nMove = nMove+nIndex;
-		if(nMove>=4)
-			nIndex = -1;
-		else if(nMove<=0)
-			nIndex = 1;
-		{
-			char signal_to_emit[SIGNAL_NAME_LEN] = {0,};
-
-			snprintf(signal_to_emit, SIGNAL_NAME_LEN, "indicator.padding.resize.%d", nMove);
-			util_signal_emit(user_data, signal_to_emit, "indicator.prog");
-		}
+		icon_set_update_flag(0);
+		box_noti_ani_handle(0);
+		break;
+	case DISPLAY_STATE_SCREEN_DIM:
 		icon_set_update_flag(0);
 		box_noti_ani_handle(0);
 		break;
