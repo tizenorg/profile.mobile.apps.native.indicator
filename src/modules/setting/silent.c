@@ -185,12 +185,12 @@ static int register_silent_module(void *data)
 
 	set_app_state(data);
 
-	ret = system_settings_set_changed_cb(SYSTEM_SETTINGS_KEY_SOUND_SILENT_MODE, _system_setting_silent_change_cb, data);
+	ret = util_system_settings_set_changed_cb(SYSTEM_SETTINGS_KEY_SOUND_SILENT_MODE, _system_setting_silent_change_cb, data);
 	retvm_if(ret != SYSTEM_SETTINGS_ERROR_NONE, ret, "Failed to set silent mode change callback function.");
 
-	ret = runtime_info_set_changed_cb(RUNTIME_INFO_KEY_VIBRATION_ENABLED, _runtime_info_vibration_change_cb, data);
+	ret = util_runtime_info_set_changed_cb(RUNTIME_INFO_KEY_VIBRATION_ENABLED, _runtime_info_vibration_change_cb, data);
 	if (ret != RUNTIME_INFO_ERROR_NONE)
-		system_settings_unset_changed_cb(SYSTEM_SETTINGS_KEY_SOUND_SILENT_MODE);
+		util_system_settings_unset_changed_cb(SYSTEM_SETTINGS_KEY_SOUND_SILENT_MODE);
 
 	retvm_if(ret != RUNTIME_INFO_ERROR_NONE, ret, "Failed to set vibration change callback function.");
 
@@ -209,11 +209,11 @@ static int unregister_silent_module(void)
 {
 	int ret;
 
-	ret = system_settings_unset_changed_cb(SYSTEM_SETTINGS_KEY_SOUND_SILENT_MODE);
+	ret = util_system_settings_unset_changed_cb(SYSTEM_SETTINGS_KEY_SOUND_SILENT_MODE);
 	if (ret != SYSTEM_SETTINGS_ERROR_NONE)
 		_E("Failed to unset silent mode change callback function.");
 
-	ret = runtime_info_unset_changed_cb(RUNTIME_INFO_KEY_VIBRATION_ENABLED);
+	ret = util_runtime_info_unset_changed_cb(RUNTIME_INFO_KEY_VIBRATION_ENABLED);
 	if (ret != RUNTIME_INFO_ERROR_NONE)
 		_E("Failed to unset vibration change callback function.");
 
