@@ -1069,7 +1069,7 @@ collections {
 					state: "default" 0.0;
 					min: 0 INDICATOR_HEIGHT;
 					fixed: 0 1;
-					rel1 { relative: 0.0 0.0; to: "elm.rect.bg.base"; }
+					rel1 { relative: 0.0 -1.0; to: "elm.rect.bg.base"; }
 					rel2 { relative: 1.0 0.0; to: "elm.rect.bg.base"; }
 					align: 0.0 1.0;
 					color: INDI_DEFAULT_BG_TRANSPARENT;
