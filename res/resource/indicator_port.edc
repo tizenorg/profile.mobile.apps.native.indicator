@@ -121,6 +121,145 @@ collections {
 				}
 
 			}
+			/* Left padding */
+			part {
+				name: "resize_padding.left";
+				type: RECT;
+				scale: 1;
+				mouse_events: 0;
+				description {
+					state: "default" 0.0;
+					min: 0 0;
+					fixed: 1 0;
+					rel1 { relative: 0.0 0.0; to: "elm.rect.bg"; }
+					rel2 { relative: 0.0 1.0; to: "elm.rect.bg"; }
+					align: 0.0 0.0;
+					visible: 0;
+				}
+				description {
+					state: "1" 0.0;
+					inherit: "default" 0.0;
+					min: 1 0;
+					color: 255 0 0 255;
+				}
+				description {
+					state: "2" 0.0;
+					inherit: "default" 0.0;
+					min: 2 0;
+					color: 0 255 0 255;
+				}
+				description {
+					state: "3" 0.0;
+					inherit: "default" 0.0;
+					min: 3 0;
+					color: 0 0 255 255;
+				}
+
+				description {
+					state: "4" 0.0;
+					inherit: "default" 0.0;
+					min: 4 0;
+					color: 255 255 0 255;
+				}
+			}
+			part {
+				name: "padding.left";
+				type: RECT;
+				scale: 1;
+				mouse_events: 0;
+				description {
+					state: "default" 0.0;
+					min: LEFT_PADDING_WIDTH 0;
+					fixed: 1 0;
+					rel1 { relative: 0.0 0.0; to: "elm.rect.bg"; }
+					rel2 { relative: 0.0 1.0; to: "elm.rect.bg"; }
+					align: 0.0 0.0;
+					color:0 0 0 0;
+					visible: 0;
+				}
+				description {
+					state: "scover" 0.0;
+					inherit: "default" 0.0;
+					min: 72 0;
+				}
+			}
+			/* Right padding */
+			part {
+				name: "resize_padding.right";
+				type: RECT;
+				scale: 1;
+				mouse_events: 0;
+				description {
+					state: "default" 0.0;
+					min: 0 0;
+					fixed: 1 0;
+					rel1 { relative: 1.0 0.0; to: "elm.rect.bg"; }
+					rel2 { relative: 1.0 1.0; to: "elm.rect.bg"; }
+					align: 0.0 0.0;
+					visible: 0;
+				}
+				description {
+					state: "1" 0.0;
+					inherit: "default" 0.0;
+					min: 1 0;
+					color: 255 0 0 255;
+				}
+				description {
+					state: "2" 0.0;
+					inherit: "default" 0.0;
+					min: 2 0;
+					color: 0 255 0 255;
+				}
+				description {
+					state: "3" 0.0;
+					inherit: "default" 0.0;
+					min: 3 0;
+					color: 0 0 255 255;
+				}
+
+				description {
+					state: "4" 0.0;
+					inherit: "default" 0.0;
+					min: 4 0;
+					color: 255 255 0 255;
+				}
+
+			}
+			part {
+				name: "padding.right";
+				type: RECT;
+				mouse_events: 0;
+				scale: 1;
+				description {
+					state: "default" 0.0;
+					min: RIGHT_PADDING_WIDTH 0;
+					fixed: 1 0;
+					rel1 { relative: 1.0 0.0; to: "elm.rect.bg"; }
+					rel2 { relative: 1.0 1.0; to: "elm.rect.bg"; }
+					align: 1.0 0.0;
+					color : 0 0 0 0;
+					visible: 0;
+				}
+				description {
+					state: "scover" 0.0;
+					inherit: "default" 0.0;
+					min: 72 0;
+				}
+				description {
+					state: "dynamic" 0.0;
+					inherit: "default" 0.0;
+					rel1 {
+						relative: 1.0 0.0; to: "resize_padding.right";
+						offset : 73 0;
+					}
+					rel2 {
+						relative: 1.0 1.0; to: "resize_padding.right";
+						offset : 73 0;
+					}
+					align: 1.0 0.0;
+				}
+
+			}
 			part {
 				name: "elm.rect.bg.base";
 				type: RECT;
@@ -207,6 +346,25 @@ collections {
 					}
 					visible: 0;
 				}
+				description {
+					state: "during_call" 0.0;
+					inherit: "default" 0.0;
+					color_class:"AO005";
+					visible : 1;
+				}
+				description {
+					state: "call_hold" 0.0;
+					inherit: "default" 0.0;
+					color_class:"AO007";
+					visible : 1;
+				}
+				description {
+					state: "call_end" 0.0;
+					inherit: "default" 0.0;
+					color_class:"AO006";
+					visible : 1;
+				}
+			}
 
 			part {
 				name: "elm.rect.right_con";
@@ -232,7 +390,7 @@ collections {
 				description {
 					state: "default" 0.0;
 					visible: 0;
-					rel1 { relative: 1.0 0.0; to_x: elm.rect.bg; to_y: elm.rect.bg; }
+					rel1 { relative: 1.0 0.0; to_x: padding.left; to_y: elm.rect.bg; }
 					rel2 { relative: 0.0 1.0; to_x: elm.swallow.fixed6; to_y: elm.rect.bg; }
 					align: 0.0 0.0;
 				}
@@ -275,14 +433,14 @@ collections {
 					visible: 0;
 					min: 0 INDICATOR_HEIGHT;
 					fixed: 0 1;
-					rel1 { relative: 1.0 1.0; to_x: elm.rect.bg; to_y: elm.swallow.noti; }
-					rel2 { relative: 0.0 1.0; to_x: elm.rect.bg; to_y: elm.swallow.noti; }
+					rel1 { relative: 1.0 1.0; to_x: padding.left; to_y: elm.swallow.noti; }
+					rel2 { relative: 0.0 1.0; to_x: padding.right; to_y: elm.swallow.noti; }
 					align: 0.0 0.0;
 					visible: 0;
 				}
 			}
 			part {
-				name: "plmn.elm.rect.bg";
+				name: "plmn.padding.left";
 				type: RECT;
 				scale: 1;
 				mouse_events: 0;
@@ -313,13 +471,13 @@ collections {
 					visible: 1;
 					rel1 {
 						relative: 1.0 1.0;
-						to_x: "plmn.elm.rect.bg";
+						to_x: "plmn.padding.left";
 						to_y: "plmn.bg";
 					}
 
 					rel2 {
 						relative: 0.0 0.0;
-						to_x: "plmn.elm.rect.bg";
+						to_x: "plmn.padding.right";
 						to_y: "plmn.bg";
 					}
 					text {
@@ -363,8 +521,8 @@ collections {
 					min: 0 0;
 #endif
 					fixed: 1 0;
-					rel1 { relative: 1.0 0.0; to_x: elm.rect.bg; to_y: elm.rect.right_con; }
-					rel2 { relative: 0.0 1.0; to_x: elm.rect.bg; to_y: elm.rect.right_con; }
+					rel1 { relative: 1.0 0.0; to_x: padding.left; to_y: elm.rect.right_con; }
+					rel2 { relative: 1.0 1.0; to_x: padding.left; to_y: elm.rect.right_con; }
 					align: 0.0 0.5;
 					visible: 1;
 				}
@@ -458,12 +616,8 @@ collections {
 					state: "default" 0.0;
 					min: BATTERY_ICON_WIDTH BATTERY_ICON_HEIGHT;
 					fixed: 1 0;
-					rel1 { relative: 0.0 0.0; 
-						   to: "elm.rect.bg";
-						 }
-					rel2 { relative: 0.0 1.0; 
-						   to: "elm.rect.bg"; 
-						 }
+					rel1 { relative: 0.0 0.0; to_x: "padding.right"; to_y: "elm.rect.bg"; }
+					rel2 { relative: 0.0 1.0; to_x: "padding.right"; to_y: "elm.rect.bg"; }
 					align: 1.0 0.5;
 					visible: 1;
 				}
@@ -511,7 +665,7 @@ collections {
 			//////////////////////////////////////////
 
 			/* ICON_FIXED3 (RSSI 1) + PADDING_FIXED4(RIGHT, FIXED PADDING) */
-			FIXED_FIRST_RECT_FROM_LEFT( "elm.rect.rssi1", "elm.rect.bg", DEFAULT_ICON_PADDING, INDI_DEFAULT_BG_TEST, 0)
+			FIXED_RECT_FROM_LEFT( "elm.rect.rssi1", "padding.left", "elm.rect.bg", DEFAULT_ICON_PADDING, INDI_DEFAULT_BG_TEST, 0)
 			SWALLOW_PART_FROM_LEFT_WITH_SPACE( "elm.swallow.fixed1", "elm.rect.rssi1", "elm.rect.bg", DEFAULT_ICON_WIDTH, DEFAULT_ICON_HEIGHT )
 
 			/* ICON_FIXED4 (RSSI 2) + PADDING_FIXED5(RIGHT, FIXED PADDING) */
@@ -698,8 +852,8 @@ collections {
 					min: 0 0;
 #endif
 					fixed: 1 0;
-					rel1 { relative: 0.0 0.0; to_x: elm.rect.bg; to_y: elm.rect.right_con; }
-					rel2 { relative: 0.0 1.0; to_x: elm.rect.bg; to_y: elm.rect.right_con; }
+					rel1 { relative: 0.0 0.0; to_x: padding.right; to_y: elm.rect.right_con; }
+					rel2 { relative: 0.0 1.0; to_x: padding.right; to_y: elm.rect.right_con; }
 					align: 1.0 0.5;
 					visible: 1;
 				}
@@ -739,7 +893,7 @@ collections {
 				}
 			}
 			part {
-				name: "plmn_dynamic.elm.rect.bg";
+				name: "plmn_dynamic.padding.left";
 				type: RECT;
 				mouse_events: 0;
 				scale: 1;
@@ -769,8 +923,8 @@ collections {
 					state: "default" 0.0;
 					min: 0 0;
 					fixed: 1 0;
-					rel1 { relative: 1.0 0.5; to_x:plmn_dynamic.elm.rect.bg; to_y: elm.rect.right_con; }
-					rel2 { relative: 1.0 0.5; to_x:plmn_dynamic.elm.rect.bg; to_y: elm.rect.right_con; }
+					rel1 { relative: 1.0 0.5; to_x:plmn_dynamic.padding.left; to_y: elm.rect.right_con; }
+					rel2 { relative: 1.0 0.5; to_x:plmn_dynamic.padding.left; to_y: elm.rect.right_con; }
 					align: 0.0 0.5;
 					visible: 0;
 				}
@@ -808,7 +962,7 @@ collections {
 				}
 			}
 			part {
-				name: "clock.elm.rect.bg";
+				name: "clock.padding.left";
 				type: RECT;
 				mouse_events: 0;
 				scale: 1;
@@ -926,6 +1080,90 @@ collections {
 					inherit: "default" 0.0;
 				}
 			}
+
+			part {
+				name: "message.padding.left";
+				type: RECT;
+				scale: 1;
+				mouse_events: 0;
+				description {
+					state: "default" 0.0;
+					min: MESSAGE_PADDING 0;
+					fixed: 1 0;
+					rel1 {
+						relative: 0.0 0.0;
+						to: "message.bg";
+					}
+					rel2 {
+						relative: 0.0 1.0;
+						to: "message.bg";
+					}
+					align: 0.0 0.0;
+					visible: 0;
+				}
+				description {
+					state: "scover" 0.0;
+					inherit: "default" 0.0;
+					min: 72 0;
+				}
+			}
+			part {
+				name: "message.padding.right";
+				type: RECT;
+				scale: 1;
+				mouse_events: 0;
+				description {
+					state: "default" 0.0;
+					min: MESSAGE_PADDING 0;
+					fixed: 1 0;
+					rel1 {
+						relative: 1.0 0.0;
+						to: "message.bg";
+					}
+					rel2 {
+						relative: 1.0 1.0;
+						to: "message.bg";
+					}
+					align: 1.0 0.0;
+					visible: 0;
+				}
+				description {
+					state: "scover" 0.0;
+					inherit: "default" 0.0;
+					min: 72 0;
+				}
+			}
+			part {
+				name: "message.padding.top";
+				type: RECT;
+				scale: 1;
+				mouse_events: 0;
+				description {
+					state: "default" 0.0;
+					min: 0 INDICATOR_PADDING_H;
+					fixed: 0 1;
+					rel1 { relative: 0.0 0.0; to: "message.bg"; }
+					rel2 { relative: 1.0 0.0; to: "message.bg"; }
+					align: 0.0 0.0;
+					visible: 0;
+				}
+			}
+			part {
+				name: "message.padding.bottom";
+				type: RECT;
+				scale: 1;
+				mouse_events: 0;
+				description {
+					state: "default" 0.0;
+					min: 0 INDICATOR_PADDING_H;
+					fixed: 0 1;
+					rel1 { relative: 0.0 1.0; to: "message.bg"; }
+					rel2 { relative: 1.0 1.0; to: "message.bg"; }
+					align: 0.0 1.0;
+					visible: 0;
+				}
+
+			}
 			part {
 				name: "message.text";
 				type: TEXTBLOCK;
@@ -936,13 +1174,15 @@ collections {
 					fixed: 1 1;
 					visible: 1;
 					rel1 {
-						relative: 0.0 0.0;
-						to: "message.bg";
+						relative: 1.0 0.0;
+						to_x: "message.padding.left";
+						to_y: "message.bg";
 					}
 
 					rel2 {
 						relative: 0.0 1.0;
-						to: "message.bg";
+						to_x: "message.padding.right";
+						to_y: "message.bg";
 					}
 					text {
 						style: "message_style";
@@ -953,13 +1193,15 @@ collections {
 					state: "line2" 0.0;
 					inherit: "default" 0.0;
 					rel1 {
-						relative: 0.0 1.0;
-						to: "message.bg";
+						relative: 1.0 1.0;
+						to_x: "message.padding.left";
+						to_y: "message.bg";
 					}
 
 					rel2 {
 						relative: 0.0 2.0;
-						to: "message.bg";
+						to_x: "message.padding.right";
+						to_y: "message.bg";
 					}
 					text {
 						style: "message_style2";
@@ -1001,13 +1243,15 @@ collections {
 					fixed: 1 1;
 					visible: 1;
 					rel1 {
-						relative: 0.0 -1.0;
-						to: "message.text";
+						relative: 1.0 -1.0;
+						to_x: "message.padding.left";
+						to_y: "message.text";
 					}
 
 					rel2 {
 						relative: 0.0 0.0;
-						to: "message.text";
+						to_x: "message.padding.right";
+						to_y: "message.text";
 					}
 					text {
 						style: "message_style";
@@ -1463,7 +1707,123 @@ collections {
 				target: "elm.rect.noti";
 			}
 			// S Cover
+			program {
+				name: "indicator.scover.on";
+				action: STATE_SET "scover" 0.0;
+				signal: "indicator.scover.on";
+				source: "indicator.prog";
+				target: "padding.left";
+				target: "padding.right";
+				target: "message.padding.left";
+				target: "message.padding.right";
+			}
+			program {
+				name: "indicator.scover.off";
+				action: STATE_SET "default" 0.0;
+				signal: "indicator.scover.off";
+				source: "indicator.prog";
+				target: "padding.left";
+				target: "padding.right";
+				target: "message.padding.left";
+				target: "message.padding.right";
+			}
+			program {
+				name: "indicator.padding.dynamic.on";
+				action: STATE_SET "dynamic" 0.0;
+				signal: "indicator.padding.dynamic.on";
+				source: "indicator.prog";
+				target: "padding.right";
+				transition: LINEAR 0.4;
+			}
+			program {
+				name: "indicator.padding.dynamic.off";
+				action: STATE_SET "default" 0.0;
+				signal: "indicator.padding.dynamic.off";
+				source: "indicator.prog";
+				target: "padding.right";
+				transition: LINEAR 0.4;
+			}
 
+			program {
+				name: "indicator.padding.dynamic.off.noeffect";
+				action: STATE_SET "default" 0.0;
+				signal: "indicator.padding.dynamic.off.noeffect";
+				source: "indicator.prog";
+				target: "padding.right";
+			}
+
+			program {
+				name: "indicator.padding.resize.0";
+				action: STATE_SET "default" 0.0;
+				signal: "indicator.padding.resize.0";
+				source: "indicator.prog";
+				target: "resize_padding.left";
+				target: "resize_padding.right";
+			}
+			program {
+				name: "indicator.padding.resize.1";
+				action: STATE_SET "1" 0.0;
+				signal: "indicator.padding.resize.1";
+				source: "indicator.prog";
+				target: "resize_padding.left";
+				target: "resize_padding.right";
+			}
+
+			program {
+				name: "indicator.padding.resize.2";
+				action: STATE_SET "2" 0.0;
+				signal: "indicator.padding.resize.2";
+				source: "indicator.prog";
+				target: "resize_padding.left";
+				target: "resize_padding.right";
+			}
+
+			program {
+				name: "indicator.padding.resize.3";
+				action: STATE_SET "3" 0.0;
+				signal: "indicator.padding.resize.3";
+				source: "indicator.prog";
+				target: "resize_padding.left";
+				target: "resize_padding.right";
+			}
+
+			program {
+				name: "indicator.padding.resize.4";
+				action: STATE_SET "4" 0.0;
+				signal: "indicator.padding.resize.4";
+				source: "indicator.prog";
+				target: "resize_padding.left";
+				target: "resize_padding.right";
+			}
+
+			program {
+				name: "indicator.bg.call.0";
+				action: STATE_SET "default" 0.0;
+				signal: "indicator.bg.call.0";
+				source: "indicator.prog";
+				target: "elm.rect.bg.call";
+			}
+			program {
+				name: "indicator.bg.call.1";
+				action: STATE_SET "during_call" 0.0;
+				signal: "indicator.bg.call.1";
+				source: "indicator.prog";
+				target: "elm.rect.bg.call";
+			}
+			program {
+				name: "indicator.bg.call.2";
+				action: STATE_SET "call_hold" 0.0;
+				signal: "indicator.bg.call.2";
+				source: "indicator.prog";
+				target: "elm.rect.bg.call";
+			}
+			program {
+				name: "indicator.bg.call.3";
+				action: STATE_SET "call_end" 0.0;
+				signal: "indicator.bg.call.3";
+				source: "indicator.prog";
+				target: "elm.rect.bg.call";
+			}
 
 			program {
 				name: "clock.font.12";
