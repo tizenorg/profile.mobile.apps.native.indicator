@@ -29,7 +29,7 @@ extern icon_s search;
 #endif
 /* Network */
 extern icon_s rssi;
-
+extern icon_s rssi2;
 /* Connection */
 extern icon_s usb;
 extern icon_s wifi;
@@ -90,6 +90,7 @@ static icon_s *modules[INDICATOR_MODULE_NUMBERS] = {
 	/* Network */
 	&wifi,
 	&rssi,
+	&rssi2,
 	/* Connection */
 	&usb,
 	&mobile_hotspot,
