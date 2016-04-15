@@ -40,7 +40,6 @@
 #define MSG_SERVER "/usr/bin/msg-server"
 #define MSG_ICON "/usr/share/icons/default/small/org.tizen.message-lite.png"
 
-static int noti_ready = 0;
 static Eina_List *status_list;
 
 static int register_noti_module(void *data);
@@ -127,7 +126,6 @@ static void insert_icon_list(struct noti_status *data)
 	list_insert_icon(data->icon);
 }
 
-
 char *__indicator_ui_get_pkginfo_icon(const char *pkgid)
 {
 	int ret;
@@ -152,7 +150,6 @@ char *__indicator_ui_get_pkginfo_icon(const char *pkgid)
 
 	return icon_path;
 }
-
 
 static void show_image_icon(struct noti_status *data)
 {
@@ -502,35 +499,31 @@ static void _indicator_noti_detailed_changed_cb(void *data, notification_type_e 
 	notification_h noti_new = NULL;
 
 	retm_if(num_op < 0, "invalid parameter %d", num_op);
+	retm_if(!notification_is_service_ready(), "Notification service is not ready");
+
 
 	for (i = 0; i < num_op; i++) {
 
-		if (noti_ready == 0) {
-			notification_op_get_data(op_list + i, NOTIFICATION_OP_DATA_TYPE, &op_type);
-			if (op_type == NOTIFICATION_OP_SERVICE_READY) {
-				noti_ready = 1;
-				_D("noti ready");
-				update_noti_module_new(data, type);
-			}
-		} else {
-			notification_op_get_data(op_list + i, NOTIFICATION_OP_DATA_TYPE, &op_type);
-			notification_op_get_data(op_list + i, NOTIFICATION_OP_DATA_PRIV_ID, &priv_id);
-			notification_op_get_data(op_list + i, NOTIFICATION_OP_DATA_NOTI, &noti_new);
+		notification_op_get_data(op_list + i, NOTIFICATION_OP_DATA_TYPE, &op_type);
+		notification_op_get_data(op_list + i, NOTIFICATION_OP_DATA_PRIV_ID, &priv_id);
+		notification_op_get_data(op_list + i, NOTIFICATION_OP_DATA_NOTI, &noti_new);
 
-			if (type != -1) {
-				switch (op_type) {
-					case NOTIFICATION_OP_INSERT:
-						_insert_noti_by_privid(noti_new, data);
-						break;
-					case NOTIFICATION_OP_UPDATE:
-						_update_noti_by_privid(noti_new);
-						break;
-					case NOTIFICATION_OP_DELETE:
-						_remove_noti_by_privid(priv_id);
-						break;
-					default:
-						break;
-				}
+		if (type != NOTIFICATION_TYPE_NONE) {
+			switch (op_type) {
+				case NOTIFICATION_OP_SERVICE_READY:
+					update_noti_module_new(data, type);
+					break;
+				case NOTIFICATION_OP_INSERT:
+					_insert_noti_by_privid(noti_new, data);
+					break;
+				case NOTIFICATION_OP_UPDATE:
+					_update_noti_by_privid(noti_new);
+					break;
+				case NOTIFICATION_OP_DELETE:
+					_remove_noti_by_privid(priv_id);
+					break;
+				default:
+					break;
 			}
 		}
 
