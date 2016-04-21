@@ -351,7 +351,8 @@ static void _update_noti_by_privid(notification_h noti)
 	char *icon_path = NULL;
 
 	notification_get_image(noti, NOTIFICATION_IMAGE_TYPE_ICON_FOR_INDICATOR, &indicator_path);
-	if (indicator_path == NULL || !ecore_file_exists(indicator_path)) {
+	if ((indicator_path == NULL || !ecore_file_exists(indicator_path))
+			&& !util_check_noti_ani(indicator_path)) {
 		char *noti_path = NULL;
 
 		notification_get_image(noti, NOTIFICATION_IMAGE_TYPE_ICON, &noti_path);
