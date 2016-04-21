@@ -376,20 +376,7 @@ static char* _get_timezone_from_vconf(void)
 
 char* util_get_timezone_str(void)
 {
-	enum { BUFFERSIZE = 1024 };
-	char buf[BUFFERSIZE];
-	ssize_t len = readlink("/opt/etc/localtime", buf, sizeof(buf)-1);
-
-	if (len != -1)
-	{
-		buf[len] = '\0';
-	}
-	else
-	{
-		_E("NO TIMEZONEINFO");
-		return _get_timezone_from_vconf();
-	}
-	return (char*)strdup(buf+20);	// Asia/Seoul
+	return _get_timezone_from_vconf();
 }
 
 
@@ -781,7 +768,7 @@ int util_system_settings_set_changed_cb(system_settings_key_e key, system_settin
 	system_settings_unset_changed_cb(key);
 	int err = system_settings_set_changed_cb(key, _system_settings_cb, NULL);
 	if (err != SYSTEM_SETTINGS_ERROR_NONE) {
-		_E("system_settings_set_changed_cb failed: %s", get_error_message(err));
+		_E("system_settings_set_changed_cb failed[%d]: %s", err, get_error_message(err));
 		free(handler);
 		return -1;
 	}
