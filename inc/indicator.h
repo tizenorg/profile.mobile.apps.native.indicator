@@ -214,7 +214,7 @@ typedef struct Indicator_Icon {
 	int tts_enable;
 #endif
 	int digit_area;
-	Eina_Bool initialized; /* TRUE is module was correctly intiialized */
+	Eina_Bool initialized; /* TRUE is module was correctly initialized */
 } icon_s;
 
 //int rssi_get_sim_number(TapiHandle *handle_obj);
