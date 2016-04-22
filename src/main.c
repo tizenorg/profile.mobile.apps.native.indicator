@@ -42,7 +42,7 @@
 #include "indicator_gui.h"
 #include "modules.h"
 #include "util.h"
-#include "message.h"
+#include "toast_popup.h"
 #include "tts.h"
 #include "log.h"
 #include "indicator.h"
@@ -1092,7 +1092,7 @@ static void app_terminate(void *data)
 	struct appdata *ad = data;
 	modules_fini(data);
 	ticker_fini(ad);
-	indicator_message_fini();
+	indicator_toast_popup_fini();
 #ifdef _SUPPORT_SCREEN_READER2
 	indicator_service_tts_fini(data);
 #endif
@@ -1129,7 +1129,7 @@ static void app_service(app_control_h service, void *data)
 	modules_register_tts(data);
 #endif
 	feedback_initialize();
-	indicator_message_init(data);
+	indicator_toast_popup_init(data);
 	if (INDICATOR_ERROR_NONE != ticker_init(ad)) {
 		_E("Ticker cannot initialize");
 	}
