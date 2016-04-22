@@ -18,15 +18,10 @@
  */
 
 
-#ifndef __INDICATOR_MESSAGE_H_DEF__
-#define __INDICATOR_MESSAGE_H_DEF__
+#ifndef __INDICATOR_TOAST_POPUP_H___
+#define __INDICATOR_TOAST_POPUP_H___
 
-int indicator_message_init(void *data);
-int indicator_message_fini(void);
-int indicator_message_disp_check(void);
-int indicator_message_retry_check(void);
-void indicator_message_display_trigger(void);
-int message_ani_playing_check(void);
+int indicator_toast_popup_init(void *data);
+int indicator_toast_popup_fini(void);
 
-
-#endif /* __INDICATOR_MESSAGE_H_DEF__ */
+#endif /* __INDICATOR_TOAST_POPUP_H___ */
