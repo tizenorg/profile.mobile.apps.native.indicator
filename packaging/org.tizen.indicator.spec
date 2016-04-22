@@ -1,7 +1,7 @@
 Name:       org.tizen.indicator
-#VCS_FROM:   profile/mobile/apps/native/indicator#8fc39557ea18a09dddf8e755fb9a4f8755da7e0a
-#RS_Ver:    20160419_1 
-Summary:    indicatorwindow
+#VCS_FROM:   profile/mobile/apps/native/indicator#ff6df58906a864020c627180afdb51a1d2a3b813
+#RS_Ver:    20160422_1 
+Summary:    indicator window
 Version:    1.0.0
 Release:    1
 Group:      utils
