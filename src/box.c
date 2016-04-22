@@ -28,7 +28,7 @@
 #include "main.h"
 #include "indicator_gui.h"
 #include "util.h"
-#include "message.h"
+#include "toast_popup.h"
 #include "log.h"
 
 #define FIXED_BOX_PART_NAME		"elm.swallow.fixed"
@@ -316,11 +316,6 @@ static void _update_display(win_info *win)
 		util_signal_emit(win->data, "indicator.noti.show", "indicator.prog");
 	} else {
 		util_signal_emit(win->data, "indicator.noti.hide", "indicator.prog");
-	}
-
-
-	if (message_ani_playing_check() == 1) {
-		return;
 	}
 
 	for (i = 0; i < FIXED_COUNT; ++i) {
