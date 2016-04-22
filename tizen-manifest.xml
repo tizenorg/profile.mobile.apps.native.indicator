@@ -3,7 +3,6 @@
     <profile name="mobile"/>
     <ui-application appid="org.tizen.indicator" exec="indicator-win" launch_mode="single" on-boot="true" multiple="false" nodisplay="true" taskmanage="false" type="capp">
         <label>indicator-win</label>
-        <icon>indicator-win.png</icon>
     </ui-application>
     <privileges>
         <privilege>http://tizen.org/privilege/telephony</privilege>
@@ -13,5 +12,6 @@
         <privilege>http://tizen.org/privilege/notification</privilege>
         <privilege>http://tizen.org/privilege/display</privilege>
         <privilege>http://tizen.org/privilege/appmanager.launch</privilege>
+        <privilege>http://tizen.org/privilege/tethering.admin</privilege>
     </privileges>
 </manifest>
