@@ -20,7 +20,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-//#include <Ecore_X.h>
 #include <utils_i18n.h>
 #include <system_settings.h>
 #include <device/battery.h>
@@ -152,9 +151,9 @@ static void set_app_state(void* data)
 }
 
 
-
-static void indicator_clock_changed_cb(void *data)
+static Eina_Bool indicator_clock_changed_cb(void *data)
 {
+
 	char time_str[CLOCK_STR_LEN] = {0,};
 	char time_buf[CLOCK_STR_LEN] = {0,};
 	char ampm_buf[CLOCK_STR_LEN] = {0,};
@@ -170,11 +169,11 @@ static void indicator_clock_changed_cb(void *data)
 	int font_size;
 	int ampm_size = AMPM_FONT_SIZE;
 
-	ret_if(!data);
+	retv_if(!data, EINA_FALSE);
 
 	ad = (struct appdata *)data;
 
-	if (icon_get_update_flag() == 0) return;
+	if (icon_get_update_flag() == 0) return EINA_FALSE;
 
 	/* Set time */
 	ctime = time(NULL);
@@ -183,7 +182,7 @@ static void indicator_clock_changed_cb(void *data)
 	localtime_r(&ctime, &ts);
 	if (errno != 0) {
 		_E("Fail to get localtime !");
-		return;
+		return EINA_FALSE;
 	}
 
 	if (clock_timer != NULL) {
@@ -191,13 +190,7 @@ static void indicator_clock_changed_cb(void *data)
 		clock_timer = NULL;
 	}
 
-	memset(time_str, 0x00, sizeof(time_str));
-	memset(ampm_str, 0x00, sizeof(ampm_str));
-	memset(time_buf, 0x00, sizeof(time_buf));
-	memset(ampm_buf, 0x00, sizeof(ampm_buf));
-	memset(buf, 0x00, sizeof(buf));
-
-	clock_timer = ecore_timer_add(60 - ts.tm_sec, (void *)indicator_clock_changed_cb, data);
+	clock_timer = ecore_timer_add(60 - ts.tm_sec, indicator_clock_changed_cb, data);
 	if(!clock_timer) {
 		_E("Fail to add timer !");
 	}
@@ -249,17 +242,15 @@ static void indicator_clock_changed_cb(void *data)
 	} else {
 		len = snprintf(buf, sizeof(buf), "%s", time_str);
 	}
-
 	snprintf(result, sizeof(result), LABEL_STRING_FONT, buf);
 	if (len < 0) {
 		_E("Unexpected ERROR!");
-		return;
+		return EINA_FALSE;
 	}
 
 	_D("[CLOCK MODULE] Timer Status : %d Time: %s", clock_timer, result);
 	util_part_text_emit(data, "elm.text.clock", result);
-
-	return;
+	return EINA_FALSE;
 }
 
 
@@ -365,7 +356,6 @@ static void time_format_changed(system_settings_key_e key, void *data)
 
 static int register_clock_module(void *data)
 {
-	int r = 0;
 	int ret = -1;
 	int i;
 
@@ -377,20 +367,23 @@ static int register_clock_module(void *data)
 
 		ret = util_system_settings_set_changed_cb(clock_callback_array[i], time_format_changed, data);
 
-		if (ret != SYSTEM_SETTINGS_ERROR_NONE) {
-			r = r | ret;
+		if (ret != OK) {
+			_E("register_clock_module failed");
+			unregister_clock_module();
+			return FAIL;
 		}
 	}
 
 	clock_format_changed(data);
 
-	return r;
+	return OK;
 }
 
 
 
 static int unregister_clock_module(void)
 {
+	_D("unregister_clock_module");
 	int i;
 	for(i = 0; i < ARRAY_SIZE(clock_callback_array); ++i)
 		util_system_settings_unset_changed_cb(clock_callback_array[i], time_format_changed);
@@ -403,7 +396,7 @@ static int unregister_clock_module(void)
 
 	cal_delete_last_generator();
 
-	return 0;
+	return OK;
 }
 
 
