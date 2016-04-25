@@ -179,8 +179,16 @@ static int register_wifi_direct_module(void *data)
 
 	set_app_state(data);
 
+	ret = wifi_direct_initialize();
+	retvm_if(ret != WIFI_DIRECT_ERROR_NONE, FAIL,
+			"wifi_direct_initialize failed[%d]: %s", ret, get_error_message(ret));
+
 	ret = wifi_direct_set_connection_state_changed_cb(indicator_wifi_direct_change_cb, data);
-	retv_if(ret != WIFI_DIRECT_ERROR_NONE, FAIL);
+	if(ret != WIFI_DIRECT_ERROR_NONE) {
+		_E("wifi_direct_set_connection_state_changed_cb failed[%d]: %s", ret, get_error_message(ret));
+		wifi_direct_deinitialize();
+		return FAIL;
+	}
 
 	// Second parameter is not used. This is made to avoid creating two almost same functions
 	indicator_wifi_direct_change_cb(WIFI_DIRECT_ERROR_NONE, WIFI_DIRECT_DISCONNECTION_RSP, NULL, data);
@@ -193,7 +201,15 @@ static int unregister_wifi_direct_module(void)
 	int ret;
 
 	ret = wifi_direct_unset_connection_state_changed_cb();
-	retv_if(ret != WIFI_DIRECT_ERROR_NONE, FAIL);
+	if (ret != WIFI_DIRECT_ERROR_NONE) {
+		_E("wifi_direct_unset_connection_state_changed_cb failed[%d]: %s", ret, get_error_message(ret));
+		wifi_direct_deinitialize();
+		return FAIL;
+	}
+
+	ret = wifi_direct_deinitialize();
+	retvm_if(ret != WIFI_DIRECT_ERROR_NONE, FAIL,
+			"wifi_direct_deinitialize failed[%d]: %s", ret, get_error_message(ret));
 
 	return ret;
 }
