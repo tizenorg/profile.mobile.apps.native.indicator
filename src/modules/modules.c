@@ -28,8 +28,7 @@
 extern icon_s search;
 #endif
 /* Network */
-extern icon_s rssi;
-
+extern icon_s rssi[];
 /* Connection */
 extern icon_s usb;
 extern icon_s wifi;
@@ -89,7 +88,8 @@ static icon_s *modules[INDICATOR_MODULE_NUMBERS] = {
 	&battery,
 	/* Network */
 	&wifi,
-	&rssi,
+	&rssi[0],
+	&rssi[1],
 	/* Connection */
 	&usb,
 	&mobile_hotspot,
@@ -145,7 +145,7 @@ void modules_init_first(void *data)
 {
 	int i;
 	/* add items to list */
-	for (i = 0; i < 5; i++) {
+	for (i = 0; i < 6; i++) {
 		list_insert_icon(modules[i]);
 		modules[i]->ad = data;
 		if (modules[i]->init && !modules[i]->initialized) {
