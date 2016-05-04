@@ -47,6 +47,7 @@
 #include "log.h"
 #include "indicator.h"
 #include "ticker.h"
+#include "notification_dispatcher.h"
 
 #define GRP_NAME "indicator"
 #define WIN_TITLE "Illume Indicator"
@@ -766,6 +767,7 @@ static void _create_base_gui(void* data)
 	_create_box(&(ad->win));
 
 
+
 #if 0 /* For test */
 	Evas_Object *rect = evas_object_rectangle_add(ad->win.evas);
 	ret_if(!rect);
@@ -1091,7 +1093,12 @@ static void app_terminate(void *data)
 {
 	struct appdata *ad = data;
 	modules_fini(data);
-	ticker_fini(ad);
+
+// TODO temporary commented due to functionality is not fully implemented.
+//	ticker_fini(ad);
+
+	notification_dispatcher_deinit();
+
 	indicator_toast_popup_fini();
 #ifdef _SUPPORT_SCREEN_READER2
 	indicator_service_tts_fini(data);
@@ -1130,9 +1137,14 @@ static void app_service(app_control_h service, void *data)
 #endif
 	feedback_initialize();
 	indicator_toast_popup_init(data);
-	if (INDICATOR_ERROR_NONE != ticker_init(ad)) {
-		_E("Ticker cannot initialize");
-	}
+
+// TODO temporary commented due to functionality is not fully implemented.
+//	if (INDICATOR_ERROR_NONE != ticker_init(ad)) {
+//		_E("Ticker cannot initialize");
+//	}
+
+	notification_dispatcher_init(data);
+
 #ifdef _SUPPORT_SCREEN_READER2
 	indicator_service_tts_init(data);
 #endif
