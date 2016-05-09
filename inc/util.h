@@ -25,6 +25,7 @@
 #include <wifi.h>
 #include <system_settings.h>
 #include <runtime_info.h>
+#include <network/wifi.h>
 
 typedef enum {
 	INDICATOR_ERROR_NONE = 0,
@@ -131,14 +132,14 @@ int util_wifi_deinitialize(void);
  * @param data user_data passed to callback function.
  * @return 0 on success, other value on failure
  */
-int util_wifi_set_connection_state_changed_cb(wifi_connection_state_changed_cb, void *data);
+int util_wifi_set_connection_state_changed_cb(wifi_connection_state_changed_cb cb, void *data);
 
 /**
  * @brief Unregisters callback set with util_wifi_set_connection_state_changed_cb.
  *
  * @param cb callback
  */
-void util_wifi_unset_connection_state_changed_cb(wifi_connection_state_changed_cb);
+void util_wifi_unset_connection_state_changed_cb(wifi_connection_state_changed_cb cb);
 
 /**
  * @brief Allows to set multiple callbacks using wifi_set_device_state_changed_cb API
