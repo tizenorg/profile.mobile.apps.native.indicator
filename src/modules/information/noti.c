@@ -165,7 +165,7 @@ static void show_image_icon(struct noti_status *data)
 			notification_get_image(noti, NOTIFICATION_IMAGE_TYPE_ICON_FOR_INDICATOR, &icon_path);
 
 			if (icon_path == NULL || !ecore_file_exists(icon_path)) {
-				if (icon_path != NULL && util_check_noti_ani(icon_path)) {
+				if (icon_path != NULL && util_check_path(&icon_path)) {
 					show_icon_with_path(data, icon_path);
 				} else {
 					notification_get_image(noti, NOTIFICATION_IMAGE_TYPE_ICON, &icon_path);
