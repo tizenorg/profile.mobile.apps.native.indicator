@@ -57,6 +57,7 @@ extern char* util_get_timezone_str(void);
 extern Eina_Bool util_win_prop_angle_get(Ecore_X_Window win, int *curr);
 extern int util_is_orf(void);
 extern int util_check_noti_ani(const char* path);
+extern char *util_get_real_path(char *special_path);
 extern void util_start_noti_ani(void* data);
 extern void util_stop_noti_ani(void* data);
 extern void util_send_status_message_start(void* data,double duration);
