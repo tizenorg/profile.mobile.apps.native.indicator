@@ -40,6 +40,16 @@
 #define DIR_PREFIX	"Theme_%02d_"
 #define LABEL_STRING	"<color=#%02x%02x%02x%02x>%s</color>"
 
+#define MSG_RESERVED "reserved://indicator/"
+
+#define MSG_NORMAL_STATUS_ICON		MSG_RESERVED"icons/notify_message"
+#define MSG_FAILED_STATUS_ICON		MSG_RESERVED"icons/notify_message_failed"
+#define MSG_DELIVER_REPORT_STATUS_ICON	MSG_RESERVED"icons/delivery_report_message"
+#define MSG_READ_REPORT_STATUS_ICON	MSG_RESERVED"icons/read_report_message"
+#define MSG_VOICE_MSG_STATUS_ICON	MSG_RESERVED"icons/notify_voicemail"
+#define MSG_SIM_FULL_STATUS_ICON	MSG_RESERVED"icons/sim_card_full"
+
+
 typedef struct {
 	wifi_connection_state_changed_cb cb;
 	void *data;
@@ -62,11 +72,27 @@ typedef struct {
 	void *data;
 } runtime_info_handler_t;
 
+typedef struct {
+	char *path;
+	char *icon;
+} reserved_t;
+
 static Eina_List *wifi_callbacks;
 static Eina_List *wifi_device_callbacks;
 static Eina_List *ss_callbacks;
 static Eina_List *ri_callbacks;
 static int wifi_init_cnt = 0;
+
+const reserved_t reserved_paths[] = {
+	{MSG_NORMAL_STATUS_ICON, "/Notify/B03_notify_message.png"},
+	{MSG_FAILED_STATUS_ICON, "/Notify/B03_notify_message_failed.png"},
+	{MSG_DELIVER_REPORT_STATUS_ICON, "/Event/B03_event_delivery_report_message.png"},
+	{MSG_READ_REPORT_STATUS_ICON, "/Event/B03_event_read_report_message.png"},
+	{MSG_VOICE_MSG_STATUS_ICON, "/Event/B03_Event_voicemail.png"},
+	{MSG_SIM_FULL_STATUS_ICON, "/SIM card full/B03_sim_card_full.png"}
+};
+
+
 char *util_set_label_text_color(const char *txt)
 {
 	Eina_Strbuf *temp_buf = NULL;
@@ -465,7 +491,32 @@ int util_check_noti_ani(const char* path)
 	return 0;
 }
 
+char *util_get_real_path(char *special_path)
+{
+	retv_if(!special_path, 0);
 
+	char *real_path = NULL;
+
+	int i;
+	for (i = 0; i < ARRAY_SIZE(reserved_paths); ++i) {
+		if(!strcmp(special_path, reserved_paths[i].path)) {
+
+			real_path = calloc(
+					strlen(util_get_icon_dir())
+					+ strlen(reserved_paths[i].icon)
+					+ 1,
+					sizeof(char));
+
+			snprintf(real_path,
+					strlen(util_get_icon_dir()) + strlen(reserved_paths[i].icon) + 1,
+					"%s%s",	util_get_icon_dir(), reserved_paths[i].icon);
+
+			return real_path;
+		}
+	}
+
+	return NULL;
+}
 
 void util_start_noti_ani(void* data)
 {

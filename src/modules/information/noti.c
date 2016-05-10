@@ -165,26 +165,34 @@ static void show_image_icon(struct noti_status *data)
 			notification_get_image(noti, NOTIFICATION_IMAGE_TYPE_ICON_FOR_INDICATOR, &icon_path);
 
 			if (icon_path == NULL || !ecore_file_exists(icon_path)) {
-				if (icon_path != NULL && util_check_noti_ani(icon_path)) {
+
+				if (util_check_noti_ani(icon_path))
 					show_icon_with_path(data, icon_path);
-				} else {
-					notification_get_image(noti, NOTIFICATION_IMAGE_TYPE_ICON, &icon_path);
+				else {
+					char *real_path = util_get_real_path(icon_path);
 
-					if (icon_path == NULL || !ecore_file_exists(icon_path)) {
-						char *pkgname = NULL;
-						char *icon_path_second = NULL;
-						notification_get_pkgname(noti, &pkgname);
-						icon_path_second = __indicator_ui_get_pkginfo_icon(pkgname);
+					if (real_path) {
+						show_icon_with_path(data, real_path);
+						free(real_path);
+					} else {
+						notification_get_image(noti, NOTIFICATION_IMAGE_TYPE_ICON, &icon_path);
 
-						if (icon_path_second == NULL || !ecore_file_exists(icon_path_second))
-							data->icon->img_obj.data = NULL;
-						else
-							show_icon_with_path(data, icon_path_second);
+						if (icon_path == NULL || !ecore_file_exists(icon_path)) {
+							char *pkgname = NULL;
+							char *icon_path_second = NULL;
+							notification_get_pkgname(noti, &pkgname);
+							icon_path_second = __indicator_ui_get_pkginfo_icon(pkgname);
 
-						if (icon_path_second != NULL)
-							free(icon_path_second);
-					} else
-						show_icon_with_path(data, icon_path);
+							if (icon_path_second == NULL || !ecore_file_exists(icon_path_second))
+								data->icon->img_obj.data = NULL;
+							else
+								show_icon_with_path(data, icon_path_second);
+
+							if (icon_path_second != NULL)
+								free(icon_path_second);
+						} else
+							show_icon_with_path(data, icon_path);
+					}
 				}
 			} else
 				show_icon_with_path(data, icon_path);
