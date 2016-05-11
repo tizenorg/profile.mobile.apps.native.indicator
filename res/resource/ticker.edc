@@ -130,7 +130,7 @@ collections
 					align: 0.0 0.5;
 					rel1
 					{
-						relative: 0.0 0.5;
+						relative: 0.0 0.3;
 						to: "base";
 						offset: 6 0;
 					}
@@ -156,7 +156,7 @@ collections
 						relative: 1.0 0.0;
 						to_x: "icon";
 						to_y: "base";
-						offset: 10 3;
+						offset: 10 0;
 					}
 					rel2 {
 						relative: 1.0 0.9;

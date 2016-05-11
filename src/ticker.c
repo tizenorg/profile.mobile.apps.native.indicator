@@ -957,6 +957,7 @@ static Evas_Object *_create_ticker_window(Evas_Object *parent, struct appdata *a
 	elm_win_autodel_set(win, EINA_TRUE);
 	efl_util_set_notification_window_level(win, EFL_UTIL_NOTIFICATION_LEVEL_HIGH);
 	elm_win_prop_focus_skip_set(win, EINA_TRUE);
+	elm_win_role_set(win, "notification-normal");
 
 	/* This is for rotation issue */
 	e = evas_object_evas_get(win);
@@ -1297,6 +1298,7 @@ static void _ticker_noti_detailed_changed_cb(void *data, notification_type_e typ
 	int applist = NOTIFICATION_DISPLAY_APP_ALL;
 	int op_type = 0;
 	int priv_id = 0;
+	int lock_state = SYSTEM_SETTINGS_LOCK_STATE_UNLOCK;
 	int ret;
 
 	ret_if(!ad);
@@ -1307,6 +1309,10 @@ static void _ticker_noti_detailed_changed_cb(void *data, notification_type_e typ
 	ret_if(num_op < 1);
 	/* FIXME : num_op can be more than 1 */
 	ret_if(num_op > 1);
+
+	ret = system_settings_get_value_int(SYSTEM_SETTINGS_KEY_LOCK_STATE, &lock_state);
+	if (ret != SYSTEM_SETTINGS_ERROR_NONE || lock_state == SYSTEM_SETTINGS_LOCK_STATE_LOCK)
+		return;
 
 	notification_op_get_data(op_list, NOTIFICATION_OP_DATA_TYPE, &op_type);
 	notification_op_get_data(op_list, NOTIFICATION_OP_DATA_PRIV_ID, &priv_id);
