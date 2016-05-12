@@ -1,6 +1,6 @@
 Name:       org.tizen.indicator
-#VCS_FROM:   profile/mobile/apps/native/indicator#ff6df58906a864020c627180afdb51a1d2a3b813
-#RS_Ver:    20160422_1 
+#VCS_FROM:   profile/mobile/apps/native/indicator#fc9121421f1dd49637475bbd6d1adf29be20164c
+#RS_Ver:    20160512_1 
 Summary:    indicator window
 Version:    1.0.0
 Release:    1
@@ -11,6 +11,7 @@ Source0:    %{name}-%{version}.tar.gz
 BuildRequires:  pkgconfig(libtzplatform-config)
 Requires(post):  /usr/bin/tpk-backend
 
+%define internal_name org.tizen.indicator
 %define preload_tpk_path %{TZ_SYS_RO_APP}/.preload-tpk 
 
 %ifarch i386 i486 i586 i686 x86_64
@@ -24,6 +25,7 @@ Requires(post):  /usr/bin/tpk-backend
 %endif
 
 %description
+profile/mobile/apps/native/indicator#fc9121421f1dd49637475bbd6d1adf29be20164c
 This is a container package which have preload TPK files
 
 %prep
@@ -34,7 +36,7 @@ This is a container package which have preload TPK files
 %install
 rm -rf %{buildroot}
 mkdir -p %{buildroot}/%{preload_tpk_path}
-install %{name}-%{version}-%{target}.tpk %{buildroot}/%{preload_tpk_path}/
+install %{internal_name}-%{version}-%{target}.tpk %{buildroot}/%{preload_tpk_path}/
 
 %post
 
