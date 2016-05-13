@@ -1,6 +1,6 @@
 Name:       org.tizen.indicator
-#VCS_FROM:   profile/mobile/apps/native/indicator#fc9121421f1dd49637475bbd6d1adf29be20164c
-#RS_Ver:    20160512_1 
+#VCS_FROM:   profile/mobile/apps/native/indicator#8e72553c9b93230f8a0820958b40ba9ba50d5cfa
+#RS_Ver:    20160513_2 
 Summary:    indicator window
 Version:    1.0.0
 Release:    1
@@ -25,7 +25,7 @@ Requires(post):  /usr/bin/tpk-backend
 %endif
 
 %description
-profile/mobile/apps/native/indicator#fc9121421f1dd49637475bbd6d1adf29be20164c
+profile/mobile/apps/native/indicator#8e72553c9b93230f8a0820958b40ba9ba50d5cfa
 This is a container package which have preload TPK files
 
 %prep
