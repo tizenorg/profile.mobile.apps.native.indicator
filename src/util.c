@@ -67,6 +67,7 @@ static Eina_List *wifi_device_callbacks;
 static Eina_List *ss_callbacks;
 static Eina_List *ri_callbacks;
 static int wifi_init_cnt = 0;
+
 char *util_set_label_text_color(const char *txt)
 {
 	Eina_Strbuf *temp_buf = NULL;
@@ -86,6 +87,51 @@ char *util_set_label_text_color(const char *txt)
 
 	eina_strbuf_free(temp_buf);
 	return ret_str;
+}
+
+void util_bg_color_rgba_set(Evas_Object *layout, char r, char g, char b, char a)
+{
+	Edje_Message_Int_Set *msg;
+
+	ret_if(!layout);
+
+	msg = malloc(sizeof(*msg) + 3 * sizeof(int));
+
+	msg->count = 4;
+	msg->val[0] = r;
+	msg->val[1] = g;
+	msg->val[2] = b;
+	msg->val[3] = a;
+
+	edje_object_message_send(elm_layout_edje_get(layout), EDJE_MESSAGE_INT_SET, 1, msg);
+	free(msg);
+}
+
+void util_bg_color_default_set(Evas_Object *layout)
+{
+	ret_if(!layout);
+
+	elm_layout_signal_emit(layout, "bg.color.default", "indicator.prog");
+}
+
+void util_bg_call_color_set(Evas_Object *layout, bg_color_e color)
+{
+	ret_if(!layout);
+
+	switch (color) {
+		case BG_COLOR_CALL_INCOMING:
+			elm_layout_signal_emit(layout, "bg.color.call.incoming", "indicator.prog");
+			break;
+		case BG_COLOR_CALL_END:
+			elm_layout_signal_emit(layout, "bg.color.call.end", "indicator.prog");
+			break;
+		case BG_COLOR_CALL_ON_HOLD:
+			elm_layout_signal_emit(layout, "bg.color.call.onhold", "indicator.prog");
+			break;
+		default:
+			util_bg_color_default_set(layout);
+			break;
+	}
 }
 
 const char *util_get_icon_dir(void)

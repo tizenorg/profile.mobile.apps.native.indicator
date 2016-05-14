@@ -704,8 +704,6 @@ static void _create_window(struct appdata *ad)
 	ad->win.win = elm_win_add(NULL, "indicator", ELM_WIN_SOCKET_IMAGE);
 	ret_if(!(ad->win.win));
 
-	elm_win_alpha_set(ad->win.win, EINA_TRUE);
-
 	dummy_win = elm_win_add(NULL, "indicator_dummy", ELM_WIN_BASIC);
 	if (dummy_win) {
 		elm_win_screen_size_get(dummy_win, NULL, NULL, &ad->win.port_w, &ad->win.land_w);
