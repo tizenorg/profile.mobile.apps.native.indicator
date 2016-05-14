@@ -26,6 +26,14 @@ images {
 	image: "icons/Power/battery_text/B03_stat_sys_battery_num_100.png" COMP;
 }
 
+color_classes {
+	color_class
+	{
+		name: "bg_custom";
+		color: 0 0 0 255;
+	}
+}
+
 collections {
 	base_scale: 2.6;
 
@@ -33,6 +41,21 @@ collections {
 		name: "indicator";
 		script {
 			public bg_set, badge_set, theme, changepad, changebg, changeHomePad;
+			public message(Msg_Type:type, id, ...)
+			{
+				if (type == MSG_INT_SET && id == 1)
+				{
+					new r, g, b, a;
+
+					r = getarg(2);
+					g = getarg(3);
+					b = getarg(4);
+					a = getarg(5);
+
+					set_state(PART:"background", "bg_custom", 0.0);
+					set_color_class("bg_custom", r, g, b, a);
+				}
+			}
 		}
 		styles
 		{
@@ -88,6 +111,22 @@ collections {
 					state: "default" 0.0;
 					min: 0 INDICATOR_HEIGHT;
 					color: 0 0 0 0;
+				}
+				description {
+					state: "bg_custom" 0.0;
+					color_class: "bg_custom";
+				}
+				description {
+					state: "incoming_call" 0.0;
+					color_class: "W015L1";
+				}
+				description {
+					state: "end_call" 0.0;
+					color_class: "F060L3";
+				}
+				description {
+					state: "on_hold" 0.0;
+					color_class: "AO007";
 				}
 			}
 			part {
@@ -1343,6 +1382,40 @@ collections {
 			 * BG and CLOCK
 			 *
 			 **********************************************************/
+
+			program {
+				name: "bg_color_default";
+				signal: "bg.color.default";
+				source: "indicator.prog";
+			}
+
+			program {
+				name: "bg_color_call_incoming";
+				signal: "bg.color.call.incoming";
+				source: "indicator.prog";
+				script {
+					set_state(PART:"background", "incoming_call", 0.0);
+				}
+			}
+
+			program {
+				name: "bg_color_call_end";
+				signal: "bg.color.call.end";
+				source: "indicator.prog";
+				script {
+					set_state(PART:"background", "end_call", 0.0);
+				}
+			}
+
+			program {
+				name: "bg_color_call_on_hold";
+				signal: "bg.color.call.onhold";
+				source: "indicator.prog";
+				script {
+					set_state(PART:"background", "on_hold", 0.0);
+				}
+			}
+
 			program {
 				name: "bg_opaque";
 				action: STATE_SET "default" 0.0;
