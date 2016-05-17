@@ -36,6 +36,13 @@ typedef enum {
 	INDICATOR_ERROR_NO_DATA = -5,
 } indicator_error_e;
 
+typedef enum {
+	BG_COLOR_DEFAULT = 0,
+	BG_COLOR_CALL_INCOMING,
+	BG_COLOR_CALL_END,
+	BG_COLOR_CALL_ON_HOLD,
+} bg_color_e;
+
 typedef struct _Indicator_Data_Animation Indicator_Data_Animation;
 
 struct _Indicator_Data_Animation
@@ -45,6 +52,9 @@ struct _Indicator_Data_Animation
 };
 
 extern char *util_set_label_text_color(const char *txt);
+extern void util_bg_color_default_set(Evas_Object *layout);
+extern void util_bg_color_rgba_set(Evas_Object *layout, char r, char g, char b, char a);
+extern void util_bg_call_color_set(Evas_Object *layout, bg_color_e color);
 extern const char *util_get_icon_dir(void);
 extern void util_signal_emit(void* data, const char *emission, const char *source);
 extern void util_part_text_emit(void* data, const char *part, const char *text);

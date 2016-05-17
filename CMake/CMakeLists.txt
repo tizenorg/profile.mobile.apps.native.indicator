@@ -44,6 +44,7 @@ pkg_check_modules(pkgs REQUIRED
 	capi-network-tethering
 	storage
 	capi-base-utils-i18n
+	capi-message-port
 )
 
 FOREACH(flag ${pkgs_CFLAGS})
