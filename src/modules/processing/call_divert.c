@@ -31,7 +31,7 @@
 #include "log.h"
 #include "util.h"
 
-#define ICON_PRIORITY	INDICATOR_PRIORITY_SYSTEM_2
+#define ICON_PRIORITY	INDICATOR_PRIORITY_CONNECTION_SYSTEM_2
 #define MODULE_NAME		"call_divert"
 
 static int register_call_divert_module(void *data);
@@ -51,7 +51,7 @@ icon_s call_divert = {
 	.obj_exist = EINA_FALSE,
 	.init = register_call_divert_module,
 	.fini = unregister_call_divert_module,
-	.area = INDICATOR_ICON_AREA_SYSTEM,
+	.area = INDICATOR_ICON_AREA_CONNECTION_SYSTEM,
 #ifdef _SUPPORT_SCREEN_READER
 	.tts_enable = EINA_TRUE,
 	.access_cb = access_info_cb

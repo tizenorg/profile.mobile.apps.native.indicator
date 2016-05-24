@@ -32,6 +32,7 @@
 #include "log.h"
 
 #define FIXED_BOX_PART_NAME		"elm.swallow.fixed"
+#define CONNECTION_SYSTEM_BOX_PART_NAME	"elm.swallow.connection"
 #define SYSTEM_BOX_PART_NAME	"elm.swallow.system"
 #define MINICTRL_BOX_PART_NAME	"elm.swallow.minictrl"
 #define NOTI_BOX_PART_NAME	"elm.swallow.noti"
@@ -45,6 +46,7 @@ Eina_List *_view_system_list;
 Eina_List *_view_minictrl_list;
 Eina_List *_view_noti_list;
 Eina_List *_view_alarm_list;
+Eina_List *_view_connection_system_list;
 
 /* FIXME */
 #if 0
@@ -253,6 +255,12 @@ static void _update_icon(win_info *win, Eina_List *list)
 				_create_img_obj(icon);
 				_box_pack_icon(icon, win->_minictrl_box);
 			}
+			if (icon->area == INDICATOR_ICON_AREA_CONNECTION_SYSTEM
+					&& icon->priority >= INDICATOR_PRIORITY_CONNECTION_SYSTEM_MIN
+					&& icon->priority <= INDICATOR_PRIORITY_CONNECTION_SYSTEM_MAX) {
+						_create_img_obj(icon);
+						_box_pack_icon(icon, win->_connection_system_box);
+					}
 			if (icon->area == INDICATOR_ICON_AREA_NOTI) {
 				_create_img_obj(icon);
 				_box_pack_icon(icon, win->_noti_box);
@@ -280,6 +288,9 @@ extern unsigned int box_get_count(Box_List list)
 		break;
 	case MINICTRL_LIST:
 		count = eina_list_count(_view_minictrl_list);
+		break;
+	case CONNECTION_SYSTEM_LIST:
+		count = eina_list_count(_view_connection_system_list);
 		break;
 	case NOTI_LIST:
 		count = eina_list_count(_view_noti_list);
@@ -311,6 +322,12 @@ static void _update_display(win_info *win)
 	} else {
 		util_signal_emit(win->data, "indicator.minictrl.hide", "indicator.prog");
 	}
+	if
+	(box_get_count(CONNECTION_SYSTEM_LIST)) {
+		util_signal_emit(win->data, "indicator.connection/system.show", "indicator.prog");
+	} else {
+		util_signal_emit(win->data, "indicator.connection/system.hide", "indicator.prog");
+	}
 
 	if (box_get_count(NOTI_LIST)) {
 		util_signal_emit(win->data, "indicator.noti.show", "indicator.prog");
@@ -324,11 +341,13 @@ static void _update_display(win_info *win)
 
 	elm_box_unpack_all(win->_non_fixed_box);
 	elm_box_unpack_all(win->_minictrl_box);
+	elm_box_unpack_all(win->_connection_system_box);
 	elm_box_unpack_all(win->_noti_box);
 	elm_box_unpack_all(win->_alarm_box);
 	elm_box_unpack_all(win->_digit_box);
 
 	_update_icon(win, _view_fixed_list);
+	_update_icon(win, _view_connection_system_list);
 	_update_icon(win, _view_system_list);
 	_update_icon(win, _view_minictrl_list);
 	_update_icon(win, _view_noti_list);
@@ -386,6 +405,7 @@ extern int box_pack(icon_s *icon)
 		icon->exist_in_view = EINA_TRUE;
 		_view_system_list = eina_list_prepend(_view_system_list, icon);
 		_D("System prepend (Priority low) : %s",icon->name);
+
 	} else if(INDICATOR_ICON_AREA_MINICTRL == icon->area) {
 		_D("Pack to MINICTRL list : %s", icon->name);
 		icon_s *data;
@@ -402,6 +422,7 @@ extern int box_pack(icon_s *icon)
 		/* if finding condition is failed, append it at tail */
 		icon->exist_in_view = EINA_TRUE;
 		_view_minictrl_list = eina_list_append(_view_minictrl_list, icon);
+
 	} else if(INDICATOR_ICON_AREA_NOTI == icon->area) {
 		if(strncmp(icon->name, MORE_NOTI, strlen(MORE_NOTI))==0)
 		{
@@ -413,6 +434,24 @@ extern int box_pack(icon_s *icon)
 		/* if finding condition is failed, append it at tail */
 		icon->exist_in_view = EINA_TRUE;
 		_view_noti_list = eina_list_append(_view_noti_list, icon);
+
+	} else if(INDICATOR_ICON_AREA_CONNECTION_SYSTEM == icon->area) {
+		_D("Pack to Connection/System list : %s", icon->name);
+		icon_s *data;
+		Eina_List *l;
+
+		EINA_LIST_FOREACH(_view_connection_system_list, l, data) {
+			if (data->priority <= icon->priority) {
+				icon->exist_in_view = EINA_TRUE;
+				_view_connection_system_list = eina_list_append_relative_list(_view_connection_system_list, icon, l);
+				goto __CATCH;
+			}
+		}
+
+		/* if finding condition is failed, append it at tail */
+		icon->exist_in_view = EINA_TRUE;
+		_view_connection_system_list = eina_list_append(_view_connection_system_list, icon);
+
 	} else {
 		icon->exist_in_view = EINA_TRUE;
 		_view_alarm_list = eina_list_append(_view_alarm_list, icon);
@@ -422,7 +461,8 @@ __CATCH:
 	previous_noti_count = noti_count;
 	if (icon->area == INDICATOR_ICON_AREA_NOTI
 			|| icon->area == INDICATOR_ICON_AREA_SYSTEM
-			|| icon->area == INDICATOR_ICON_AREA_MINICTRL) {
+			|| icon->area == INDICATOR_ICON_AREA_MINICTRL
+			|| icon->area == INDICATOR_ICON_AREA_CONNECTION_SYSTEM) {
 		int bDisplay = 0;
 		bDisplay = 1;
 
@@ -458,6 +498,10 @@ extern int box_pack_append(icon_s *icon)
 	case INDICATOR_ICON_AREA_MINICTRL:
 		icon->exist_in_view = EINA_TRUE;
 		_view_minictrl_list = eina_list_append(_view_minictrl_list, icon);
+		break;
+	case INDICATOR_ICON_AREA_CONNECTION_SYSTEM:
+		icon->exist_in_view = EINA_TRUE;
+		_view_connection_system_list = eina_list_append(_view_connection_system_list, icon);
 		break;
 	case INDICATOR_ICON_AREA_NOTI:
 		EINA_LIST_FOREACH(_view_noti_list, l, data) {
@@ -501,6 +545,10 @@ int box_unpack(icon_s *icon)
 		icon->exist_in_view = EINA_FALSE;
 		_view_noti_list = eina_list_remove(_view_noti_list, icon);
 		break;
+	case INDICATOR_ICON_AREA_CONNECTION_SYSTEM:
+		icon->exist_in_view = EINA_FALSE;
+		_view_connection_system_list = eina_list_remove(_view_connection_system_list, icon);
+	break;
 	case INDICATOR_ICON_AREA_ALARM:
 		icon->exist_in_view = EINA_FALSE;
 		_view_alarm_list = eina_list_remove(_view_alarm_list, icon);
@@ -558,6 +606,12 @@ extern void box_init(win_info *win)
 			free(str_text);
 		}
 	}
+	/* Make Non Fixed Box(CCONNECTION) Object */
+	win->_connection_system_box = _box_add(win->layout);
+	ret_if(!(win->_connection_system_box));
+
+	evas_object_size_hint_align_set(win->_connection_system_box, EVAS_HINT_FILL, EVAS_HINT_FILL);
+	edje_object_part_swallow(elm_layout_edje_get(win->layout), CONNECTION_SYSTEM_BOX_PART_NAME, win->_connection_system_box);
 
 	/* Make Non Fixed Box(SYSTEM) Object */
 	win->_non_fixed_box = _box_add(win->layout);
@@ -619,6 +673,13 @@ extern void box_fini(win_info *win)
 		win->_non_fixed_box = NULL;
 	}
 
+	if (win->_connection_system_box != NULL) {
+		edje_object_part_unswallow(elm_layout_edje_get(win->layout), win->_connection_system_box);
+		elm_box_unpack_all(win->_connection_system_box);
+		evas_object_del(win->_connection_system_box);
+		win->_connection_system_box = NULL;
+	}
+
 	if (win->_minictrl_box != NULL) {
 		edje_object_part_unswallow(elm_layout_edje_get(win->layout), win->_minictrl_box);
 		elm_box_unpack_all(win->_minictrl_box);
@@ -651,24 +712,6 @@ extern void box_fini(win_info *win)
 
 	return;
 }
-
-
-
-unsigned int box_get_count_in_noti_list_except_minictrl(void)
-{
-	icon_s *data;
-	Eina_List *l;
-	int count = 0;
-
-	EINA_LIST_FOREACH(_view_noti_list, l, data) {
-		if (data->priority != INDICATOR_PRIORITY_NOTI_1) {
-			count++;
-		}
-	}
-	return count;
-
-}
-
 
 
 int box_get_enabled_noti_count(void)
@@ -713,6 +756,10 @@ int box_get_enabled_system_count(void)
 }
 
 
+int box_get_enabled_connection_system_count(void)
+{
+	return PORT_CONNECTION_SYSTEM_ICON_COUNT; /* MAX = 2 */
+}
 
 int box_get_minictrl_list(void)
 {
@@ -948,6 +995,12 @@ extern Eina_Bool box_exist_icon(icon_s *obj)
 		}
 	case INDICATOR_ICON_AREA_MINICTRL:
 		if (eina_list_data_find(_view_minictrl_list, obj)) {
+			return EINA_TRUE;
+		} else {
+			return EINA_FALSE;
+		}
+	case INDICATOR_ICON_AREA_CONNECTION_SYSTEM:
+		if (eina_list_data_find(_view_connection_system_list, obj)) {
 			return EINA_TRUE;
 		} else {
 			return EINA_FALSE;

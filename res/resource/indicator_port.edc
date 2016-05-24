@@ -827,9 +827,10 @@ collections {
 				}
 
 			}
-			/* Connection1 (NON_FIXED) (BT) */
-			FIXED_RECT_FROM_LEFT( "elm.rect.bt", "elm.swallow.fixed5", "elm.rect.bg", DEFAULT_ICON_PADDING, 0 255 0 255, 0)
-			SWALLOW_PART_FROM_LEFT_WITH_SPACE( "elm.swallow.fixed6", "elm.rect.bt", "elm.rect.bg", DEFAULT_ICON_WIDTH, DEFAULT_ICON_HEIGHT )
+			/* Connection/System (Bluetooth, Call divert) */
+			FIXED_RECT_FROM_LEFT( "elm.rect.connection/system", "elm.swallow.fixed5", "elm.rect.bg", DEFAULT_ICON_PADDING, 255 0 0 255, 0)
+			SWALLOW_PART_FROM_LEFT_WITH_SPACE( "elm.swallow.connection/system", "elm.rect.connection/system", "elm.rect.bg", DEFAULT_ICON_WIDTH, DEFAULT_ICON_HEIGHT )
+
 			/* Connection2 (NON_FIXED) (WiFi-direct) */
 			FIXED_RECT_FROM_LEFT( "elm.rect.wifidirect", "elm.swallow.fixed6", "elm.rect.bg", DEFAULT_ICON_PADDING, 0 0 255 255, 0)
 			SWALLOW_PART_FROM_LEFT_WITH_SPACE( "elm.swallow.fixed7", "elm.rect.wifidirect", "elm.rect.bg", DEFAULT_ICON_WIDTH, DEFAULT_ICON_HEIGHT )
@@ -839,7 +840,7 @@ collections {
 			///////// RIGHT SIDE /////////////////////
 			//////////////////////////////////////////
 
-			/* System (Sound Profile, Call divert, Alarm, GPS) */
+			/* System (Sound Profile, Alarm, GPS) */
 			FIXED_RECT_FROM_RIGHT( "elm.rect.system", "elm.swallow.fixed8", "elm.rect.bg", DEFAULT_ICON_PADDING, 255 0 0 255, 0)
 			SWALLOW_PART_FROM_RIGHT_WITH_SPACE( "elm.swallow.system", "elm.rect.system", "elm.rect.bg", DEFAULT_ICON_WIDTH, DEFAULT_ICON_HEIGHT )
 
@@ -1758,6 +1759,24 @@ collections {
 				source: "indicator.prog";
 				target: "elm.swallow.minictrl";
 				target: "elm.rect.minictrl";
+			}
+			// Connection/System box
+			program {
+				name: "indicator.connection/system.show";
+				action: STATE_SET "default" 0.0;
+				signal: "indicator.connection/system.show";
+				source: "indicator.prog";
+				target: "elm.swallow.connection/system";
+				target: "elm.rect.connection/system";
+			}
+
+			program {
+				name: "indicator.connection/system.hide";
+				action: STATE_SET "hide" 0.0;
+				signal: "indicator.connection/system.hide";
+				source: "indicator.prog";
+				target: "elm.swallow.connection/system";
+				target: "elm.rect.connection/system";
 			}
 			// Noti box
 			program {
