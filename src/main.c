@@ -93,6 +93,13 @@ Ecore_Timer *clock_timer;
 int is_transparent = 0;
 int current_angle = 0;
 int current_state = 0;
+
+int isSimShowing;	// For Simcard Icon
+int isRSSI1Showing;	// For RSSI1 Icon
+int isRSSI2Showing;	// For RSSI2 Icon
+int isSilentShowing;		// For Silent Icon
+int isWifiDirectShowing;	// For WiFi Direct Icon
+
 #if 0
 static int bFirst_opacity = 1;
 #endif

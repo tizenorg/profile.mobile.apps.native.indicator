@@ -144,10 +144,4 @@ struct appdata {
 	void (*update_display) (int);
 };
 
-int isSimShowing;	// For Simcard Icon
-int isRSSI1Showing;	// For RSSI1 Icon
-int isRSSI2Showing;	// For RSSI2 Icon
-int isSilentShowing;		// For Silent Icon
-int isWifiDirectShowing;	// For WiFi Direct Icon
-
 #endif				/* __DEF_indicator_H__ */
