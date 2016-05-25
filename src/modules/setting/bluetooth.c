@@ -29,7 +29,7 @@
 #include "util.h"
 #include "log.h"
 
-#define ICON_PRIORITY	INDICATOR_PRIORITY_FIXED7
+#define ICON_PRIORITY	INDICATOR_PRIORITY_CONNECTION_SYSTEM_1
 #define MODULE_NAME		"bluetooth"
 #define TIMER_INTERVAL	0.5
 
@@ -53,7 +53,7 @@ icon_s bluetooth = {
 	.exist_in_view = EINA_FALSE,
 	.img_obj = {0,},
 	.obj_exist = EINA_FALSE,
-	.area = INDICATOR_ICON_AREA_FIXED,
+	.area = INDICATOR_ICON_AREA_CONNECTION_SYSTEM,
 	.init = register_bluetooth_module,
 	.fini = unregister_bluetooth_module,
 	.wake_up = wake_up_cb,
