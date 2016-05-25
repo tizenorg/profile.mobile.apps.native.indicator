@@ -426,7 +426,7 @@ collections {
 					state: "default" 0.0;
 					visible: 0;
 					rel1 { relative: 1.0 0.0; to_x: padding.left; to_y: elm.rect.bg; }
-					rel2 { relative: 0.0 1.0; to_x: elm.swallow.fixed6; to_y: elm.rect.bg; }
+					rel2 { relative: 0.0 1.0; to_x: elm.swallow.connection/system; to_y: elm.rect.bg; }
 					align: 0.0 0.0;
 				}
 			}
@@ -575,8 +575,8 @@ collections {
 					min: 0 0;
 #endif
 					fixed: 1 0;
-					rel1 { relative: 0.0 0.0; to_x: elm.swallow.fixed6; to_y: elm.rect.right_con; }
-					rel2 { relative: 0.0 1.0; to_x: elm.swallow.fixed6; to_y: elm.rect.right_con; }
+					rel1 { relative: 0.0 0.0; to_x: elm.swallow.connection/system; to_y: elm.rect.right_con; }
+					rel2 { relative: 0.0 1.0; to_x: elm.swallow.connection/system; to_y: elm.rect.right_con; }
 					align: 1.0 0.5;
 				}
 				description {
@@ -827,11 +827,12 @@ collections {
 				}
 
 			}
-			/* Connection1 (NON_FIXED) (BT) */
-			FIXED_RECT_FROM_LEFT( "elm.rect.bt", "elm.swallow.fixed5", "elm.rect.bg", DEFAULT_ICON_PADDING, 0 255 0 255, 0)
-			SWALLOW_PART_FROM_LEFT_WITH_SPACE( "elm.swallow.fixed6", "elm.rect.bt", "elm.rect.bg", DEFAULT_ICON_WIDTH, DEFAULT_ICON_HEIGHT )
+			/* Connection/System (Bluetooth, Call divert) */
+			FIXED_RECT_FROM_LEFT( "elm.rect.connection/system", "elm.swallow.fixed5", "elm.rect.bg", DEFAULT_ICON_PADDING, 255 0 0 255, 0)
+			SWALLOW_PART_FROM_LEFT_WITH_SPACE( "elm.swallow.connection/system", "elm.rect.connection/system", "elm.rect.bg", DEFAULT_ICON_WIDTH, DEFAULT_ICON_HEIGHT )
+
 			/* Connection2 (NON_FIXED) (WiFi-direct) */
-			FIXED_RECT_FROM_LEFT( "elm.rect.wifidirect", "elm.swallow.fixed6", "elm.rect.bg", DEFAULT_ICON_PADDING, 0 0 255 255, 0)
+			FIXED_RECT_FROM_LEFT( "elm.rect.wifidirect", "elm.swallow.connection/system", "elm.rect.bg", DEFAULT_ICON_PADDING, 0 0 255 255, 0)
 			SWALLOW_PART_FROM_LEFT_WITH_SPACE( "elm.swallow.fixed7", "elm.rect.wifidirect", "elm.rect.bg", DEFAULT_ICON_WIDTH, DEFAULT_ICON_HEIGHT )
 
 
@@ -839,7 +840,7 @@ collections {
 			///////// RIGHT SIDE /////////////////////
 			//////////////////////////////////////////
 
-			/* System (Sound Profile, Call divert, Alarm, GPS) */
+			/* System (Sound Profile, Alarm, GPS) */
 			FIXED_RECT_FROM_RIGHT( "elm.rect.system", "elm.swallow.fixed8", "elm.rect.bg", DEFAULT_ICON_PADDING, 255 0 0 255, 0)
 			SWALLOW_PART_FROM_RIGHT_WITH_SPACE( "elm.swallow.system", "elm.rect.system", "elm.rect.bg", DEFAULT_ICON_WIDTH, DEFAULT_ICON_HEIGHT )
 
@@ -1466,7 +1467,7 @@ collections {
 				action: STATE_SET "hide" 0.0;
 				signal: "indicator.lock.on";
 				source: "indicator.prog";
-				target: "elm.swallow.fixed6";
+				target: "elm.swallow.connection/system";
 				target: "seperator.image";
 				target: "padding.separator";
 				target: "padding.separator2";
@@ -1477,7 +1478,7 @@ collections {
 				action: STATE_SET "default" 0.0;
 				signal: "indicator.lock.off";
 				source: "indicator.prog";
-				target: "elm.swallow.fixed6";
+				target: "elm.swallow.connection/system";
 				target: "seperator.image";
 				target: "padding.separator";
 				target: "padding.separator2";
@@ -1621,8 +1622,8 @@ collections {
 				action: STATE_SET "default" 0.0;
 				signal: "indicator.bluetooth.show";
 				source: "indicator.prog";
-				target: "elm.swallow.fixed6";
-				target: "elm.rect.bt";
+				target: "elm.swallow.connection/system";
+				target: "elm.rect.connection/system";
 			}
 
 			program {
@@ -1630,8 +1631,8 @@ collections {
 				action: STATE_SET "hide" 0.0;
 				signal: "indicator.bluetooth.hide";
 				source: "indicator.prog";
-				target: "elm.swallow.fixed6";
-				target: "elm.rect.bt";
+				target: "elm.swallow.connection/system";
+				target: "elm.rect.connection/system";
 			}
 			// WIFI-Direct
 			program {
@@ -1758,6 +1759,24 @@ collections {
 				source: "indicator.prog";
 				target: "elm.swallow.minictrl";
 				target: "elm.rect.minictrl";
+			}
+			// Connection/System box
+			program {
+				name: "indicator.connection/system.show";
+				action: STATE_SET "default" 0.0;
+				signal: "indicator.connection/system.show";
+				source: "indicator.prog";
+				target: "elm.swallow.connection/system";
+				target: "elm.rect.connection/system";
+			}
+
+			program {
+				name: "indicator.connection/system.hide";
+				action: STATE_SET "hide" 0.0;
+				signal: "indicator.connection/system.hide";
+				source: "indicator.prog";
+				target: "elm.swallow.connection/system";
+				target: "elm.rect.connection/system";
 			}
 			// Noti box
 			program {

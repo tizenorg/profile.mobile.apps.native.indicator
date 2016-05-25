@@ -266,6 +266,16 @@ extern icon_s *list_try_to_find_icon_to_show(int area, int priority)
 			}
 		}
 		break;
+
+	case INDICATOR_ICON_AREA_CONNECTION_SYSTEM:
+		EINA_LIST_REVERSE_FOREACH(alarm_icon_list, l, data) {
+			if (data->wish_to_show == EINA_TRUE
+				&& data->exist_in_view == EINA_FALSE) {
+				icon = data;
+				break;
+			}
+		}
+		break;
 	default:
 		_E("default");
 		break;
@@ -318,6 +328,16 @@ extern icon_s *list_try_to_find_icon_to_remove(int area, int priority)
 		}
 		break;
 	case INDICATOR_ICON_AREA_ALARM:
+		/* Find lowest priority of icon */
+		EINA_LIST_FOREACH(alarm_icon_list, l, data) {
+			if (data->wish_to_show == EINA_TRUE
+				&& data->always_top == EINA_FALSE
+				&& data->exist_in_view == EINA_TRUE) {
+				icon = data;
+				break;
+			}
+		}
+	case INDICATOR_ICON_AREA_CONNECTION_SYSTEM:
 		/* Find lowest priority of icon */
 		EINA_LIST_FOREACH(alarm_icon_list, l, data) {
 			if (data->wish_to_show == EINA_TRUE
