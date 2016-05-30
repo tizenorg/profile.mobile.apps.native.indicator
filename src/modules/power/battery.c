@@ -104,7 +104,7 @@ enum {
 };
 
 enum {
-	BATTERY_LEVEL_8,
+	BATTERY_LEVEL_10,
 	BATTERY_LEVEL_20,
 };
 
@@ -167,7 +167,7 @@ enum {
 static int batt_full = 0;
 
 static const char *icon_path[LEVEL_NUM] = {
-	[LEVEL_0] = "Power/B03_stat_sys_battery_4.png",
+	[LEVEL_0] = "Power/B03_stat_sys_battery_0.png",
 	[LEVEL_1] = "Power/B03_stat_sys_battery_5.png",
 	[LEVEL_2] = "Power/B03_stat_sys_battery_10.png",
 	[LEVEL_3] = "Power/B03_stat_sys_battery_15.png",
@@ -191,7 +191,7 @@ static const char *icon_path[LEVEL_NUM] = {
 };
 
 static const char *charging_icon_path[LEVEL_NUM] = {
-	[LEVEL_0] = "Power/B03_stat_sys_battery_charge_anim4.png",
+	[LEVEL_0] = "Power/B03_stat_sys_battery_charge_anim0.png",
 	[LEVEL_1] = "Power/B03_stat_sys_battery_charge_anim5.png",
 	[LEVEL_2] = "Power/B03_stat_sys_battery_charge_anim10.png",
 	[LEVEL_3] = "Power/B03_stat_sys_battery_charge_anim15.png",
@@ -261,33 +261,6 @@ static const char *percentage_battery_charging_icon_path[LEVEL_PERCENTAGE_NUM] =
 	[LEVEL_PERCENTAGE_10] = "Power/B03_stat_sys_battery_percent_charge_anim100.png"
 };
 
-enum {
-	FUEL_GAUGE_LV_MIN = 0,
-	FUEL_GAUGE_LV_0 = FUEL_GAUGE_LV_MIN,
-	FUEL_GAUGE_LV_1,
-	FUEL_GAUGE_LV_2,
-	FUEL_GAUGE_LV_3,
-	FUEL_GAUGE_LV_4,
-	FUEL_GAUGE_LV_5,
-	FUEL_GAUGE_LV_6,
-	FUEL_GAUGE_LV_7,
-	FUEL_GAUGE_LV_8,
-	FUEL_GAUGE_LV_9,
-	FUEL_GAUGE_LV_10,
-	FUEL_GAUGE_LV_11,
-	FUEL_GAUGE_LV_12,
-	FUEL_GAUGE_LV_13,
-	FUEL_GAUGE_LV_14,
-	FUEL_GAUGE_LV_15,
-	FUEL_GAUGE_LV_16,
-	FUEL_GAUGE_LV_17,
-	FUEL_GAUGE_LV_18,
-	FUEL_GAUGE_LV_19,
-	FUEL_GAUGE_LV_20,
-	FUEL_GAUGE_LV_MAX = FUEL_GAUGE_LV_20,
-	FUEL_GAUGE_LV_NUM,
-};
-
 struct battery_level_info {
 	int current_level;
 	int current_percentage;
@@ -297,12 +270,8 @@ struct battery_level_info {
 
 static struct battery_level_info _level;
 static Ecore_Timer *timer;
-static int battery_level_type = BATTERY_LEVEL_8;
+static int battery_level_type = BATTERY_LEVEL_10;
 static int battery_charging = EINA_FALSE;
-static int aniIndex = -1;
-static int prev_mode = -1;
-static int prev_level = -1;
-static int prev_full = -1;
 static int battery_percentage = -1;
 static Eina_Bool is_battery_percentage_shown = EINA_FALSE;
 
@@ -325,19 +294,26 @@ static int __battery_percentage_to_level(int percentage)
 {
 	int level = 0;
 
+	batt_full = 0;
+
+	if (percentage >= 100 )
+		batt_full = 1;
+
 	if(is_battery_percentage_shown)
 	{
 		if (battery_level_type == BATTERY_LEVEL_20) {
 			if (percentage >= 100)
-				level = FUEL_GAUGE_LV_MAX;
+				level = LEVEL_MAX;
 			else if (percentage < 3)
-				level = FUEL_GAUGE_LV_0;
+				level = LEVEL_MIN;
 			else
 				level = (int)((percentage + 2) / 5);
 		}
 		else
 		{
-			if (percentage >= 91)
+			if (percentage >= 100)
+				level = LEVEL_PERCENTAGE_MAX;
+			else if (percentage >= 91)
 				level = LEVEL_PERCENTAGE_10;
 			else if (percentage >= 81)
 				level = LEVEL_PERCENTAGE_9;
@@ -358,20 +334,22 @@ static int __battery_percentage_to_level(int percentage)
 			else if (percentage >= 1)
 				level = LEVEL_PERCENTAGE_1;
 			else
-				level = LEVEL_PERCENTAGE_0;
+				level = LEVEL_PERCENTAGE_MIN;
 		}
 	}
 	else
 	{
 		if (battery_level_type == BATTERY_LEVEL_20) {
 			if (percentage >= 100)
-				level = FUEL_GAUGE_LV_MAX;
+				level = LEVEL_MAX;
 			else if (percentage < 3)
-				level = FUEL_GAUGE_LV_0;
+				level = LEVEL_MIN;
 			else
 				level = (int)((percentage + 2) / 5);
 		} else {
-			if (percentage >= 96)
+			if (percentage >= 100)
+				level = LEVEL_MAX;
+			else if (percentage >= 96)
 				level = LEVEL_20;
 			else if (percentage >= 91)
 				level = LEVEL_19;
@@ -412,9 +390,10 @@ static int __battery_percentage_to_level(int percentage)
 			else if (percentage >= 1)
 				level = LEVEL_1;
 			else
-				level = LEVEL_0;
+				level = LEVEL_MIN;
 		}
 	}
+
 	return level;
 }
 
@@ -427,41 +406,27 @@ static void icon_animation_set(enum indicator_icon_ani type)
 #endif
 
 
-static void show_battery_icon(int mode, int level)
+static void show_battery_icon(int level)
 {
-	if (is_battery_percentage_shown) {
-		if (batt_full == 1) {
-			battery.img_obj.data = percentage_battery_icon_path[LEVEL_PERCENTAGE_MAX];
-		} else if (battery_charging==EINA_TRUE) {
-			if (level == 0)
-				battery.img_obj.data = percentage_battery_charging_icon_path[0];
-			else {
-				int percentage_level = (level / 2) + 1;
-				battery.img_obj.data = percentage_battery_charging_icon_path[percentage_level];
-			}
-		} else {
-			if (level == 0)
-				battery.img_obj.data = percentage_battery_icon_path[0];
-			else {
-				int percentage_level = (level / 2) + 1;
-				battery.img_obj.data = percentage_battery_icon_path[percentage_level];
-			}
-		}
-		icon_show(&battery);
+
+	if ( is_battery_percentage_shown) {
+
+		if (battery_charging == EINA_TRUE)
+			battery.img_obj.data = percentage_battery_charging_icon_path[level];
+		else
+			battery.img_obj.data = percentage_battery_icon_path[level];
+
 	} else {
-		if(batt_full == 1) {
-			battery.img_obj.data = icon_path[LEVEL_MAX];
-		} else if(battery_charging==EINA_TRUE) {
+
+		if(battery_charging == EINA_TRUE) {
 			battery.img_obj.data = charging_icon_path[level];
 		} else {
 			battery.img_obj.data = icon_path[level];
 		}
-		icon_show(&battery);
 	}
 
-	prev_full = batt_full;
-	prev_mode = mode;
-	prev_level = level;
+	icon_show(&battery);
+
 }
 
 static void show_digits()
@@ -494,7 +459,6 @@ static void show_digits()
 }
 
 
-
 static void hide_digits()
 {
 	_D("Hide digits");
@@ -504,15 +468,13 @@ static void hide_digits()
 }
 
 
-
 static void indicator_battery_level_init(void)
 {
-	/* Currently, kernel not support level 6, So We use only level 20 */
-	battery_level_type = BATTERY_LEVEL_8;
-	_level.min_level = LEVEL_MIN;
+	battery_level_type = BATTERY_LEVEL_10;
+	_level.min_level = LEVEL_PERCENTAGE_MIN;
 	_level.current_level = -1;
 	_level.current_percentage = -1;
-	_level.max_level = LEVEL_MAX;
+	_level.max_level = LEVEL_PERCENTAGE_MAX;
 }
 
 
@@ -541,55 +503,18 @@ static Eina_Bool indicator_battery_charging_ani_cb(void *data)
 #endif
 
 
-static int indicator_change_battery_image_level(void *data, int level)
+static void indicator_battery_update_state(void *data)
 {
-	retvm_if(data == NULL, FAIL, "Invalid parameter!");
-
-	if(is_battery_percentage_shown)
-	{
-		if (battery_level_type == BATTERY_LEVEL_20) {
-			if (level < FUEL_GAUGE_LV_MIN)
-				level = FUEL_GAUGE_LV_MIN;
-			else if (level > FUEL_GAUGE_LV_MAX)
-				level = FUEL_GAUGE_LV_MAX;
-		}
-		else {
-			if (level < LEVEL_PERCENTAGE_MIN)
-				level = LEVEL_PERCENTAGE_MIN;
-		}
-	}
-	else
-	{
-		if (battery_level_type == BATTERY_LEVEL_20) {
-			if (level < FUEL_GAUGE_LV_MIN)
-				level = FUEL_GAUGE_LV_MIN;
-			else if (level > FUEL_GAUGE_LV_MAX)
-				level = FUEL_GAUGE_LV_MAX;
-		} else {
-			if (level < LEVEL_MIN)
-				level = LEVEL_MIN;
-		}
-	}
-
-	/* Set arg for display image only or text with image */
-	show_battery_icon(battery_charging,level);
-	return OK;
-}
-
-static void indicator_bttery_update_by_charging_state(void *data)
-{
-	aniIndex = -1;
-	indicator_change_battery_image_level(data,
-						  _level.current_level);
+	show_battery_icon( _level.current_level);
 }
 
 static void indicator_battery_resize_percengate(void* data)
 {
-	if(!is_battery_percentage_shown)
-	{
-		hide_digits();
-		return;
-	}
+//	if(!is_battery_percentage_shown)
+//	{
+//		hide_digits();
+//		return;
+//	}
 
 	show_digits();
 }
@@ -602,15 +527,11 @@ static void indicator_battery_update_display(void *data)
 	retm_if(data == NULL, "Invalid parameter!");
 
 	if(icon_get_update_flag()==0)
-	{
 		return;
-	}
 
 	ret = device_battery_get_percent(&battery_percentage);
 	if (ret != DEVICE_ERROR_NONE)
-	{
 		return;
-	}
 
 	if (battery_percentage < 0)
 	{
@@ -629,15 +550,11 @@ static void indicator_battery_update_display(void *data)
 
 	/* Check Battery Level */
 	level = __battery_percentage_to_level(battery_percentage);
-	if (level == _level.current_level)
-	{
-	}
-	else {
-		_level.current_level = level;
-	}
+
+	_level.current_level = level;
 
 	indicator_battery_resize_percengate(data);
-	indicator_bttery_update_by_charging_state(data);
+	indicator_battery_update_state(data);
 
 }
 
@@ -662,29 +579,18 @@ static void indicator_battery_check_charging(void *data)
 	indicator_battery_update_display(data);
 }
 
+
 static void indicator_battery_charging_cb(device_callback_e type, void *value, void *data)
 {
 	indicator_battery_check_charging(data);
 }
 
+
 static void indicator_battery_change_cb(device_callback_e type, void *value, void *data)
 {
-	device_battery_level_e battery_level;
-	int ret = -1;
-
-	ret = device_battery_get_level_status(&battery_level);
-	if(ret != DEVICE_ERROR_NONE)
-	{
-		return;
-	}
-
-	if(battery_level == DEVICE_BATTERY_LEVEL_FULL)
-		batt_full = 1;
-	else
-		batt_full = 0;
-
 	indicator_battery_update_display(data);
 }
+
 
 static void indicator_battery_pm_state_change_cb(device_callback_e type, void *value, void *data)
 {
@@ -700,6 +606,7 @@ static void indicator_battery_pm_state_change_cb(device_callback_e type, void *v
 	}
 }
 
+
 static void indicator_battery_batt_percentage_cb(device_callback_e type, void *value, void *data)
 {
 	struct appdata* ad = NULL;
@@ -712,9 +619,10 @@ static void indicator_battery_batt_percentage_cb(device_callback_e type, void *v
 
 	vconf_get_bool(VCONFKEY_SETAPPL_BATTERY_PERCENTAGE_BOOL, &status);
 
+	status = 1;
+
 	if(status == 1) {
 		is_battery_percentage_shown = EINA_TRUE;
-		_level.max_level = LEVEL_PERCENTAGE_MAX;
 		indicator_battery_update_display(data);
 		show_digits();
 		box_update_display(&(ad->win));
@@ -722,12 +630,12 @@ static void indicator_battery_batt_percentage_cb(device_callback_e type, void *v
 	else {
 		//remove battery percentage
 		is_battery_percentage_shown = EINA_FALSE;
-		_level.max_level = LEVEL_MAX;
 		indicator_battery_update_display(data);
 		hide_digits();
 		box_update_display(&(ad->win));
 	}
 }
+
 
 static int wake_up_cb(void *data)
 {
@@ -777,6 +685,7 @@ static int register_battery_module(void *data)
 	return r;
 }
 
+
 static int unregister_battery_module(void)
 {
 	int r = 0;
@@ -806,6 +715,7 @@ static int unregister_battery_module(void)
 
 	return r;
 }
+
 
 static void _resize_battery_digits_icons_box()
 {
