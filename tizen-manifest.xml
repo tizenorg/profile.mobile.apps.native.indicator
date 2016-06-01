@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <manifest xmlns="http://tizen.org/ns/packages" api-version="3.0" package="org.tizen.indicator" version="1.0.0">
     <profile name="mobile"/>
-    <ui-application appid="org.tizen.indicator" exec="indicator-win" launch_mode="single" on-boot="true" multiple="false" nodisplay="true" taskmanage="false" type="capp">
+    <ui-application appid="org.tizen.indicator" exec="indicator-win" hw-acceleration="on" process-pool="true" launch_mode="single" on-boot="true" multiple="false" nodisplay="true" taskmanage="false" type="capp">
         <label>indicator-win</label>
     </ui-application>
     <privileges>
