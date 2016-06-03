@@ -30,7 +30,6 @@
 #define VCONFKEY_APPTRAY_STATE "file/private/org.tizen.app-tray/is_top"
 
 #define FIXED_COUNT	11
-#define INDICATOR_HEIGHT 36
 
 #define _INDICATOR_FEATURE_LITE
 #define _INDICATOR_REMOVE_SEARCH
