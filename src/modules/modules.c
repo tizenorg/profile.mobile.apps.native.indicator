@@ -38,6 +38,8 @@ extern icon_s conn;
 /* Processing */
 extern icon_s call;
 extern icon_s call_divert;
+extern icon_s call_options_mute;
+extern icon_s call_options_speaker;
 
 /* Information */
 extern icon_s ext_storage;
@@ -97,7 +99,8 @@ static icon_s *modules[INDICATOR_MODULE_NUMBERS] = {
 	/* Processing */
 	&call,
 	&call_divert,
-
+	&call_options_mute,
+	&call_options_speaker,
 	/* Information */
 	/* &message, */
 	/* &voice_mail, */

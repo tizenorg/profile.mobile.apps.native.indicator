@@ -97,7 +97,7 @@ static const char *_icon_ani_type_set_send_signal(icon_s *icon, Icon_Ani_Type ty
 	retv_if(!icon, NULL);
 
 	const char *BLINK_SIGNAL = "icon,state,blink";
-	const char *ROATATE_SIGNAL = "icon,state,rotate";
+	const char *ROTATE_SIGNAL = "icon,state,rotate";
 	const char *METRONOME_SIGNAL = "icon,state,metronome";
 	const char *DEFAULT = "icon,state,default";
 	const char *send_signal = DEFAULT;
@@ -107,7 +107,7 @@ static const char *_icon_ani_type_set_send_signal(icon_s *icon, Icon_Ani_Type ty
 		send_signal = BLINK_SIGNAL;
 		break;
 	case ICON_ANI_ROTATE:
-		send_signal = ROATATE_SIGNAL;
+		send_signal = ROTATE_SIGNAL;
 		break;
 	case ICON_ANI_METRONOME:
 		send_signal = METRONOME_SIGNAL;
