@@ -516,7 +516,7 @@ collections {
 				description {
 					state: "default" 0.0;
 #ifndef _INDICATOR_REMOVE_SEARCH
-					min: HOME_PADDING_PORTRAIT FIXED4_ICON_HEIGHT;
+					min: HOME_PADDING_PORTRAIT DEFAULT_ICON_HEIGHT;
 #else
 					min: 0 0;
 #endif
@@ -636,8 +636,8 @@ collections {
 				scale: 1;
 				description {
 					state: "default" 0.0;
-					min: 7 10;
-					max: 7 10;
+					min: BATTERY_DIGIT_WIDTH BATTERY_DIGIT_HEIGHT;
+					max: BATTERY_DIGIT_WIDTH BATTERY_DIGIT_HEIGHT;
 					rel1 { relative: 0.0 0.0; to_x: "elm.swallow.fixed8"; }
 					rel2 { relative: 1.0 1.0; to_x: "elm.swallow.fixed8"; offset: -8 -14; }
 					align: 1.0 0.5;
@@ -646,16 +646,16 @@ collections {
 				description {
 					state: "two_digits" 0.0;
 					inherit: "default" 0.0;
-					min: 15 10;
-					max: 15 10;
+					min: BATTERY_TWO_DIGITS_WIDTH BATTERY_DIGIT_HEIGHT;
+					max: BATTERY_TWO_DIGITS_WIDTH BATTERY_DIGIT_HEIGHT;
 					rel1 { relative: 0.0 0.0; to_x: "elm.swallow.fixed8"; }
 					rel2 { relative: 1.0 1.0; to_x: "elm.swallow.fixed8"; offset: -4 -14; }
 				}
 				description {
 					state: "three_digits" 0.0;
 					inherit: "default" 0.0;
-					min: 17 10;
-					max: 17 10;
+					min: BATTERY_FULL_WIDTH BATTERY_DIGIT_HEIGHT;
+					max: BATTERY_FULL_WIDTH BATTERY_DIGIT_HEIGHT;
 					rel1 { relative: 0.0 0.0; to_x: "elm.swallow.fixed8"; }
 					rel2 { relative: 1.0 1.0; to_x: "elm.swallow.fixed8"; offset: -3 -14; }
 				}
@@ -847,7 +847,7 @@ collections {
 				description {
 					state: "default" 0.0;
 #ifndef _INDICATOR_REMOVE_SEARCH
-					min: HOME_PADDING_PORTRAIT FIXED4_ICON_HEIGHT;
+					min: HOME_PADDING_PORTRAIT DEFAULT_ICON_HEIGHT;
 #else
 					min: 0 0;
 #endif
