@@ -737,6 +737,39 @@ void icon_reset_list(void)
 			}
 		}
 	}
+
+
+	int cs_cnt = box_get_count(CONNECTION_SYSTEM_LIST);
+
+	while (cs_cnt > box_get_enabled_connection_system_count()) {
+		icon_s *wish_remove_icon = NULL;
+		wish_remove_icon = list_try_to_find_icon_to_remove(INDICATOR_ICON_AREA_CONNECTION_SYSTEM, 0);
+
+		if (wish_remove_icon == NULL) {
+			break;
+		}
+
+		box_unpack(wish_remove_icon);
+		cs_cnt = box_get_count(CONNECTION_SYSTEM_LIST);
+
+	while (cs_cnt < box_get_enabled_connection_system_count()) {
+		icon_s *wish_add_icon = NULL;
+		wish_add_icon = list_try_to_find_icon_to_show(INDICATOR_ICON_AREA_CONNECTION_SYSTEM, 0);
+		if (wish_add_icon == NULL) {
+			break;
+		}
+
+		if (box_exist_icon(wish_add_icon)) {
+			break;
+		}
+
+		box_pack_append(wish_add_icon);
+		cs_cnt = box_get_count(CONNECTION_SYSTEM_LIST);
+		if(cs_cnt == box_get_enabled_connection_system_count()) {
+			break;
+		}
+	}
+	}
 }
 
 

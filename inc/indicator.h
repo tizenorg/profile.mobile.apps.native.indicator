@@ -81,7 +81,12 @@ enum {
 	INDICATOR_PRIORITY_NOTI_MIN,
 	INDICATOR_PRIORITY_NOTI_1 = INDICATOR_PRIORITY_NOTI_MIN,
 	INDICATOR_PRIORITY_NOTI_2, /* Ongoing/Normal notification */
-	INDICATOR_PRIORITY_NOTI_MAX = INDICATOR_PRIORITY_NOTI_2
+	INDICATOR_PRIORITY_NOTI_MAX = INDICATOR_PRIORITY_NOTI_2,
+
+	INDICATOR_PRIORITY_CONNECTION_SYSTEM_MIN,
+	INDICATOR_PRIORITY_CONNECTION_SYSTEM_1, /* CONNECTION/SYSTEM - Bluetooth */
+	INDICATOR_PRIORITY_CONNECTION_SYSTEM_2, /* CONNECTION/SYSTEM - Call divert*/
+	INDICATOR_PRIORITY_CONNECTION_SYSTEM_MAX = INDICATOR_PRIORITY_CONNECTION_SYSTEM_2
 };
 
 enum indicator_icon_type {
@@ -96,7 +101,8 @@ enum indicator_icon_area_type {
 	INDICATOR_ICON_AREA_SYSTEM,
 	INDICATOR_ICON_AREA_MINICTRL,
 	INDICATOR_ICON_AREA_NOTI,
-	INDICATOR_ICON_AREA_ALARM
+	INDICATOR_ICON_AREA_ALARM,
+	INDICATOR_ICON_AREA_CONNECTION_SYSTEM
 };
 
 typedef enum indicator_icon_ani {
@@ -165,6 +171,7 @@ typedef struct _ind_win_info
 	Evas_Object *_non_fixed_box;
 	Evas_Object *_minictrl_box;
 	Evas_Object *_noti_box;
+	Evas_Object *_connection_system_box;
 	Evas_Object *_dynamic_box;
 	Evas_Object *_dynamic_box_noti;
 	Evas_Object *_alarm_box;
