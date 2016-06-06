@@ -42,13 +42,16 @@ typedef enum _Icon_Display_Count {
 	LAND_SYSTEM_ICON_COUNT = 6,
 	PORT_MINICTRL_ICON_COUNT = 2, // MIN : (1), MAX : (3)
 	LAND_MINICTRL_ICON_COUNT = 2,
+	PORT_CONNECTION_SYSTEM_ICON_COUNT = 2, // MIN : (1), MAX : (2)
+	LAND_CONNECTION_SYSTEM_ICON_COUNT = 2,
 } Icon_Display_Count;
 
 typedef enum Box_List {
 	FIXED_LIST = 0,
 	SYSTEM_LIST,
 	MINICTRL_LIST,
-	NOTI_LIST
+	NOTI_LIST,
+	CONNECTION_SYSTEM_LIST
 } Box_List;
 
 extern int box_pack(icon_s *icon);
@@ -72,6 +75,8 @@ extern int box_get_enabled_noti_count(void);
 extern int box_check_more_icon_area(win_info *win, Evas_Coord curr_x, Evas_Coord curr_y);
 extern void box_update_display(win_info *win);
 extern int box_get_enabled_system_count(void);
+int box_get_enabled_connection_system_count(void);
+
 extern int box_get_minictrl_list(void);
 
 #endif /*__INDICATOR_BOX_UTIL_H__*/

@@ -29,6 +29,7 @@ static Eina_List *fixed_icon_list = NULL;
 static Eina_List *system_icon_list = NULL;
 static Eina_List *noti_icon_list = NULL;
 static Eina_List *alarm_icon_list = NULL;
+static Eina_List *connection_system_icon_list = NULL;
 
 
 
@@ -72,6 +73,7 @@ extern int list_free_all(void)
 	_list_free(system_icon_list);
 	_list_free(noti_icon_list);
 	_list_free(alarm_icon_list);
+	_list_free(connection_system_icon_list);
 
 	return true;
 }
@@ -126,6 +128,10 @@ extern void list_update(icon_s *icon)
 	case INDICATOR_ICON_AREA_ALARM:
 		alarm_icon_list = eina_list_remove(alarm_icon_list, icon);
 		alarm_icon_list = _insert_icon_to_list(alarm_icon_list, icon);
+		break;
+	case INDICATOR_ICON_AREA_CONNECTION_SYSTEM:
+		connection_system_icon_list = eina_list_remove(connection_system_icon_list, icon);
+		connection_system_icon_list = _insert_icon_to_list(connection_system_icon_list, icon);
 		break;
 	default:
 		break;
@@ -186,6 +192,13 @@ extern void list_insert_icon(icon_s *icon)
 		icon->wish_to_show = EINA_FALSE;
 		alarm_icon_list = eina_list_append(alarm_icon_list, icon);
 		break;
+	case INDICATOR_ICON_AREA_CONNECTION_SYSTEM:
+		if (INDICATOR_ERROR_NONE != _icon_exist_in_list(connection_system_icon_list, icon)) return;
+
+		/* Set internal data */
+		icon->wish_to_show = EINA_FALSE;
+		connection_system_icon_list = eina_list_append(connection_system_icon_list, icon);
+		break;
 	default:
 		break;
 	}
@@ -214,6 +227,10 @@ extern void list_remove_icon(icon_s *icon)
 	case INDICATOR_ICON_AREA_ALARM:
 		ret_if(!alarm_icon_list);
 		alarm_icon_list = eina_list_remove(alarm_icon_list, icon);
+		break;
+	case INDICATOR_ICON_AREA_CONNECTION_SYSTEM:
+		ret_if(!connection_system_icon_list);
+		connection_system_icon_list = eina_list_remove(connection_system_icon_list, icon);
 		break;
 	default:
 		_E("default");
@@ -259,6 +276,16 @@ extern icon_s *list_try_to_find_icon_to_show(int area, int priority)
 		break;
 	case INDICATOR_ICON_AREA_ALARM:
 		EINA_LIST_REVERSE_FOREACH(alarm_icon_list, l, data) {
+			if (data->wish_to_show == EINA_TRUE
+				&& data->exist_in_view == EINA_FALSE) {
+				icon = data;
+				break;
+			}
+		}
+		break;
+
+	case INDICATOR_ICON_AREA_CONNECTION_SYSTEM:
+		EINA_LIST_REVERSE_FOREACH(connection_system_icon_list, l, data) {
 			if (data->wish_to_show == EINA_TRUE
 				&& data->exist_in_view == EINA_FALSE) {
 				icon = data;
@@ -320,6 +347,17 @@ extern icon_s *list_try_to_find_icon_to_remove(int area, int priority)
 	case INDICATOR_ICON_AREA_ALARM:
 		/* Find lowest priority of icon */
 		EINA_LIST_FOREACH(alarm_icon_list, l, data) {
+			if (data->wish_to_show == EINA_TRUE
+				&& data->always_top == EINA_FALSE
+				&& data->exist_in_view == EINA_TRUE) {
+				icon = data;
+				break;
+			}
+		}
+		break;
+	case INDICATOR_ICON_AREA_CONNECTION_SYSTEM:
+		/* Find lowest priority of icon */
+		EINA_LIST_FOREACH(connection_system_icon_list, l, data) {
 			if (data->wish_to_show == EINA_TRUE
 				&& data->always_top == EINA_FALSE
 				&& data->exist_in_view == EINA_TRUE) {
