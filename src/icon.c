@@ -670,9 +670,7 @@ void icon_reset_list(void)
 	int minictrl_cnt = box_get_count(MINICTRL_LIST);
 
 	if (minictrl_cnt > box_get_minictrl_list()) {
-		_D("11 minictrl_cnt : %d //  box_get_minictrl_list : %d", minictrl_cnt, box_get_minictrl_list());
 		while (minictrl_cnt > box_get_minictrl_list()) {
-			_D("22 minictrl_cnt : %d //  box_get_minictrl_list : %d", minictrl_cnt, box_get_minictrl_list());
 			icon_s *wish_remove_icon = NULL;
 			wish_remove_icon = list_try_to_find_icon_to_remove(INDICATOR_ICON_AREA_MINICTRL,0);
 

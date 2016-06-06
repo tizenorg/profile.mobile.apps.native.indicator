@@ -376,16 +376,16 @@ extern int box_pack(icon_s *icon)
 		EINA_LIST_FOREACH(_view_system_list, l, data) {
 			if (data->priority <= icon->priority) {
 				icon->exist_in_view = EINA_TRUE;
-				_view_system_list = eina_list_append_relative_list(_view_system_list, icon, l);
+				_view_system_list = eina_list_prepend_relative_list(_view_system_list, icon, l);
 				_D("System (eina_list_append_relative_list) %s",icon->name);
 				goto __CATCH;
 			}
 		}
-
 		/* if finding condition is failed, append it at tail */
 		icon->exist_in_view = EINA_TRUE;
-		_view_system_list = eina_list_prepend(_view_system_list, icon);
+		_view_system_list = eina_list_append(_view_system_list, icon);
 		_D("System prepend (Priority low) : %s",icon->name);
+
 	} else if(INDICATOR_ICON_AREA_MINICTRL == icon->area) {
 		_D("Pack to MINICTRL list : %s", icon->name);
 		icon_s *data;
@@ -394,14 +394,14 @@ extern int box_pack(icon_s *icon)
 		EINA_LIST_FOREACH(_view_minictrl_list, l, data) {
 			if (data->priority <= icon->priority) {
 				icon->exist_in_view = EINA_TRUE;
-				_view_minictrl_list = eina_list_append_relative_list(_view_minictrl_list, icon, l);
+				_view_minictrl_list = eina_list_prepend_relative_list(_view_minictrl_list, icon, l);
 				goto __CATCH;
 			}
 		}
-
 		/* if finding condition is failed, append it at tail */
 		icon->exist_in_view = EINA_TRUE;
 		_view_minictrl_list = eina_list_append(_view_minictrl_list, icon);
+
 	} else if(INDICATOR_ICON_AREA_NOTI == icon->area) {
 		if(strncmp(icon->name, MORE_NOTI, strlen(MORE_NOTI))==0)
 		{
@@ -409,6 +409,7 @@ extern int box_pack(icon_s *icon)
 			_view_noti_list = eina_list_prepend(_view_noti_list, icon);
 			goto __CATCH;
 		}
+
 
 		/* if finding condition is failed, append it at tail */
 		icon->exist_in_view = EINA_TRUE;
