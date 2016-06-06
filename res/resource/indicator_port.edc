@@ -704,15 +704,11 @@ collections {
 			SWALLOW_PART_FROM_LEFT_WITH_SPACE( "elm.swallow.fixed1", "elm.rect.rssi1", "elm.rect.bg", DEFAULT_ICON_WIDTH, DEFAULT_ICON_HEIGHT )
 
 			/* ICON_FIXED4 (RSSI 2) + PADDING_FIXED5(RIGHT, FIXED PADDING) */
-			FIXED_RECT_FROM_LEFT( "elm.rect.rssi2", "elm.swallow.fixed1", "elm.rect.bg", DEFAULT_ICON_PADDING, INDI_DEFAULT_BG_TEST, 0)
-			SWALLOW_PART_FROM_LEFT_WITH_SPACE( "elm.swallow.fixed2", "elm.rect.rssi2", "elm.rect.bg", DEFAULT_ICON_WIDTH, DEFAULT_ICON_HEIGHT )
-
-			/* ICON_FIXED2 (Sim Icon) + PADDING_FIXED3(RIGHT, FIXED PADDING) */
-			FIXED_RECT_FROM_LEFT( "elm.rect.simicon", "elm.swallow.fixed2", "elm.rect.bg", DEFAULT_ICON_PADDING, INDI_DEFAULT_BG_TEST, 0)
-			SWALLOW_PART_FROM_LEFT_WITH_SPACE( "elm.swallow.fixed3", "elm.rect.simicon", "elm.rect.bg", DEFAULT_ICON_WIDTH, DEFAULT_ICON_HEIGHT )
+			FIXED_RSSI_RECT_FROM_LEFT_WITH_CONSTRICTION( "elm.rect.rssi2", "elm.swallow.fixed1", "elm.rect.bg", DEFAULT_ICON_PADDING, DEFAULT_ICON_WIDTH, INDI_DEFAULT_BG_TEST, 0)
+			SWALLOW_PART_FROM_LEFT_WITH_SPACE_AND_CONSTRICTION( "elm.swallow.fixed2", "elm.rect.rssi2", "elm.rect.bg", DEFAULT_ICON_WIDTH, DEFAULT_ICON_HEIGHT, DEFAULT_ICON_WIDTH)
 
 			/* ICON_FIXED1 (Connection-3G) + PADDING_NONFIXED1(RIGHT,DYNAMIC PADDING) */
-			FIXED_RECT_FROM_LEFT( "elm.rect.connection", "elm.swallow.fixed3", "elm.rect.bg", DEFAULT_ICON_PADDING, INDI_DEFAULT_BG_TEST, 0)
+			FIXED_RECT_FROM_LEFT( "elm.rect.connection", "elm.swallow.fixed2", "elm.rect.bg", DEFAULT_ICON_PADDING, INDI_DEFAULT_BG_TEST, 0)
 			SWALLOW_PART_FROM_LEFT_WITH_SPACE( "elm.swallow.fixed4", "elm.rect.connection", "elm.rect.bg", DEFAULT_ICON_WIDTH, DEFAULT_ICON_HEIGHT )
 			/* Connection-3G UpDown arrow icon */
 			part {
@@ -1550,6 +1546,7 @@ collections {
 				source: "indicator.prog";
 				target: "elm.swallow.fixed2";
 				target: "elm.rect.rssi2";
+				target: "rect.elm.swallow.fixed2";
 			}
 
 			program {
@@ -1559,24 +1556,7 @@ collections {
 				source: "indicator.prog";
 				target: "elm.swallow.fixed2";
 				target: "elm.rect.rssi2";
-			}
-			// Sim Icon
-			program {
-				name: "indicator.simicon.show";
-				action: STATE_SET "default" 0.0;
-				signal: "indicator.simicon.show";
-				source: "indicator.prog";
-				target: "elm.swallow.fixed3";
-				target: "elm.rect.simicon";
-			}
-
-			program {
-				name: "indicator.simicon.hide";
-				action: STATE_SET "hide" 0.0;
-				signal: "indicator.simicon.hide";
-				source: "indicator.prog";
-				target: "elm.swallow.fixed3";
-				target: "elm.rect.simicon";
+				target: "rect.elm.swallow.fixed2";
 			}
 
 			/* Connection - 3G */
