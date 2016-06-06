@@ -68,4 +68,22 @@ color_classes {
 		name: "ATO005";
 		color: 76 76 76 255;
 	}
+	color_class {
+		name: "W015L1";
+		color: 88 175 57 255;
+	}
+	color_class {
+		name: "F060L3";
+		color: 214 49 49 255;
+	}
+	color_class
+	{
+		name: "bg_custom";
+		color: 0 0 0 255;
+	}
+	color_class
+	{
+		name: "bg_default";
+		color: 0 0 0 0;
+	}
 }

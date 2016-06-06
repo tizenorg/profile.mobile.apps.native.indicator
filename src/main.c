@@ -47,6 +47,7 @@
 #include "log.h"
 #include "indicator.h"
 #include "ticker.h"
+#include "bg_color.h"
 
 #define GRP_NAME "indicator"
 #define WIN_TITLE "Illume Indicator"
@@ -704,8 +705,6 @@ static void _create_window(struct appdata *ad)
 	ad->win.win = elm_win_add(NULL, "indicator", ELM_WIN_SOCKET_IMAGE);
 	ret_if(!(ad->win.win));
 
-	elm_win_alpha_set(ad->win.win, EINA_TRUE);
-
 	dummy_win = elm_win_add(NULL, "indicator_dummy", ELM_WIN_BASIC);
 	if (dummy_win) {
 		elm_win_screen_size_get(dummy_win, NULL, NULL, &ad->win.port_w, &ad->win.land_w);
@@ -1093,6 +1092,7 @@ static void app_terminate(void *data)
 	modules_fini(data);
 	ticker_fini(ad);
 	indicator_toast_popup_fini();
+	message_port_unregister();
 #ifdef _SUPPORT_SCREEN_READER2
 	indicator_service_tts_fini(data);
 #endif
@@ -1130,6 +1130,7 @@ static void app_service(app_control_h service, void *data)
 #endif
 	feedback_initialize();
 	indicator_toast_popup_init(data);
+	message_port_register(data);
 	if (INDICATOR_ERROR_NONE != ticker_init(ad)) {
 		_E("Ticker cannot initialize");
 	}
