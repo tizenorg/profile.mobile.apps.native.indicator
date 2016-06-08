@@ -3,6 +3,7 @@
     <profile name="mobile"/>
     <ui-application appid="org.tizen.indicator" exec="indicator-win" process-pool="true" launch_mode="single" on-boot="true" multiple="false" nodisplay="true" taskmanage="false" type="capp">
         <label>indicator-win</label>
+        <background-category value="system"/>
     </ui-application>
     <privileges>
         <privilege>http://tizen.org/privilege/telephony</privilege>
