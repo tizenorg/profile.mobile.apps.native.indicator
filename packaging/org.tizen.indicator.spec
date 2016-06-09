@@ -51,6 +51,7 @@ BuildRequires: pkgconfig(capi-network-nfc)
 BuildRequires: pkgconfig(capi-network-tethering)
 BuildRequires: pkgconfig(storage)
 BuildRequires: pkgconfig(capi-base-utils-i18n)
+BuildRequires: pkgconfig(callmgr_client)
 
 BuildRequires: cmake
 BuildRequires: edje-tools
