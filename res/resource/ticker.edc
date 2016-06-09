@@ -14,16 +14,12 @@
  * limitations under the License.
  *
  */
-
 #include "color_classes.edc"
 #include "../../inc/indicator_gui.h"
-
 #define TICKERNOTI_MAIN_TEXT_HEIGHT_INC 1
- 
 collections
 {
 	base_scale: 1.7;
-
 	group {
 		name: "quickpanel/tickernoti/text";
 		data {
@@ -58,7 +54,6 @@ collections
 			}
 		}
 	}
-
 	group {
 		name: "quickpanel/tickernoti/normal";
 		data {
@@ -72,8 +67,11 @@ collections
 				description {
 					state: "default" 0.0;
 					align: 0.0 0.0;
+					rel1
+			  {
+				 offset: LEFT_PADDING_WIDTH 0;
+			  }
 				}
-
 			}
 			part {
 				name: "clipper";
@@ -98,7 +96,6 @@ collections
 					rel2.to: "base";
 				}
 			}
-
 			part {
 				name: "bg_img";
 				mouse_events: 0;
@@ -107,7 +104,6 @@ collections
 				description { state: "default" 0.0;
 					visible: 1;
 					align:0.0 0.0;
-
 					rel1.to: "bg";
 					rel2.to: "bg";
 					/* FIXME */
@@ -125,8 +121,8 @@ collections
 				description {
 					state: "default" 0.0;
 					fixed: 1 1;
-					min: 25 25;
-					max: 25 25;
+					min: MESSAGE_ICON_WIDTH MESSAGE_ICON_HEIGHT;
+					max: MESSAGE_ICON_WIDTH MESSAGE_ICON_HEIGHT;
 					align: 0.0 0.5;
 					rel1
 					{
@@ -149,14 +145,14 @@ collections
 				scale: 1;
 				description {
 					state: "default" 0.0;
-					max: 800 36;
+					min: 0 INDICATOR_HEIGHT;
 					fixed: 1 1;
 					align: 0.0 0.5;
 					rel1 {
 						relative: 1.0 0.0;
 						to_x: "icon";
 						to_y: "base";
-						offset: 10 0;
+						offset: MESSAGE_ICON_PADDING 0;
 					}
 					rel2 {
 						relative: 1.0 0.9;
@@ -169,7 +165,7 @@ collections
 				type: RECT;
 				mouse_events: 1;
 				repeat_events: 1;
-			description {
+				description {
 					state: "default" 0.0;
 					color: 0 0 0 0;
 					rel1 {

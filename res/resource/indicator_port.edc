@@ -551,7 +551,7 @@ collections {
 				description {
 					state: "default" 0.0;
 #ifndef _INDICATOR_REMOVE_SEARCH
-					min: HOME_PADDING_PORTRAIT FIXED4_ICON_HEIGHT;
+					min: HOME_PADDING_PORTRAIT DEFAULT_ICON_HEIGHT;
 #else
 					min: 0 0;
 #endif
@@ -671,28 +671,28 @@ collections {
 				scale: 1;
 				description {
 					state: "default" 0.0;
-					min: 10 14;
-					max: 10 14;
-					rel1 { relative: 0.0 0.0; to_x: "elm.swallow.fixed8"; offset: 10 1; }
-					rel2 { relative: 1.0 1.0; to_x: "elm.swallow.fixed8"; offset: -10 -15; }
+					min: BATTERY_DIGIT_WIDTH BATTERY_DIGIT_HEIGHT;
+					max: BATTERY_DIGIT_WIDTH BATTERY_DIGIT_HEIGHT;
+					rel1 { relative: 0.0 0.0; to_x: "elm.swallow.fixed8"; }
+					rel2 { relative: 1.0 1.0; to_x: "elm.swallow.fixed8"; offset: -8 -14; }
 					align: 1.0 0.5;
 					visible: 1;
 				}
 				description {
 					state: "two_digits" 0.0;
 					inherit: "default" 0.0;
-					min: 20 14;
-					max: 20 14;
-					rel1 { relative: 0.0 0.0; to_x: "elm.swallow.fixed8"; offset: 5 1; }
-					rel2 { relative: 1.0 1.0; to_x: "elm.swallow.fixed8"; offset: -4 -15; }
+					min: BATTERY_TWO_DIGITS_WIDTH BATTERY_DIGIT_HEIGHT;
+					max: BATTERY_TWO_DIGITS_WIDTH BATTERY_DIGIT_HEIGHT;
+					rel1 { relative: 0.0 0.0; to_x: "elm.swallow.fixed8"; }
+					rel2 { relative: 1.0 1.0; to_x: "elm.swallow.fixed8"; offset: -4 -14; }
 				}
 				description {
 					state: "three_digits" 0.0;
 					inherit: "default" 0.0;
-					min: 25 14;
-					max: 25 14;
-					rel1 { relative: 0.0 0.0; to_x: "elm.swallow.fixed8"; offset: 3 1; }
-					rel2 { relative: 1.0 1.0; to_x: "elm.swallow.fixed8"; offset: -2 -15; }
+					min: BATTERY_FULL_WIDTH BATTERY_DIGIT_HEIGHT;
+					max: BATTERY_FULL_WIDTH BATTERY_DIGIT_HEIGHT;
+					rel1 { relative: 0.0 0.0; to_x: "elm.swallow.fixed8"; }
+					rel2 { relative: 1.0 1.0; to_x: "elm.swallow.fixed8"; offset: -3 -14; }
 				}
 			}
 			//////////////////////////////////////////
@@ -879,7 +879,7 @@ collections {
 				description {
 					state: "default" 0.0;
 #ifndef _INDICATOR_REMOVE_SEARCH
-					min: HOME_PADDING_PORTRAIT FIXED4_ICON_HEIGHT;
+					min: HOME_PADDING_PORTRAIT DEFAULT_ICON_HEIGHT;
 #else
 					min: 0 0;
 #endif
@@ -1595,6 +1595,24 @@ collections {
 				source: "indicator.prog";
 				target: "elm.swallow.fixed5";
 				target: "elm.rect.wifi";
+			}
+			// BLUETOOTH
+			program {
+				name: "indicator.bluetooth.show";
+				action: STATE_SET "default" 0.0;
+				signal: "indicator.bluetooth.show";
+				source: "indicator.prog";
+				target: "elm.swallow.fixed6";
+				target: "elm.rect.bt";
+			}
+
+			program {
+				name: "indicator.bluetooth.hide";
+				action: STATE_SET "hide" 0.0;
+				signal: "indicator.bluetooth.hide";
+				source: "indicator.prog";
+				target: "elm.swallow.fixed6";
+				target: "elm.rect.bt";
 			}
 			// WIFI-Direct
 			program {
