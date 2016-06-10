@@ -45,6 +45,7 @@ pkg_check_modules(pkgs REQUIRED
 	storage
 	capi-base-utils-i18n
 	capi-message-port
+	callmgr_client
 )
 
 FOREACH(flag ${pkgs_CFLAGS})
