@@ -31,7 +31,7 @@
 #include "util.h"
 #include "log.h"
 
-#define ICON_PRIORITY	INDICATOR_PRIORITY_MINICTRL3
+#define ICON_PRIORITY	INDICATOR_PRIORITY_MINICTRL1
 #define MODULE_NAME		"call"
 #define MINICONTROL_VOICE_NAME	"[voicecall-quickpanel]"
 #define MINICONTROL_VIDEO_NAME	"[videocall-quickpanel]"
