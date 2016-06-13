@@ -109,7 +109,6 @@ static void show_mp_icon(void* data)
 
 	if (fp == NULL) {
 		_E("Invalid file path!!");
-		fclose(fp);
 		return;
 	}
 
