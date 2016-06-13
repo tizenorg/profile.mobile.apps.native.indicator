@@ -1596,24 +1596,7 @@ collections {
 				target: "elm.swallow.fixed5";
 				target: "elm.rect.wifi";
 			}
-			// BLUETOOTH
-			program {
-				name: "indicator.bluetooth.show";
-				action: STATE_SET "default" 0.0;
-				signal: "indicator.bluetooth.show";
-				source: "indicator.prog";
-				target: "elm.swallow.fixed6";
-				target: "elm.rect.bt";
-			}
 
-			program {
-				name: "indicator.bluetooth.hide";
-				action: STATE_SET "hide" 0.0;
-				signal: "indicator.bluetooth.hide";
-				source: "indicator.prog";
-				target: "elm.swallow.fixed6";
-				target: "elm.rect.bt";
-			}
 			// WIFI-Direct
 			program {
 				name: "indicator.wifidirect.show";
