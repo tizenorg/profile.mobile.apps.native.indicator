@@ -197,7 +197,7 @@ static void _view_icon_update_ps_network(telephony_network_ps_type_e ps_type, vo
 {
 	icon_e icon = _icon_level_for_ps_network_type(ps_type);
 
-	if (icon != LEVEL_LAST) {
+	if (icon < LEVEL_LAST && icon >= LEVEL_MIN) {
 		show_image_icon(icon);
 		show_connection_transfer_icon(data);
 	} else
@@ -212,7 +212,7 @@ static void _view_icon_update_network(telephony_network_service_state_e state,
 	switch (state) {
 		case TELEPHONY_NETWORK_SERVICE_STATE_IN_SERVICE:
 			icon = _icon_level_for_network_type(network_type);
-			if (icon != LEVEL_LAST) {
+			if (icon < LEVEL_LAST && icon >= LEVEL_MIN) {
 				show_image_icon(icon);
 				show_connection_transfer_icon(data);
 			} else
