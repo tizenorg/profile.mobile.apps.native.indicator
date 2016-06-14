@@ -158,6 +158,8 @@ static void _post_toast_message_callback(const char *message, void *data)
 			s_info.toast_list = eina_list_append(s_info.toast_list, msg);
 		}
 	}
+	else
+		free(msg);
 
 	return;
 }
