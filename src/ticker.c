@@ -128,6 +128,8 @@ static notification_h _get_instant_latest_message_from_list(ticker_info_s *ticke
 
 static void _request_to_delete_noti(notification_h noti)
 {
+	_D("_request_to_delete_noti");
+
 	int applist = NOTIFICATION_DISPLAY_APP_ALL;
 
 	ret_if(!noti);
@@ -136,10 +138,10 @@ static void _request_to_delete_noti(notification_h noti)
 		_E("Failed to get display");
 	}
 
-	if (applist & (NOTIFICATION_DISPLAY_APP_TICKER | NOTIFICATION_DISPLAY_APP_INDICATOR)) {
-		if (applist & ~(NOTIFICATION_DISPLAY_APP_TICKER | NOTIFICATION_DISPLAY_APP_INDICATOR)) {
+	if (applist & (NOTIFICATION_DISPLAY_APP_TICKER)) {
+		if (applist & ~(NOTIFICATION_DISPLAY_APP_TICKER)) {
 			// Do not delete in this case
-			_D("There is another subscriber: 0x%X (filtered: 0x%X)", applist, applist & ~(NOTIFICATION_DISPLAY_APP_TICKER | NOTIFICATION_DISPLAY_APP_INDICATOR));
+			_D("There is another subscriber: 0x%X (filtered: 0x%X)", applist, applist & ~(NOTIFICATION_DISPLAY_APP_TICKER));
 		} else {
 			char *pkgname = NULL;
 			int priv_id = 0;
@@ -1343,7 +1345,7 @@ static void _ticker_noti_detailed_changed_cb(void *data, notification_type_e typ
 	ret_if(!noti);
 
 	notification_get_display_applist(noti, &applist);
-	if (!((applist & NOTIFICATION_DISPLAY_APP_TICKER) || (applist & NOTIFICATION_DISPLAY_APP_INDICATOR))) {
+	if (!(applist & NOTIFICATION_DISPLAY_APP_TICKER)) {
 		_D("displaying ticker option is off");
 		goto ERROR;
 	}
@@ -1393,6 +1395,8 @@ ERROR:
 
 int ticker_init(void *data)
 {
+	_D("ticker debug");
+
 	struct appdata *ad = data;
 
 	ad->ticker_win = _create_ticker_window(NULL, ad);
