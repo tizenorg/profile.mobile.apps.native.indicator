@@ -705,6 +705,9 @@ const char *util_get_file_path(enum app_subdir dir, const char *relative)
 		_E("Not handled directory type.");
 		return NULL;
 	}
+	if (prefix == NULL)
+		return NULL;
+
 	size_t res = eina_file_path_join(buf, sizeof(buf), prefix, relative);
 	free(prefix);
 	if (res > sizeof(buf)) {
