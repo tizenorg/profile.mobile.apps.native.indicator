@@ -36,7 +36,6 @@
 
 #define DATA_KEY_IMG_ICON "i_i"
 #define DATA_KEY_BASE_RECT "dkbr"
-#define DATA_KEY_TICKER_TEXT "dktt"
 
 #define INDICATOR_MORE_NOTI "indicator_more_noti"
 
