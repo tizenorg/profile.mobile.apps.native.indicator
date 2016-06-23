@@ -26,8 +26,8 @@
 #include "indicator.h"
 #include "main.h"
 
-#define MAX_NOTI_ICONS_PORT 5
-#define MAX_NOTI_ICONS_LAND 11
+#define MAX_NOTI_ICONS_PORT 7
+#define MAX_NOTI_ICONS_LAND 7
 
 #define SIGNAL_SIZE 32
 
@@ -55,5 +55,8 @@ extern void icon_set_update_flag(unsigned int val);
 extern void icon_reset_list(void);
 extern void icon_handle_more_notify_icon(win_info* win);
 extern void* icon_util_make(void* input);
+
+Eina_Bool check_for_icons_overflow(void);
+void check_to_show_more_noti(win_info *win, Eina_Bool overflow);
 
 #endif /*__INDICATOR_ICON_UTIL_H__*/

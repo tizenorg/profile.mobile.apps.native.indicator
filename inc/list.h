@@ -24,6 +24,7 @@
 
 extern void icon_free(icon_s *icon);
 extern int list_free_all(void);
+unsigned int list_get_active_icons_cnt(enum indicator_icon_area_type area);
 extern void list_update(icon_s *obj);
 extern void list_insert_icon(icon_s *obj);
 extern void list_remove_icon(icon_s *obj);
