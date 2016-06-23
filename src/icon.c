@@ -29,6 +29,7 @@
 #include "indicator_gui.h"
 #include "util.h"
 #include "log.h"
+#include "more_notify.h"
 
 #define PRIVATE_DATA_KEY_ICON_B_ANI "p_i_ba"
 
@@ -36,7 +37,10 @@
 #define UPLOAD_ICON_ANIMATION_SIGNAL 	"indicator.ani.uploading.%d"
 #define DOWNLOAD_ICON_ANIMATION_SIGNAL "indicator.ani.downloading.%d"
 
+#define PORT_MORE_NOTI_ICON 1
+
 static unsigned int update_icon_flag = 1;	// For battery problem
+static Eina_Bool icons_overflow = EINA_FALSE;
 
 static void _reset_on_timer_icon_animation(icon_s *icon)
 {
@@ -371,13 +375,13 @@ static int _show_others_in_same_priority(icon_s *icon)
 		return OK;
 	}
 
-	if(area ==INDICATOR_ICON_AREA_NOTI)
+	if(area == INDICATOR_ICON_AREA_NOTI)
 	{
-		box_pack_append(wish_add_icon);
+		box_append_icon_to_list(wish_add_icon);
 	}
 	else
 	{
-		box_pack(wish_add_icon);
+		box_add_icon_to_list(wish_add_icon);
 	}
 
 	return OK;
@@ -405,20 +409,20 @@ static int _hide_others_in_view_list(icon_s *icon)
 		switch (ret) {
 		case CAN_ADD_WITH_DEL_NOTI:
 			wish_remove_icon = list_try_to_find_icon_to_remove(INDICATOR_ICON_AREA_NOTI,0);
-			box_unpack(wish_remove_icon);
+			box_remove_icon_from_list(wish_remove_icon);
 
 			retvm_if(wish_remove_icon == NULL, FAIL, "Unexpected Error : CAN_ADD_WITH_DEL_NOTI");
 			break;
 		case CAN_ADD_WITH_DEL_SYSTEM:
 			wish_remove_icon = list_try_to_find_icon_to_remove(INDICATOR_ICON_AREA_SYSTEM,0);
 
-			box_unpack(wish_remove_icon);
+			box_remove_icon_from_list(wish_remove_icon);
 			retvm_if(wish_remove_icon == NULL, FAIL, "Unexpected Error : CAN_ADD_WITH_DEL_SYSTEM");
 			break;
 		case CAN_ADD_WITH_DEL_MINICTRL:
 			wish_remove_icon = list_try_to_find_icon_to_remove(INDICATOR_ICON_AREA_MINICTRL,0);
 
-			box_unpack(wish_remove_icon);
+			box_remove_icon_from_list(wish_remove_icon);
 			retvm_if(wish_remove_icon == NULL, FAIL, "Unexpected Error : CAN_ADD_WITH_DEL_MINICTRL");
 			break;
 		case CAN_ADD_WITHOUT_DEL:
@@ -456,7 +460,7 @@ static int _hide_others_in_view_list(icon_s *icon)
 		}
 
 		/* Other Icon of Same Priority should remove in view list */
-		box_unpack(wish_remove_icon);
+		box_remove_icon_from_list(wish_remove_icon);
 	}
 
 	return OK;
@@ -552,8 +556,8 @@ void icon_show(icon_s *icon)
 
 	if (icon->obj_exist != EINA_FALSE) {
 		if (icon->priority == INDICATOR_PRIORITY_NOTI_2) {
-			box_unpack(icon);
-			box_pack(icon);
+			box_remove_icon_from_list(icon);
+			box_add_icon_to_list(icon);
 			box_update_display(&(ad->win));
 		} else {
 			_icon_update(icon);
@@ -564,7 +568,7 @@ void icon_show(icon_s *icon)
 		return;
 	}
 
-	box_pack(icon);
+	box_add_icon_to_list(icon);
 
 	box_update_display(&(ad->win));
 }
@@ -579,7 +583,7 @@ void icon_hide(icon_s *icon)
 	icon->wish_to_show = EINA_FALSE;
 
 	if (icon->exist_in_view == EINA_TRUE) {
-		ret = box_unpack(icon);
+		ret = box_remove_icon_from_list(icon);
 
 		if (ret == FAIL)
 			_E("Failed to unpack!");
@@ -630,179 +634,156 @@ void icon_set_update_flag(unsigned int val)
 }
 
 
+static Eina_Bool remove_icon_with_area(int area)
+{
+	icon_s *wish_remove_icon = NULL;
+	wish_remove_icon = list_try_to_find_icon_to_remove(area, 0);
+
+	if (!wish_remove_icon)
+		return EINA_FALSE;
+
+	box_remove_icon_from_list(wish_remove_icon);
+
+	return EINA_TRUE;
+}
+
+
+static Eina_Bool add_icon_with_area(int area)
+{
+	icon_s *wish_add_icon = NULL;
+	wish_add_icon = list_try_to_find_icon_to_show(area, 0);
+	if (wish_add_icon == NULL) {
+		return EINA_FALSE;
+	}
+
+	if (box_exist_icon(wish_add_icon))
+		return EINA_FALSE;
+
+	box_append_icon_to_list(wish_add_icon);
+
+	return EINA_TRUE;
+}
+
+
+Eina_Bool check_for_icons_overflow(void)
+{
+	int sys_cnt = list_get_active_icons_cnt(INDICATOR_ICON_AREA_SYSTEM);
+	int minictrl_cnt = list_get_active_icons_cnt(INDICATOR_ICON_AREA_MINICTRL);
+	int noti_cnt = list_get_active_icons_cnt(INDICATOR_ICON_AREA_NOTI);
+
+	if ((sys_cnt + minictrl_cnt + noti_cnt) <= PORT_NONFIXED_ICON_COUNT)
+		return EINA_FALSE;
+
+	return EINA_TRUE;
+}
+
+
+void check_to_show_more_noti(win_info *win, Eina_Bool overflow)
+{
+	if (icons_overflow)
+		indicator_more_notify_icon_change(EINA_TRUE);
+	else
+		indicator_more_notify_icon_change(EINA_FALSE);
+}
+
+
+static void get_icons_cnt_per_area(int *s, int *m, int *n)
+{
+	int system_cnt = box_get_list_size(SYSTEM_LIST);
+	int minictrl_cnt = box_get_list_size(MINICTRL_LIST);
+	int noti_cnt = box_get_list_size(NOTI_LIST);
+
+	int system = 0;
+	int minictrl = 0;
+	int noti = 0;
+	int total = 0;
+
+	int max_icon_cnt = PORT_NONFIXED_ICON_COUNT;
+
+	if ((system_cnt + minictrl_cnt + noti_cnt) > PORT_NONFIXED_ICON_COUNT) {
+		max_icon_cnt = PORT_NONFIXED_ICON_COUNT - PORT_MORE_NOTI_ICON;
+		icons_overflow = EINA_TRUE;
+	} else
+		icons_overflow = EINA_FALSE;
+
+	if (system_cnt > 0) {
+		system_cnt--;
+		system++;
+		total++;
+	}
+	if (minictrl_cnt > 0) {
+		minictrl_cnt--;
+		minictrl++;
+		total++;
+	}
+	if (noti_cnt > 0) {
+		noti_cnt--;
+		noti++;
+		total++;
+	}
+
+	while (total <= max_icon_cnt) {
+
+		if (system_cnt > 0) {
+			system_cnt--;
+			total++;
+			system++;
+		} else if (minictrl_cnt > 0) {
+			minictrl_cnt--;
+			total++;
+			minictrl++;
+		} else if (noti_cnt > 0) {
+			noti_cnt--;
+			total++;
+			noti++;
+		} else
+			break;
+	}
+
+	*s = system;
+	*m = minictrl;
+	*n = noti;
+}
+
 
 void icon_reset_list(void)
 {
-	int system_cnt = box_get_count(SYSTEM_LIST);
+	int system, minictrl, noti;
+	get_icons_cnt_per_area(&system, &minictrl, &noti);
 
-	if (system_cnt > box_get_enabled_system_count()) {
-		while(system_cnt > box_get_enabled_system_count()) {
-			icon_s *wish_remove_icon = NULL;
-			wish_remove_icon = list_try_to_find_icon_to_remove(INDICATOR_ICON_AREA_SYSTEM, 0);
+	while(box_get_list_size(SYSTEM_LIST) > system) {
 
-			if (wish_remove_icon == NULL) {
-				break;
-			}
+		if (!remove_icon_with_area(INDICATOR_ICON_AREA_SYSTEM))
+			break;
+	}
+	while (box_get_list_size(SYSTEM_LIST) < system) {
 
-			box_unpack(wish_remove_icon);
-			system_cnt = box_get_count(SYSTEM_LIST);
-		}
-	} else {
-		while (system_cnt < box_get_enabled_system_count()) {
-			icon_s *wish_add_icon = NULL;
-			wish_add_icon = list_try_to_find_icon_to_show(INDICATOR_ICON_AREA_SYSTEM, 0);
-			if (wish_add_icon == NULL) {
-				break;
-			}
-
-			if (box_exist_icon(wish_add_icon)) {
-				break;
-			}
-
-			box_pack_append(wish_add_icon);
-			system_cnt = box_get_count(SYSTEM_LIST);
-			if(system_cnt == box_get_enabled_system_count()) {
-				break;
-			}
-		}
+		if (!add_icon_with_area(INDICATOR_ICON_AREA_SYSTEM))
+			break;
 	}
 
-	int minictrl_cnt = box_get_count(MINICTRL_LIST);
+	while (box_get_list_size(MINICTRL_LIST) > minictrl) {
 
-	if (minictrl_cnt > box_get_minictrl_list()) {
-		while (minictrl_cnt > box_get_minictrl_list()) {
-			icon_s *wish_remove_icon = NULL;
-			wish_remove_icon = list_try_to_find_icon_to_remove(INDICATOR_ICON_AREA_MINICTRL,0);
+		if (!remove_icon_with_area(INDICATOR_ICON_AREA_MINICTRL))
+			break;
+	}
+	while (box_get_list_size(MINICTRL_LIST) < minictrl) {
 
-			if (wish_remove_icon == NULL) {
-				_D("icon_reset_list NULL!");
-				break;
-			}
-
-			box_unpack(wish_remove_icon);
-			minictrl_cnt = box_get_count(MINICTRL_LIST);
-		}
-	} else {
-		while (minictrl_cnt < box_get_minictrl_list()) {
-			icon_s *wish_add_icon = NULL;
-			wish_add_icon = list_try_to_find_icon_to_show(INDICATOR_ICON_AREA_MINICTRL, 0);
-			if (wish_add_icon == NULL) {
-				break;
-			}
-
-			if (box_exist_icon(wish_add_icon)) {
-				break;
-			}
-
-			box_pack_append(wish_add_icon);
-			minictrl_cnt = box_get_count(MINICTRL_LIST);
-			if(minictrl_cnt==box_get_minictrl_list()) {
-				break;
-			}
-		}
+		if (!add_icon_with_area(INDICATOR_ICON_AREA_MINICTRL))
+			break;
 	}
 
-	int noti_cnt = box_get_count(NOTI_LIST);
+	while (box_get_list_size(NOTI_LIST) > noti) {
 
-	if (noti_cnt > box_get_enabled_noti_count()) {
-		while (noti_cnt > box_get_enabled_noti_count()) {
-			icon_s *wish_remove_icon = NULL;
-			wish_remove_icon = list_try_to_find_icon_to_remove(INDICATOR_ICON_AREA_NOTI, 0);
-
-			if (wish_remove_icon == NULL) {
-				break;
-			}
-
-			box_unpack(wish_remove_icon);
-			noti_cnt = box_get_count(NOTI_LIST);
-		}
-	} else {
-		while (noti_cnt < box_get_enabled_noti_count()) {
-			icon_s *wish_add_icon = NULL;
-			wish_add_icon = list_try_to_find_icon_to_show(INDICATOR_ICON_AREA_NOTI, 0);
-			if (wish_add_icon == NULL) {
-				break;
-			}
-
-			if (box_exist_icon(wish_add_icon)) {
-				break;
-			}
-
-			box_pack_append(wish_add_icon);
-			noti_cnt = box_get_count(NOTI_LIST);
-			if(noti_cnt==box_get_enabled_noti_count()) {
-				break;
-			}
-		}
+		if (!remove_icon_with_area(INDICATOR_ICON_AREA_NOTI))
+			break;
 	}
+	while (box_get_list_size(NOTI_LIST) < noti) {
 
-
-	int cs_cnt = box_get_count(CONNECTION_SYSTEM_LIST);
-
-	while (cs_cnt > box_get_enabled_connection_system_count()) {
-		icon_s *wish_remove_icon = NULL;
-		wish_remove_icon = list_try_to_find_icon_to_remove(INDICATOR_ICON_AREA_CONNECTION_SYSTEM, 0);
-
-		if (wish_remove_icon == NULL) {
+		if (!add_icon_with_area(INDICATOR_ICON_AREA_SYSTEM))
 			break;
-		}
-
-		box_unpack(wish_remove_icon);
-		cs_cnt = box_get_count(CONNECTION_SYSTEM_LIST);
-
-	while (cs_cnt < box_get_enabled_connection_system_count()) {
-		icon_s *wish_add_icon = NULL;
-		wish_add_icon = list_try_to_find_icon_to_show(INDICATOR_ICON_AREA_CONNECTION_SYSTEM, 0);
-		if (wish_add_icon == NULL) {
-			break;
-		}
-
-		if (box_exist_icon(wish_add_icon)) {
-			break;
-		}
-
-		box_pack_append(wish_add_icon);
-		cs_cnt = box_get_count(CONNECTION_SYSTEM_LIST);
-		if(cs_cnt == box_get_enabled_connection_system_count()) {
-			break;
-		}
-	}
 	}
 }
-
-
-
-static void _show_hide_more_noti(win_info* win, bool show)
-{
-	int err = preference_set_boolean(INDICATOR_MORE_NOTI, show);
-	retm_if(err != PREFERENCE_ERROR_NONE, "preference_set_boolean failed: %s", get_error_message(err));
-}
-
-void icon_handle_more_notify_icon(win_info* win)
-{
-	retm_if(win == NULL, "Invalid parameter!");
-	_D("icon_handle_more_notify_icon called !!");
-/*	int system_cnt = box_get_count(SYSTEM_LIST);
-	int minictrl_cnt = box_get_count(MINICTRL_LIST);
-	int noti_cnt = list_get_noti_count();
-
-	_D("System count : %d, Minictrl count : %d, Notification count : %d", system_cnt, minictrl_cnt, noti_cnt);
-	if(win->type == INDICATOR_WIN_PORT)
-	{
-		_D("PORT :: %d", (system_cnt + minictrl_cnt + noti_cnt));
-		if((system_cnt + minictrl_cnt + noti_cnt) > MAX_NOTI_ICONS_PORT)
-		{
-			_show_hide_more_noti(win, true);
-			_D("PORT :: handle_more_notify_show");
-		}
-		else
-		{*/
-			_show_hide_more_noti(win, false);
-			_D("PORT :: handle_more_notify_hide");
-		/*}
-	}*/
-}
-
 
 
 void* icon_util_make(void* input)
@@ -822,7 +803,5 @@ void* icon_util_make(void* input)
 
 	return obj;
 }
-
-
 
 /* End of file */
