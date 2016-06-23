@@ -36,12 +36,16 @@ typedef enum _Icon_AddType {
 typedef enum _Icon_Display_Count {
 	BATTERY_TEXT_ON_COUNT = 0,
 	BATTERY_TEXT_OFF_COUNT = 0,
-	PORT_NONFIXED_ICON_COUNT = 7,
-	LAND_NONFIXED_ICON_COUNT = 11,
+	PORT_NONFIXED_ICON_COUNT = 6,
+	LAND_NONFIXED_ICON_COUNT = 6,
 	PORT_SYSTEM_ICON_COUNT = 5,   // MIN : (1), MAX : (5)
-	LAND_SYSTEM_ICON_COUNT = 6,
-	PORT_MINICTRL_ICON_COUNT = 2, // MIN : (1), MAX : (3)
-	LAND_MINICTRL_ICON_COUNT = 2,
+	LAND_SYSTEM_ICON_COUNT = 5,
+	PORT_MINICTRL_ICON_COUNT = 6, // MIN : (1), MAX : (6)
+	LAND_MINICTRL_ICON_COUNT = 6,
+
+	PORT_MINICTRL_ICON_MIN_COUNT = 1,
+	PORT_NOTI_ICON_MIN_COUNT = 1,
+
 	PORT_CONNECTION_SYSTEM_ICON_COUNT = 2, // MIN : (1), MAX : (2)
 	LAND_CONNECTION_SYSTEM_ICON_COUNT = 2,
 } Icon_Display_Count;
@@ -54,12 +58,12 @@ typedef enum Box_List {
 	CONNECTION_SYSTEM_LIST
 } Box_List;
 
-extern int box_pack(icon_s *icon);
-extern int box_pack_append(icon_s *icon);
-extern int box_unpack(icon_s *icon);
+extern int box_add_icon_to_list(icon_s *icon);
+extern int box_append_icon_to_list(icon_s *icon);
+extern int box_remove_icon_from_list(icon_s *icon);
 extern void box_init(win_info *win);
 extern void box_fini(win_info *win);
-extern unsigned int box_get_count(Box_List list);
+extern unsigned int box_get_list_size(Box_List list);
 extern int box_get_max_count_in_non_fixed_list(void);
 extern Icon_AddType box_is_enable_to_insert_in_non_fixed_list(icon_s *obj);
 extern int box_get_priority_in_move_area(win_info *win, Evas_Coord, Evas_Coord);
@@ -76,7 +80,6 @@ extern int box_check_more_icon_area(win_info *win, Evas_Coord curr_x, Evas_Coord
 extern void box_update_display(win_info *win);
 extern int box_get_enabled_system_count(void);
 int box_get_enabled_connection_system_count(void);
-
-extern int box_get_minictrl_list(void);
+extern int box_get_enabled_minictrl_count(void);
 
 #endif /*__INDICATOR_BOX_UTIL_H__*/

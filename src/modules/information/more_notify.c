@@ -35,9 +35,6 @@
 
 static int register_more_notify_module(void *data);
 static int unregister_more_notify_module(void);
-static int wake_up_cb(void *data);
-
-static int updated_while_lcd_off = 0;
 
 static bool bShow = 0;
 
@@ -51,7 +48,6 @@ icon_s more_notify = {
 	.area = INDICATOR_ICON_AREA_NOTI,
 	.init = register_more_notify_module,
 	.fini = unregister_more_notify_module,
-	.wake_up = wake_up_cb
 };
 
 enum {
@@ -65,11 +61,15 @@ static char *icon_path[] = {
 };
 
 
-static void set_app_state(void* data)
+static void set_app_state(void *data)
 {
 	more_notify.ad = data;
 }
 
+icon_s *more_noti_get_icon(void)
+{
+	return &more_notify;
+}
 
 static void show_image_icon_by_win(win_info* win)
 {
@@ -84,61 +84,27 @@ static void hide_image_icon_by_win(win_info* win)
 }
 
 
-
-static void _handle_more_notify_icon(win_info* win, bool val)
+void indicator_more_notify_icon_change(Eina_Bool val)
 {
-	retm_if(win == NULL, "Invalid parameter!");
+	_D("indicator_more_notify_change. Val=%s", (val) ? "true" : "false");
+
+	struct appdata *ad = more_notify.ad;
+	retm_if(ad == NULL, "Invalid parameter!");
 
 	if (bShow == val)
 		return;
 
 	bShow = val;
 
-	_D("val %d", val);
-
 	if (val) {
-		show_image_icon_by_win(win);
+		show_image_icon_by_win(&ad->win);
 		_D("_handle_more_notify_show");
 	} else {
-		hide_image_icon_by_win(win);
+		hide_image_icon_by_win(&ad->win);
 		_D("_handle_more_notify_hide");
 	}
-}
-
-
-static void indicator_more_notify_change_cb(const char *key, void *data)
-{
-	struct appdata *ad = (struct appdata *)(more_notify.ad);
-	bool val = 0;
-
-	retm_if(data == NULL, "Invalid parameter!");
-
-	_D("indicator_more_notify_change_cb");
-	win_info* win = NULL;
-
-	if (strcmp(key, INDICATOR_MORE_NOTI) == 0) {
-		win = &(ad->win);
-	} else {
-		_E("invalid value!");
-		return;
-	}
-
-	int err = preference_get_boolean(key, &val);
-	retm_if(err != PREFERENCE_ERROR_NONE, "preference_get_boolean failed: %s", get_error_message(err));
-
-	_handle_more_notify_icon(win, val);
 
 	return;
-}
-
-
-static int wake_up_cb(void *data)
-{
-	if(updated_while_lcd_off == 0)
-		return OK;
-
-	indicator_more_notify_change_cb(INDICATOR_MORE_NOTI, data);
-	return OK;
 }
 
 
@@ -148,17 +114,11 @@ static int register_more_notify_module(void *data)
 
 	set_app_state(data);
 
-	int ret = preference_set_changed_cb(INDICATOR_MORE_NOTI, indicator_more_notify_change_cb, data);
-	retvm_if(ret != PREFERENCE_ERROR_NONE, FAIL, "preference_set_changed_cb failed: %s", get_error_message(ret));
-
 	return OK;
 }
 
 
 static int unregister_more_notify_module(void)
 {
-	int ret = preference_unset_changed_cb(INDICATOR_MORE_NOTI);
-	retvm_if(ret != PREFERENCE_ERROR_NONE, FAIL, "preference_set_changed_cb failed: %s", get_error_message(ret));
-
 	return OK;
 }

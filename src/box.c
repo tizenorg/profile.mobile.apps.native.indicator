@@ -275,7 +275,7 @@ static void _update_icon(win_info *win, Eina_List *list)
 
 
 
-extern unsigned int box_get_count(Box_List list)
+extern unsigned int box_get_list_size(Box_List list)
 {
 	int count = 0;
 
@@ -311,25 +311,25 @@ static void _update_display(win_info *win)
 
 	ret_if(!win);
 
-	if (box_get_count(SYSTEM_LIST)) {
+	if (box_get_list_size(SYSTEM_LIST)) {
 		util_signal_emit(win->data, "indicator.system.show", "indicator.prog");
 	} else {
 		util_signal_emit(win->data, "indicator.system.hide", "indicator.prog");
 	}
 
-	if (box_get_count(MINICTRL_LIST)) {
+	if (box_get_list_size(MINICTRL_LIST)) {
 		util_signal_emit(win->data, "indicator.minictrl.show", "indicator.prog");
 	} else {
 		util_signal_emit(win->data, "indicator.minictrl.hide", "indicator.prog");
 	}
 	if
-	(box_get_count(CONNECTION_SYSTEM_LIST)) {
+	(box_get_list_size(CONNECTION_SYSTEM_LIST)) {
 		util_signal_emit(win->data, "indicator.connection/system.show", "indicator.prog");
 	} else {
 		util_signal_emit(win->data, "indicator.connection/system.hide", "indicator.prog");
 	}
 
-	if (box_get_count(NOTI_LIST)) {
+	if (box_get_list_size(NOTI_LIST)) {
 		util_signal_emit(win->data, "indicator.noti.show", "indicator.prog");
 	} else {
 		util_signal_emit(win->data, "indicator.noti.hide", "indicator.prog");
@@ -353,11 +353,11 @@ static void _update_display(win_info *win)
 	_update_icon(win, _view_noti_list);
 	_update_icon(win, _view_alarm_list);
 
+
 #if 0
 	if (win) _update_window(win);
 #endif
 }
-
 
 
 extern void box_update_display(win_info *win)
@@ -368,13 +368,16 @@ extern void box_update_display(win_info *win)
 	_update_window(win);
 #endif
 	icon_reset_list();
+	Eina_Bool overflow = check_for_icons_overflow();
+
 	_update_display(win);
-	icon_handle_more_notify_icon(win);
+
+	check_to_show_more_noti(win, overflow);
+
 }
 
 
-
-extern int box_pack(icon_s *icon)
+extern int box_add_icon_to_list(icon_s *icon)
 {
 	struct appdata *ad = NULL;
 	int noti_count = 0;
@@ -476,7 +479,7 @@ __CATCH:
 
 
 
-extern int box_pack_append(icon_s *icon)
+extern int box_append_icon_to_list(icon_s *icon)
 {
 	Eina_List *l;
 	icon_s *data;
@@ -523,7 +526,7 @@ extern int box_pack_append(icon_s *icon)
 
 
 
-int box_unpack(icon_s *icon)
+int box_remove_icon_from_list(icon_s *icon)
 {
 	retv_if(!icon, 0);
 
@@ -560,7 +563,7 @@ int box_unpack(icon_s *icon)
 #if 0
 	int noti_count = 0;
 
-	noti_count = box_get_count(NOTI_LIST);
+	noti_count = box_get_list_size(NOTI_LIST);
 	if (noti_count > 0) {
 		util_signal_emit(_win->data, "indicator.noti.show", "indicator.prog");
 	} else {
@@ -717,8 +720,8 @@ int box_get_enabled_noti_count(void)
 {
 	int enabled_noti_cnt = 0;
 
-	int system_cnt = box_get_count(SYSTEM_LIST);
-	int minictrl_cnt = box_get_count(MINICTRL_LIST);
+	int system_cnt = box_get_list_size(SYSTEM_LIST);
+	int minictrl_cnt = box_get_list_size(MINICTRL_LIST);
 	_D("System Count : %d, Minictrl Count : %d", system_cnt, minictrl_cnt);
 
 	enabled_noti_cnt = MAX_NOTI_ICONS_PORT - system_cnt - minictrl_cnt;
@@ -736,12 +739,12 @@ int box_get_enabled_noti_count(void)
 int box_get_enabled_system_count(void)
 {
 	int system_cnt = 0;
-	int noti_cnt = box_get_count(NOTI_LIST);
-	int minictrl_cnt = box_get_count(MINICTRL_LIST);
+	int noti_cnt = box_get_list_size(NOTI_LIST);
+	int minictrl_cnt = box_get_list_size(MINICTRL_LIST);
 
 	_D("Noti count : %d , MiniCtrl count : %d", noti_cnt, minictrl_cnt);
 
-	system_cnt = PORT_SYSTEM_ICON_COUNT;  // MAX = 5.
+	system_cnt = PORT_SYSTEM_ICON_COUNT;  // MAX = 5(UI Guide).
 
 	if(noti_cnt > 0) {
 		system_cnt--;    // Notification icon must show at least 1.
@@ -762,13 +765,13 @@ int box_get_enabled_connection_system_count(void)
 	return PORT_CONNECTION_SYSTEM_ICON_COUNT; /* MAX = 2 */
 }
 
-int box_get_minictrl_list(void)
+int box_get_enabled_minictrl_count(void)
 {
 	int icon_count = 0;
-	int noti_count = box_get_count(NOTI_LIST);
-	int system_count = box_get_count(SYSTEM_LIST);
+	int noti_count = box_get_list_size(NOTI_LIST);
+	int system_count = box_get_list_size(SYSTEM_LIST);
 
-	icon_count = PORT_MINICTRL_ICON_COUNT; // = 2.    MIN (1) / MAX (3)
+	icon_count = PORT_MINICTRL_ICON_COUNT; // = 2.    MIN (1) / MAX (6)
 
 	if(noti_count) {	// noti_count >= 1
 		if(system_count >= 3) {
@@ -807,7 +810,7 @@ Icon_AddType box_is_enable_to_insert_in_non_fixed_list(icon_s *obj)
 	int same_cnt = 0;
 	int same_top_cnt = 0;
 	int lower_cnt = 0;
-	int noti_cnt = box_get_count(NOTI_LIST);
+	int noti_cnt = box_get_list_size(NOTI_LIST);
 	Eina_List * tmp_list = NULL;
 
 	retv_if(!obj, 0);
@@ -864,15 +867,15 @@ Icon_AddType box_is_enable_to_insert_in_non_fixed_list(icon_s *obj)
 			return CAN_ADD_WITHOUT_DEL;
 		}
 	} else if (obj->area == INDICATOR_ICON_AREA_MINICTRL) {
-		if (higher_cnt + same_cnt + lower_cnt >= box_get_minictrl_list()) {
+		if (higher_cnt + same_cnt + lower_cnt >= box_get_enabled_minictrl_count()) {
 			if (obj->always_top == EINA_TRUE) {
-				if (same_top_cnt >= box_get_minictrl_list()) {
+				if (same_top_cnt >= box_get_enabled_minictrl_count()) {
 					return CANNOT_ADD;
 				} else {
 					return CAN_ADD_WITH_DEL_MINICTRL;
 				}
 			} else {
-				if (higher_cnt >= box_get_minictrl_list()) {
+				if (higher_cnt >= box_get_enabled_minictrl_count()) {
 					return CANNOT_ADD;
 				} else {
 					return CAN_ADD_WITH_DEL_MINICTRL;

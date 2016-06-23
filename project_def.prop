@@ -9,14 +9,14 @@ type = app
 profile = mobile-3.0
 
 # C Sources
-
-USER_SRCS = src/modules/information/video_play.c src/modules/information/earphone.c src/bg_color.c src/modules/information/toast_popup.c /src/modules/processing/call_options.c /src/modules/processing/call_divert.c src/modules/information/mp3_playing.c src/icon.c src/modules/modules.c src/modules/processing/transfer.c src/modules/processing/uploading.c src/modules/information/voice_recorder.c src/modules/information/noti.c src/modules/information/lowmem.c src/modules/information/fm_radio.c src/modules/setting/gps.c src/modules/processing/call.c src/modules/information/more_notify.c src/modules/setting/bluetooth.c src/tts.c src/modules/connection/connection.c src/modules/connection/wifi.c src/list.c src/modules/setting/nfc.c src/ticker.c src/modules/connection/dock.c src/main.c src/box.c src/modules/information/ext_storage.c src/modules/power/battery.c src/modules/connection/mobile_hotspot.c src/modules/home/search.c src/util.c src/modules/clock/clock.c src/modules/information/alarm.c src/modules/network/rssi.c src/modules/processing/downloading.c src/modules/setting/wifi-direct.c src/modules/connection/usb.c src/modules/setting/silent.c 
+USER_SRCS = src/modules/setting/bluetooth.c src/modules/connection/usb.c src/modules/setting/silent.c src/modules/information/more_notify.c src/ticker.c src/modules/information/mp3_playing.c src/modules/network/rssi.c src/modules/processing/downloading.c src/modules/processing/transfer.c src/modules/information/fm_radio.c src/modules/information/alarm.c src/modules/connection/mobile_hotspot.c src/modules/setting/wifi-direct.c src/modules/information/voice_recorder.c src/modules/information/video_play.c src/list.c src/modules/processing/uploading.c src/util.c src/modules/information/lowmem.c src/main.c src/modules/processing/call_divert.c src/modules/setting/nfc.c src/modules/setting/gps.c src/modules/home/search.c src/icon.c src/bg_color.c src/modules/information/noti.c src/modules/connection/dock.c src/modules/information/earphone.c src/modules/connection/connection.c src/modules/connection/wifi.c src/modules/processing/call.c src/modules/power/battery.c src/modules/modules.c src/box.c src/modules/information/ext_storage.c src/tts.c src/modules/information/toast_popup.c src/modules/clock/clock.c 
+USER_SRCS_ABS =
 
 # EDC Sources
 USER_EDCS =  
 
 # PO Sources
-USER_POS = res/po/uz.po res/po/sv.po res/po/hi.po res/po/en.po res/po/da.po res/po/zh_SG.po res/po/tr_TR.po res/po/es_ES.po res/po/nb.po res/po/mk.po res/po/zh_TW.po res/po/et.po res/po/az.po res/po/it_IT.po res/po/el_GR.po res/po/ka.po res/po/en_US.po res/po/lt.po res/po/en_PH.po res/po/hy.po res/po/pl.po res/po/fr_FR.po res/po/ro.po res/po/ja_JP.po res/po/lv.po res/po/ga.po res/po/hu.po res/po/ar.po res/po/ca.po res/po/pt_PT.po res/po/zh_HK.po res/po/gl.po res/po/hr.po res/po/fr_CA.po res/po/cs.po res/po/de_DE.po res/po/kk.po res/po/eu.po res/po/ru_RU.po res/po/pt_BR.po res/po/zh_CN.po res/po/ko_KR.po res/po/is.po res/po/es_MX.po res/po/sr.po res/po/fi.po res/po/bg.po res/po/uk.po res/po/sl.po res/po/sk.po res/po/nl_NL.po 
+USER_POS = res/po/fr_CA.po res/po/el_GR.po res/po/lt.po res/po/gl.po res/po/uz.po res/po/zh_HK.po res/po/kk.po res/po/pt_PT.po res/po/ca.po res/po/en_US.po res/po/is.po res/po/cs.po res/po/zh_SG.po res/po/de_DE.po res/po/sv.po res/po/pl.po res/po/et.po res/po/es_MX.po res/po/bg.po res/po/ja_JP.po res/po/hy.po res/po/az.po res/po/eu.po res/po/hi.po res/po/sl.po res/po/zh_CN.po res/po/zh_TW.po res/po/da.po res/po/hu.po res/po/en_PH.po res/po/ka.po res/po/nb.po res/po/sr.po res/po/it_IT.po res/po/lv.po res/po/nl_NL.po res/po/es_ES.po res/po/hr.po res/po/mk.po res/po/fi.po res/po/ga.po res/po/sk.po res/po/ro.po res/po/ar.po res/po/ru_RU.po res/po/en.po res/po/pt_BR.po res/po/fr_FR.po res/po/uk.po res/po/ko_KR.po res/po/tr_TR.po 
 
 # User Defines
 USER_DEFS = 
@@ -46,7 +46,7 @@ USER_CPP_INC_FILES =
 USER_CPP_INC_FILES_ABS = 
 
 # User Library Path
-USER_LIB_DIRS = lib 
+USER_LIB_DIRS = lib
 USER_LIB_DIRS_ABS = 
 
 # EDC Resource Path
@@ -60,7 +60,7 @@ USER_EDCS_FONT_DIRS_ABS =
 # EDC Flags
 USER_EXT_EDC_KEYS = EDC0 
 
-USER_EXT_EDC0_EDCS = res/resource/indicator_icon_animation.edc res/resource/ticker_animated_icon.edc res/resource/indicator_icon_nonfixed_theme.edc res/resource/indicator_icon_theme.edc res/resource/ticker_default.edc res/resource/indicator_common.edc res/resource/indicator_port.edc res/resource/color_classes.edc res/resource/ticker.edc 
+USER_EXT_EDC0_EDCS = res/resource/indicator_icon_animation.edc res/resource/indicator_icon_nonfixed_theme.edc res/resource/ticker_default.edc res/resource/indicator_port.edc res/resource/ticker.edc res/resource/ticker_animated_icon.edc res/resource/indicator_common.edc res/resource/indicator_icon_theme.edc res/resource/color_classes.edc 
 USER_EXT_EDC0_EDCS_IMAGE_DIRS = res/resource/animated_icon res/resource/icons_edc 
 USER_EXT_EDC0_EDCS_IMAGE_DIRS_ABS = 
 USER_EXT_EDC0_EDCS_SOUND_DIRS = edje/sounds 
