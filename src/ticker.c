@@ -1138,7 +1138,6 @@ ERROR:
 static void _destroy_ticker_noti(ticker_info_s *ticker_info)
 {
 	struct appdata *ad = NULL;
-	Evas_Object *textblock = NULL;
 	Evas_Object *box = NULL;
 	Evas_Object *icon = NULL;
 	Evas_Object *detail = NULL;
