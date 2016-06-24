@@ -103,19 +103,9 @@ static void hide_icon(void)
 	util_signal_emit(wifi_direct.ad,"indicator.wifidirect.hide","indicator.prog");
 }
 
-static void indicator_wifi_direct_change_cb(int error_code, wifi_direct_connection_state_e connection_state,
-											const char *mac_address, void *data)
+static void indicator_wifi_direct_change_cb(wifi_direct_state_e state, void *data)
 {
-	int ret;
-	wifi_direct_state_e device_state;
-
 	retm_if(!data, "Invalid parameter!");
-
-	if (error_code != WIFI_DIRECT_ERROR_NONE) {
-		hide_icon();
-		_E("indicator_wifi_direct_change_cb failed[%s]", get_error_message(error_code));
-		return;
-	}
 
 	if(icon_get_update_flag() == 0) {
 		updated_while_lcd_off = 1;
@@ -123,10 +113,7 @@ static void indicator_wifi_direct_change_cb(int error_code, wifi_direct_connecti
 	}
 	updated_while_lcd_off = 0;
 
-	ret = wifi_direct_get_state(&device_state);
-	retm_if( ret != WIFI_DIRECT_ERROR_NONE, "wifi_direct_get_state failed[%s]", get_error_message(error_code));
-
-	if(device_state == WIFI_DIRECT_STATE_CONNECTED || device_state == WIFI_DIRECT_STATE_GROUP_OWNER)
+	if(state == WIFI_DIRECT_STATE_CONNECTED || state == WIFI_DIRECT_STATE_GROUP_OWNER)
 			show_icon(data, WIFI_DIRECT_CONNECTED);
 	else
 			hide_icon();
@@ -136,11 +123,20 @@ static void indicator_wifi_direct_change_cb(int error_code, wifi_direct_connecti
 
 static int wake_up_cb(void *data)
 {
+	int ret;
+	wifi_direct_state_e device_state;
+
 	if(updated_while_lcd_off == 0)
 		return OK;
 
+	ret = wifi_direct_get_state(&device_state);
+	if(ret != WIFI_DIRECT_ERROR_NONE) {
+		_E("wifi_direct_unset_state_changed_cb failed[%d]: %s", ret, get_error_message(ret));
+		return FAIL;
+	}
+
 	// Second parameter is not used. This is made to avoid creating two almost same functions
-	indicator_wifi_direct_change_cb(WIFI_DIRECT_ERROR_NONE, WIFI_DIRECT_DISCONNECTION_RSP, NULL, data);
+	indicator_wifi_direct_change_cb(device_state, data);
 	return OK;
 }
 
@@ -154,7 +150,7 @@ static char *access_info_cb(void *data, Evas_Object *obj)
 	int ret;
 
 	ret = wifi_direct_get_state(&device_state);
-	retm_if( ret != WIFI_DIRECT_ERROR_NONE, "wifi_direct_get_state failed[%s]", get_error_message(error_code));
+	retm_if( ret != WIFI_DIRECT_ERROR_NONE, "wifi_direct_get_state failed[%s]", get_error_message(ret));
 
 	switch (device_state) {
 	case WIFI_DIRECT_STATE_GROUP_OWNER:
@@ -174,24 +170,26 @@ static char *access_info_cb(void *data, Evas_Object *obj)
 static int register_wifi_direct_module(void *data)
 {
 	int ret;
+	wifi_direct_state_e device_state;
 
 	retvm_if(data == NULL, FAIL, "Invalid parameter!");
 
 	set_app_state(data);
 
-	ret = wifi_direct_initialize();
-	retvm_if(ret != WIFI_DIRECT_ERROR_NONE, FAIL,
-			"wifi_direct_initialize failed[%d]: %s", ret, get_error_message(ret));
-
-	ret = wifi_direct_set_connection_state_changed_cb(indicator_wifi_direct_change_cb, data);
+	ret = wifi_direct_set_state_changed_cb(indicator_wifi_direct_change_cb, data);
 	if(ret != WIFI_DIRECT_ERROR_NONE) {
-		_E("wifi_direct_set_connection_state_changed_cb failed[%d]: %s", ret, get_error_message(ret));
-		wifi_direct_deinitialize();
+		_E("wifi_direct_set_state_changed_cb failed[%d]: %s", ret, get_error_message(ret));
+		return FAIL;
+	}
+
+	ret = wifi_direct_get_state(&device_state);
+	if(ret != WIFI_DIRECT_ERROR_NONE) {
+		_E("wifi_direct_unset_state_changed_cb failed[%d]: %s", ret, get_error_message(ret));
 		return FAIL;
 	}
 
 	// Second parameter is not used. This is made to avoid creating two almost same functions
-	indicator_wifi_direct_change_cb(WIFI_DIRECT_ERROR_NONE, WIFI_DIRECT_DISCONNECTION_RSP, NULL, data);
+	indicator_wifi_direct_change_cb(device_state, data);
 
 	return ret;
 }
@@ -200,16 +198,11 @@ static int unregister_wifi_direct_module(void)
 {
 	int ret;
 
-	ret = wifi_direct_unset_connection_state_changed_cb();
-	if (ret != WIFI_DIRECT_ERROR_NONE) {
-		_E("wifi_direct_unset_connection_state_changed_cb failed[%d]: %s", ret, get_error_message(ret));
-		wifi_direct_deinitialize();
+	ret = wifi_direct_unset_state_changed_cb();
+	if(ret != WIFI_DIRECT_ERROR_NONE) {
+		_E("wifi_direct_unset_state_changed_cb failed[%d]: %s", ret, get_error_message(ret));
 		return FAIL;
 	}
-
-	ret = wifi_direct_deinitialize();
-	retvm_if(ret != WIFI_DIRECT_ERROR_NONE, FAIL,
-			"wifi_direct_deinitialize failed[%d]: %s", ret, get_error_message(ret));
 
 	return ret;
 }
