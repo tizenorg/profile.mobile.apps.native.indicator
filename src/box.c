@@ -322,8 +322,8 @@ static void _update_display(win_info *win)
 	} else {
 		util_signal_emit(win->data, "indicator.minictrl.hide", "indicator.prog");
 	}
-	if
-	(box_get_list_size(CONNECTION_SYSTEM_LIST)) {
+
+	if (box_get_list_size(CONNECTION_SYSTEM_LIST)) {
 		util_signal_emit(win->data, "indicator.connection/system.show", "indicator.prog");
 	} else {
 		util_signal_emit(win->data, "indicator.connection/system.hide", "indicator.prog");

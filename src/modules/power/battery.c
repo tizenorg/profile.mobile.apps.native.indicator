@@ -507,7 +507,7 @@ static int unregister_battery_module(void)
 }
 
 
-static void _resize_battery_digits_icons_box()
+static void _resize_battery_digits_icons_box(void)
 {
 	if (battery_percentage < 10) {
 		util_signal_emit(digit.ad, "indicator.battery.percentage.one.digit.show", "indicator.prog");
