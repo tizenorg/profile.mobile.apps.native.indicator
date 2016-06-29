@@ -131,6 +131,8 @@ static i18n_udatepg_h __cal_get_pattern_generator(const char *locale, int *statu
 
 		cal_delete_last_generator();
 
+		free(_last_locale);
+
 		_last_locale = strdup(locale);
 
 		int ret = i18n_udatepg_create(locale, &_last_generator);
