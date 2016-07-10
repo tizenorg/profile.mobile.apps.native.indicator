@@ -72,7 +72,6 @@ static int transfer_state = -1;
 static int updated_while_lcd_off = 0;
 static int prevIndex = -1;
 static wifi_rssi_level_e rssi_level;
-static bool flight_mode;
 
 static void set_app_state(void *data)
 {
@@ -189,7 +188,7 @@ static void _wifi_view_update(void *data)
 	retm_if(ret != WIFI_ERROR_NONE, "wifi_is_activated failed: %s", get_error_message(ret));
 	_D("wifi_state : %d", activated);
 
-	if (!activated || flight_mode) {
+	if (!activated) {
 		hide_image_icon();
 		return;
 	}
@@ -200,7 +199,6 @@ static void _wifi_view_update(void *data)
 		hide_image_icon();
 		return;
 	}
-	_D("Flight mode is %s",(flight_mode) ? "ON" : "OFF");
 
 	show_wifi_transfer_icon(data);
 	show_image_icon(data, _rssi_level_to_strength(rssi_level));
@@ -242,15 +240,6 @@ static void _wifi_changed_cb(keynode_t *node, void *user_data)
 	_wifi_view_update(user_data);
 }
 
-static void _flight_mode_cb(system_settings_key_e key, void *user_data)
-{
-	int ret = system_settings_get_value_bool(key, &flight_mode);
-	retm_if(ret != SYSTEM_SETTINGS_ERROR_NONE, "system_settings_get_value_bool failed:%d", ret);
-	_D("Flight mode is %s",(flight_mode) ? "ON" : "OFF");
-	_wifi_view_update(user_data);
-}
-
-
 static int register_wifi_module(void *data)
 {
 	retv_if(!data, 0);
@@ -288,14 +277,6 @@ static int register_wifi_module(void *data)
 		return FAIL;
 	}
 
-	ret = util_system_settings_set_changed_cb(SYSTEM_SETTINGS_KEY_NETWORK_FLIGHT_MODE, _flight_mode_cb, data);
-	if (ret != WIFI_ERROR_NONE) {
-		_E("util_system_settings_set_changed_cb failed: %s", get_error_message(ret));
-		unregister_wifi_module();
-		return FAIL;
-	}
-	_flight_mode_cb(SYSTEM_SETTINGS_KEY_NETWORK_FLIGHT_MODE, data);
-
 	_wifi_view_update(data);
 
 	return OK;
@@ -307,8 +288,6 @@ static int unregister_wifi_module(void)
 	util_wifi_unset_connection_state_changed_cb(_wifi_connection_state_changed);
 	wifi_unset_rssi_level_changed_cb();
 	vconf_ignore_key_changed(VCONFKEY_WIFI_TRANSFER_STATE, _wifi_changed_cb);
-	util_system_settings_unset_changed_cb(SYSTEM_SETTINGS_KEY_NETWORK_FLIGHT_MODE, _flight_mode_cb);
-
 
 	int ret = util_wifi_deinitialize();
 	if (ret != WIFI_ERROR_NONE) {
