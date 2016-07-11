@@ -121,7 +121,6 @@ struct appdata {
 	telephony_info tel_info;
 	int prefered_data;	// Data prefered
 	Evas_Object* win_overlay;
-	Evas_Object *ticker_win;
 
 	/* FIXME */
 #if 0
