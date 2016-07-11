@@ -52,7 +52,7 @@ FOREACH(flag ${pkgs_CFLAGS})
 	SET(EXTRA_CFLAGS "${EXTRA_CFLAGS} ${flag}")
 ENDFOREACH(flag)
 
-SET(EXTRA_CFLAGS "${EXTRA_CFLAGS} -std=gnu99 -fvisibility=hidden -Wall -Winline -g -fno-builtin-malloc -fPIC")
+SET(EXTRA_CFLAGS "${EXTRA_CFLAGS} -std=gnu99 -fvisibility=hidden -Wall -Winline -g -O0 -fno-builtin-malloc -fPIC")
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${EXTRA_CFLAGS}")
 SET(CMAKE_EXE_LINKER_FLAGS "-Wl,--as-needed -pie")
 
