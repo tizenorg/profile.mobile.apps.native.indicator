@@ -17,6 +17,7 @@
  *
  */
 
+#include <notification.h>
 
 #ifndef __INDICATOR_TICKER_H__
 #define __INDICATOR_TICKER_H__
@@ -32,16 +33,16 @@ typedef enum _indicator_animated_icon_type {
 	INDICATOR_ANIMATED_ICON_INSTALL,
 } indicator_animated_icon_type;
 
-typedef struct ticker {
-	Evas_Object *scroller;
+typedef struct {
 	Evas_Object *textblock;
-	Ecore_Timer *timer;
-	Eina_List *ticker_list;
-	int current_page;
-	int pages;
+	Evas_Object *icon;
+
+	notification_h noti;
+
+	char *pkgname;
+	int current_line;
+
 } ticker_info_s;
-
-
 
 /***
  * @brief Initializes ticker module.
