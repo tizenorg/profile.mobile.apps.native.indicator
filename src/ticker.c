@@ -38,6 +38,7 @@
 #include "util.h"
 #include "log.h"
 #include "indicator.h"
+#include "indicator_gui.h"
 #include "ticker.h"
 
 #define _SPACE ' '
@@ -52,22 +53,21 @@
 #define FORMAT_1LINE "<font_size=29><color=#F4F4F4FF>%s</color></font_size>"
 #define FORMAT_2LINE "<font_size=26><color=#BABABAFF>%s</color></font_size><br/><font_size=29><color=#F4F4F4FF>%s</color></font_size>"
 
-#define PRIVATE_DATA_KEY_APPDATA "pdka"
-#define PRIVATE_DATA_KEY_TICKERNOTI_EXECUTED "pdkte"
-#define PRIVATE_DATA_KEY_ANI_ICON_TYPE "pdkait"
-#define PRIVATE_DATA_KEY_ICON "pdki"
-#define PRIVATE_DATA_KEY_TICKER_INFO "pdkti"
-#define PRIVATE_DATA_KEY_NOTI "pdkn"
-#define PRIVATE_DATA_KEY_DATA "pdk_data"
-
 #define PATH_DOWNLOAD "reserved://quickpanel/ani/downloading"
 #define PATH_UPLOAD "reserved://quickpanel/ani/uploading"
 #define PATH_INSTALL "reserved://quickpanel/ani/install"
 
 #define TICKER_EDJ EDJDIR"ticker.edj"
+#define DEFAULT_EDJ EDJDIR"ticker_default.edj"
 
-static void _create_ticker_noti(notification_h noti, struct appdata *ad, ticker_info_s *ticker_info);
-static void _destroy_ticker_noti(ticker_info_s *ticker_info);
+static ticker_info_s *_ticker_noti_create(notification_h noti);
+static void _ticker_noti_destroy(ticker_info_s **ticker_info);
+static Evas_Object *_ticker_icon_create(ticker_info_s *ticker_info);
+static Evas_Object *_ticker_textblock_create(ticker_info_s *ticker_info);
+static void _ticker_view_destroy(void);
+static int _ticker_view_create(void);
+static Evas_Object *_ticker_window_create(struct appdata *ad);
+static void _ticker_window_destroy(void);
 
 /* Using this macro to emphasize that some portion like stacking and
 rotation handling are implemented for X based platform */
@@ -75,15 +75,20 @@ rotation handling are implemented for X based platform */
 #define __UNUSED__ __attribute__((unused))
 #endif
 
-struct Internal_Data {
-	Evas_Object *content;
-	Ecore_Event_Handler *rotation_event_handler;
-	Evas_Coord w;
-	Evas_Coord h;
-	int angle;
-};
+static struct {
+	Evas_Object *win;
+	Evas_Object *layout;
+	Evas_Object *scroller;
 
-static int _is_text_exist(const char *text)
+	ticker_info_s *current;
+	ticker_info_s *pending;
+
+	Ecore_Timer *timer;
+
+	struct appdata *ad;
+} ticker;
+
+static int _is_text_correct(const char *text)
 {
 	if (text != NULL) {
 		if (strlen(text) > 0) {
@@ -97,118 +102,104 @@ static int _is_text_exist(const char *text)
 
 static int _is_security_lockscreen_launched(void)
 {
-	int ret = 0;
-	int is_lock_launched = 0;
+	int lock_state = 0;
+	int lock_type = SETTING_SCREEN_LOCK_TYPE_NONE;
 
-	if ((ret = vconf_get_int(VCONFKEY_IDLE_LOCK_STATE, &is_lock_launched)) == 0) {
-		if (is_lock_launched == VCONFKEY_IDLE_LOCK &&
-				(ret = vconf_get_int(VCONFKEY_SETAPPL_SCREEN_LOCK_TYPE_INT, &is_lock_launched)) == 0) {
-			if (is_lock_launched != SETTING_SCREEN_LOCK_TYPE_NONE && is_lock_launched != SETTING_SCREEN_LOCK_TYPE_SWIPE) {
-				return 1;
-			}
-		}
-	}
+	int ret = vconf_get_int(VCONFKEY_IDLE_LOCK_STATE, &lock_state);
+	retvm_if(ret, 0, "%s", get_error_message(ret));
+	ret = vconf_get_int(VCONFKEY_SETAPPL_SCREEN_LOCK_TYPE_INT, &lock_type);
+	retvm_if(ret, 0, "%s", get_error_message(ret));
+
+	if (lock_state == VCONFKEY_IDLE_LOCK &&
+		(lock_type != SETTING_SCREEN_LOCK_TYPE_NONE || lock_type != SETTING_SCREEN_LOCK_TYPE_SWIPE))
+			return 1;
 
 	return 0;
 }
 
-static notification_h _get_instant_latest_message_from_list(ticker_info_s *ticker_info)
+static bool _is_do_not_disturb(notification_h noti)
 {
-	int count = 0;
-	notification_h noti = NULL;
+	if (!noti)
+		return false;
 
-	count = eina_list_count(ticker_info->ticker_list);
-	if (count > 1) {
-		noti = eina_list_nth(ticker_info->ticker_list, count-1);
+	notification_system_setting_h system_setting;
+	bool do_not_disturb = true;
+
+	notification_setting_h noti_setting;
+	char *pkgname = NULL;
+	bool do_not_disturb_exception = false;
+
+	int ret = notification_system_setting_load_system_setting(&system_setting);
+	retvm_if(ret != NOTIFICATION_ERROR_NONE || system_setting == NULL, true,
+			"notification_system_setting_load_system_setting failed: %s", get_error_message(ret));
+
+	ret = notification_system_setting_get_do_not_disturb(system_setting, &do_not_disturb);
+	if (ret != NOTIFICATION_ERROR_NONE)
+			_E("notification_system_setting_get_do_not_disturb failed: %s", get_error_message(ret));
+
+	notification_system_setting_free_system_setting(system_setting);
+
+
+	ret = notification_get_pkgname(noti, &pkgname);
+	retvm_if(ret != NOTIFICATION_ERROR_NONE || !pkgname, true,
+			"notification_get_pkgname failed: %s", get_error_message(ret));
+
+	ret = notification_setting_get_setting_by_package_name(pkgname, &noti_setting);
+	retvm_if(ret != NOTIFICATION_ERROR_NONE || noti_setting == NULL, true,
+			"notification_setting_get_setting_by_package_name failed: %s", get_error_message(ret));
+
+	ret = notification_setting_get_do_not_disturb_except(noti_setting, &do_not_disturb_exception);
+	if (ret != NOTIFICATION_ERROR_NONE) {
+		do_not_disturb_exception = false;
+		_E("notification_setting_get_do_not_disturb_except failed: %s", get_error_message(ret));
 	}
-	eina_list_free(ticker_info->ticker_list);
-	ticker_info->ticker_list = NULL;
 
-	return noti;
+	notification_setting_free_notification(noti_setting);
+
+	_D("do_not_disturb = %d, do_not_disturb_exception = %d", do_not_disturb, do_not_disturb_exception);
+
+	return !do_not_disturb || do_not_disturb_exception ? false : true;
+
+}
+
+static bool _notification_accept(notification_h noti)
+{
+	if (!noti)
+		return false;
+
+	int applist = 0;
+
+	int ret = notification_get_display_applist(noti, &applist);
+	retvm_if(ret != NOTIFICATION_ERROR_NONE, false, "notification_get_display_applist failed: %s", get_error_message(ret));
+
+	return applist & NOTIFICATION_DISPLAY_APP_TICKER ? true : false;
 }
 
 static void _request_to_delete_noti(notification_h noti)
 {
-	_D("_request_to_delete_noti");
+	_D("");
+	ret_if(!noti);
 
 	int applist = NOTIFICATION_DISPLAY_APP_ALL;
 
-	ret_if(!noti);
+	int ret = notification_get_display_applist(noti, &applist);
+	retm_if(ret != NOTIFICATION_ERROR_NONE, "notification_get_display_applist failed: %s", get_error_message(ret));
 
-	if (notification_get_display_applist(noti, &applist) != NOTIFICATION_ERROR_NONE) {
-		_E("Failed to get display");
+	if (applist == NOTIFICATION_DISPLAY_APP_TICKER) {
+		ret = notification_delete(noti);
+		if (ret != NOTIFICATION_ERROR_NONE)
+			_E("Could not delete notification");
+	} else {
+		ret = notification_set_display_applist(noti, applist & ~NOTIFICATION_DISPLAY_APP_TICKER);
+		retm_if(ret != NOTIFICATION_ERROR_NONE, "notification_set_display_applist failed: %s", ret, get_error_message(ret));
+
+		ret = notification_update(noti);
+		retm_if(ret != NOTIFICATION_ERROR_NONE, "notification_update failed: %s", get_error_message(ret));
 	}
-
-	if (applist & NOTIFICATION_DISPLAY_APP_TICKER) {
-		if (applist & ~NOTIFICATION_DISPLAY_APP_TICKER) {
-			// Do not delete in this case
-			_D("There is another subscriber: 0x%X (filtered: 0x%X)", applist, applist & ~(NOTIFICATION_DISPLAY_APP_TICKER));
-		} else {
-			char *pkgname = NULL;
-			int priv_id = 0;
-			int status;
-
-			if (notification_get_pkgname(noti, &pkgname) != NOTIFICATION_ERROR_NONE) {
-				_E("Failed to get pkgname");
-				/**
-				 * @note
-				 * Even though we failed to get pkgname,
-				 * the delete_by_priv_id will try to do something with caller's pkgname instead of noti's pkgname.
-				 */
-			}
-
-			_D("Target pkgname: [%s]", pkgname);
-			if (notification_get_id(noti, NULL, &priv_id) != NOTIFICATION_ERROR_NONE) {
-				_E("Failed to get priv_id");
-			}
-
-			status = notification_delete_by_priv_id(pkgname, NOTIFICATION_TYPE_NONE, priv_id);
-			_D("Delete notification: %d (status: %d)", priv_id, status);
-		}
-	}
-}
-
-static Eina_Bool _timeout_cb(void *data)
-{
-	ticker_info_s *ticker_info = NULL;
-
-	retv_if(!data, EINA_FALSE);
-
-	_D("message is timeout");
-
-	ticker_info = data;
-
-	Evas_Object *textblock_layout = elm_layout_edje_get(ticker_info->textblock);
-	Evas_Object *textblock = edje_object_part_object_get(textblock_layout, "elm.text");
-
-	ticker_info->current_page++;
-	int ch = 0;
-	if (!evas_object_textblock_line_number_geometry_get(textblock, ticker_info->current_page,
-				NULL, NULL, NULL, &ch)) {
-		_D("line geometry get failed or number exceeded");
-		_destroy_ticker_noti(ticker_info);
-		return ECORE_CALLBACK_CANCEL;
-	}
-
-	/* If count is 1, self */
-	if (ticker_info->ticker_list && eina_list_count(ticker_info->ticker_list) > 1) {
-		if (ticker_info->timer) {
-			ecore_timer_del(ticker_info->timer);
-			ticker_info->timer = NULL;
-		}
-		_destroy_ticker_noti(ticker_info);
-
-		return ECORE_CALLBACK_CANCEL;
-	}
-
-	elm_scroller_page_size_set(ticker_info->scroller, 0, ch);
-	elm_scroller_page_bring_in(ticker_info->scroller, 0, ticker_info->current_page);
-
-	return ECORE_CALLBACK_RENEW;
 
 }
 
-static indicator_animated_icon_type _animated_type_get(const char *path)
+static indicator_animated_icon_type _animated_icon_type_get(const char *path)
 {
 	retv_if(path == NULL, INDICATOR_ANIMATED_ICON_NONE);
 
@@ -223,8 +214,6 @@ static indicator_animated_icon_type _animated_type_get(const char *path)
 	return INDICATOR_ANIMATED_ICON_NONE;
 }
 
-#define DEFAULT_EDJ EDJDIR"/ticker_default.edj"
-/* FIXME : evas_object_del(icon), we have to unset PRIVATE_DATA_KEY_ANI_ICON_TYPE) */
 static Evas_Object *_animated_icon_get(Evas_Object *parent, const char *path)
 {
 	indicator_animated_icon_type type = INDICATOR_ANIMATED_ICON_NONE;
@@ -234,7 +223,7 @@ static Evas_Object *_animated_icon_get(Evas_Object *parent, const char *path)
 	retv_if(!parent, NULL);
 	retv_if(!path, NULL);
 
-	type = _animated_type_get(path);
+	type = _animated_icon_type_get(path);
 
 	if (type == INDICATOR_ANIMATED_ICON_DOWNLOAD) {
 		layout_icon = "quickpanel/animated_icon_download";
@@ -251,84 +240,41 @@ static Evas_Object *_animated_icon_get(Evas_Object *parent, const char *path)
 		elm_layout_file_set(layout, DEFAULT_EDJ, layout_icon);
 		evas_object_size_hint_weight_set(layout, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
 		evas_object_size_hint_align_set(layout, EVAS_HINT_FILL, EVAS_HINT_FILL);
-		evas_object_data_set(layout, PRIVATE_DATA_KEY_ANI_ICON_TYPE, (void *)type);
 		evas_object_show(layout);
 	}
 	return layout;
 }
 
-static char *_get_pkginfo_icon(const char *pkgid)
+static char *_pkginfo_get_icon(const char *pkgid)
 {
-	int ret;
 	char *icon_path = NULL;
 	app_info_h app_info;
 
 	retvm_if(pkgid == NULL, NULL, invalid parameter);
 
-	ret = app_info_create(pkgid, &app_info);
-	if (ret != APP_MANAGER_ERROR_NONE) {
-		_E("app_info_create for %s failed %d", pkgid, ret);
-		return NULL;
-	}
+	int ret = app_info_create(pkgid, &app_info);
+	retvm_if(ret != APP_MANAGER_ERROR_NONE, NULL, "app_info_create failed: %s", get_error_message(ret));
 
 	ret = app_info_get_icon(app_info, &icon_path);
 	if (ret != APP_MANAGER_ERROR_NONE) {
 		app_info_destroy(app_info);
-		_E("app_info_get_icon failed %d", ret);
+		_E("app_info_get_icon failed: %s", get_error_message(ret));
 		return NULL;
 	}
+
 	app_info_destroy(app_info);
 
 	return icon_path;
 }
 
-static Evas_Object *_ticker_create_icon(Evas_Object *parent, notification_h noti)
-{
-	char *pkgname = NULL;
-	char *icon_path = NULL;
-	char *icon_default = NULL;
-	Evas_Object *icon = NULL;
-
-	retv_if(!parent, NULL);
-	retv_if(!noti, NULL);
-
-	notification_get_pkgname(noti, &pkgname);
-	if (NOTIFICATION_ERROR_NONE != notification_get_image(noti, NOTIFICATION_IMAGE_TYPE_ICON, &icon_path)) {
-		_E("Cannot get image path");
-		return NULL;
-	}
-	if (icon_path) {
-		icon = _animated_icon_get(parent, icon_path);
-		if (icon == NULL) {
-			icon = elm_image_add(parent);
-			if (icon_path == NULL
-					|| (elm_image_file_set(icon, icon_path, NULL) == EINA_FALSE)) {
-				icon_default = _get_pkginfo_icon(pkgname);
-				if (icon_default != NULL) {
-					elm_image_file_set(icon, icon_default, NULL);
-					elm_image_resizable_set(icon, EINA_TRUE, EINA_TRUE);
-					free(icon_default);
-				} else {
-					elm_image_file_set(icon, DEFAULT_ICON, NULL);
-					elm_image_resizable_set(icon, EINA_TRUE, EINA_TRUE);
-				}
-			}
-		}
-	}
-
-	return icon;
-}
-
-static char *_get_text(notification_h noti, notification_text_type_e text_type)
+static char *_noti_get_text(notification_h noti, notification_text_type_e text_type)
 {
 	char *text = NULL;
 
-	notification_get_text(noti, text_type, &text);
-	if (text) {
-		return elm_entry_utf8_to_markup(text);
-	}
+	int ret = notification_get_text(noti, text_type, &text);
+	retv_if(ret != NOTIFICATION_ERROR_NONE || !text, NULL);
 
-	return NULL;
+	return elm_entry_utf8_to_markup(text);
 }
 
 static void _strbuf_add(Eina_Strbuf *str_buf, char *text, const char *delimiter)
@@ -343,979 +289,559 @@ static void _strbuf_add(Eina_Strbuf *str_buf, char *text, const char *delimiter)
 	}
 }
 
-static int _is_phone_number(const char *address)
+static int _ticker_icon_update(ticker_info_s *ticker_info)
 {
-	int digit_count = 0;
-	int addr_len = 0;
+	_D("");
+	Evas_Object *current_icon = elm_object_part_content_unset(ticker.layout, "icon");
+	if (current_icon)
+		evas_object_del(current_icon);
 
-	retv_if(!address, 0);
+	Evas_Object *icon = _ticker_icon_create(ticker_info);
+	if (!icon)
+		return -1;
 
-	addr_len = strlen(address);
+	ticker_info->icon = icon;
+	elm_object_part_content_set(ticker.layout, "icon", icon);
 
-	if (addr_len == 0) return 0;
-
-	/*  length check phone address should be longer than 2 and shorter than 40 */
-	if (addr_len > 2 && addr_len <= TICKER_PHONE_NUMBER_MAX_LEN) {
-		const char *pszOneChar = address;
-
-		while (*pszOneChar) {
-			if (isdigit(*pszOneChar)) {
-				digit_count++;
-			}
-			++pszOneChar;
-		}
-		pszOneChar = address;
-
-		if (*pszOneChar == '+') ++pszOneChar;
-
-		while (*pszOneChar) {
-			if (!isdigit(*pszOneChar)
-					&& (*pszOneChar != '*') && (*pszOneChar != '#')
-					&& (*pszOneChar != ' ')
-					&& !((*pszOneChar == '-') && digit_count >= 7)) {
-				return 0;
-			}
-			++pszOneChar;
-		}
-
-		return 1;
-	} else {
-		_D("invalid address length [%d]", addr_len);
-		return 0;
-	}
+	return 0;
 }
 
-static void _char_set(char *dst, char s, int index, int size)
+static int _ticker_textblock_update(ticker_info_s *ticker_info)
 {
-	if (index < size) {
-		*(dst + index) = s;
-	}
+	_D("");
+	retvm_if(!ticker.win || !ticker.layout, -1,
+			"Tickers window or layout doesn't exist");
+
+	Evas_Object *current_textblock = elm_object_content_unset(ticker.scroller);
+	if (current_textblock)
+		evas_object_del(current_textblock);
+
+	Evas_Object *textblock = _ticker_textblock_create(ticker_info);
+	retvm_if(!textblock, -1, "_ticker_textblock_create failed");
+
+	ticker_info->textblock = textblock;
+
+	evas_object_show(ticker_info->textblock);
+	elm_object_content_set(ticker.scroller, textblock);
+
+	return 0;
 }
 
-static void _make_phone_number_tts(char *dst, const char *src, int size)
+static int _ticker_textblock_show_next_line(void)
 {
-	int no_op = 0;
-	int i = 0, j = 0, text_len = 0;
+	_D("");
+	Evas_Object *textblock_layout = NULL;
+	Evas_Object *textblock = NULL;
+	Evas_Object *scroller = NULL;
+	ticker_info_s *ticker_info = ticker.current;
+	int ch = 0;
 
-	ret_if(!dst);
-	ret_if(!src);
+	textblock_layout = elm_layout_edje_get(ticker_info->textblock);
+	retvm_if(!textblock_layout, -1, "textblock_layout == NULL");
 
-	text_len = strlen(src);
+	textblock = (Evas_Object *)edje_object_part_object_get(textblock_layout, "elm.text");
+	retvm_if(!textblock, -1, "textblock == NULL");
 
-	for (i = 0, j= 0; i < text_len; i++) {
-		if (no_op == 1) {
-			_char_set(dst, *(src + i), j++, size);
-		} else {
-			if (isdigit(*(src + i))) {
-				if (i + 1 < text_len) {
-					if (*(src + i + 1) == '-' || *(src + i + 1) == _SPACE) {
-						_char_set(dst, *(src + i), j++, size);
-					} else {
-						_char_set(dst, *(src + i), j++, size);
-						_char_set(dst, _SPACE, j++, size);
-					}
-				} else {
-					_char_set(dst, *(src + i), j++, size);
-					_char_set(dst, _SPACE, j++, size);
-				}
-			} else if (*(src + i) == '-') {
-				no_op = 1;
-				_char_set(dst, *(src + i), j++, size);
-			} else {
-				_char_set(dst, *(src + i), j++, size);
-			}
-		}
+	_D("Show textblock line: %d", ticker_info->current_line);
+
+	if (!evas_object_textblock_line_number_geometry_get(textblock, ticker_info->current_line,
+				NULL, NULL, NULL, &ch)) {
+		_E("Textblock line number exceeded");
+		return -1;
 	}
+
+	scroller = elm_object_part_content_get(ticker.layout, "text_rect");
+	retvm_if(!scroller, -1, "scroller == NULL");
+
+	elm_scroller_page_size_set(scroller, 0, ch);
+	elm_scroller_page_bring_in(scroller, 0, ticker_info->current_line++);
+
+	return 0;
 }
 
-static void _check_and_add_to_buffer(Eina_Strbuf *str_buf, char *text, int is_check_phonenumber)
+static int _ticker_view_update(ticker_info_s *ticker_info)
 {
-	char buf_number[TICKER_PHONE_NUMBER_MAX_LEN * 2] = { 0, };
+	retvm_if(_ticker_textblock_update(ticker_info), -1,
+			"_ticker_textblock_update failed");
+	retvm_if(_ticker_icon_update(ticker_info), -1,
+			"_ticker_icon_update failed");
 
-	if (text != NULL) {
-		if (strlen(text) > 0) {
-			if (_is_phone_number(text) && is_check_phonenumber) {
-				_make_phone_number_tts(buf_number, text,
-						(TICKER_PHONE_NUMBER_MAX_LEN * 2) - 1);
-				eina_strbuf_append(str_buf, buf_number);
-			} else {
-				eina_strbuf_append(str_buf, text);
-			}
-			eina_strbuf_append_char(str_buf, '\n');
-		}
-	}
+	return 0;
 }
 
-static char *_ticker_get_label_layout_default(notification_h noti, int is_screenreader, char **str_line1, char **str_line2)
+static Eina_Bool _ticker_update(void *data)
 {
-	int len = 0;
-	int num_line = 0;
-	char *domain = NULL;
-	char *dir = NULL;
+	_D("Ticker update timeout");
+
+	if (ticker.pending) {
+		_ticker_noti_destroy(&ticker.current);
+		ticker.current = ticker.pending;
+		ticker.pending = NULL;
+	}
+
+	if (!ticker.current->textblock)
+		goto_if(_ticker_view_update(ticker.current), EXIT);
+
+	if (_ticker_textblock_show_next_line())
+		goto EXIT;
+
+	return ECORE_CALLBACK_RENEW;
+
+EXIT:
+	_E("Ticker view update failed");
+
+	_ticker_noti_destroy(&ticker.current);
+	_ticker_view_destroy();
+
+	return ECORE_CALLBACK_CANCEL;
+}
+
+static char *_ticker_get_layout_text(notification_h noti, notification_ly_type_e option)
+{
 	char *title_utf8 = NULL;
 	char *content_utf8 = NULL;
 	char *info1_utf8 = NULL;
 	char *info1_sub_utf8 = NULL;
 	char *info2_utf8 = NULL;
 	char *info2_sub_utf8 = NULL;
-	char *event_count_utf8 = NULL;
-	const char *tmp = NULL;
-	Eina_Strbuf *line1 = NULL;
-	Eina_Strbuf *line2 = NULL;
-	char buf[TICKER_MSG_LEN] = { 0, };
-
-	retv_if(!noti, NULL);
-
-	notification_get_text_domain(noti, &domain, &dir);
-	if (domain != NULL && dir != NULL) {
-		bindtextdomain(domain, dir);
-	}
-
-	title_utf8 = _get_text(noti, NOTIFICATION_TEXT_TYPE_TITLE);
-	content_utf8 = _get_text(noti, NOTIFICATION_TEXT_TYPE_CONTENT);
-	info1_utf8 = _get_text(noti, NOTIFICATION_TEXT_TYPE_INFO_1);
-	info1_sub_utf8 = _get_text(noti, NOTIFICATION_TEXT_TYPE_INFO_SUB_1);
-	info2_utf8 = _get_text(noti, NOTIFICATION_TEXT_TYPE_INFO_2);
-	info2_sub_utf8 = _get_text(noti, NOTIFICATION_TEXT_TYPE_INFO_SUB_2);
-
-	if (is_screenreader == 0) {
-		line1 = eina_strbuf_new();
-		line2 = eina_strbuf_new();
-
-		if (line1 != NULL && line2 != NULL) {
-			if (_is_text_exist(title_utf8) && (_is_text_exist(content_utf8)
-					|| _is_text_exist(event_count_utf8))) {
-				_strbuf_add(line1, title_utf8, NULL);
-				_strbuf_add(line2, content_utf8, NULL);
-				if (_is_text_exist(content_utf8)) {
-					_strbuf_add(line2, event_count_utf8, " ");
-				} else {
-					_strbuf_add(line2, event_count_utf8, "");
-				}
-				num_line = 2;
-			} else if (_is_text_exist(info1_utf8) && (_is_text_exist(content_utf8)
-					|| _is_text_exist(event_count_utf8))) {
-				_strbuf_add(line1, content_utf8, NULL);
-				_strbuf_add(line1, event_count_utf8, " ");
-				_strbuf_add(line2, info1_utf8, NULL);
-				_strbuf_add(line2, info1_sub_utf8, " ");
-				num_line = 2;
-			} else if (_is_text_exist(info1_utf8) && _is_text_exist(info2_utf8)) {
-				_strbuf_add(line1, info1_utf8, NULL);
-				_strbuf_add(line1, info1_sub_utf8, " ");
-				_strbuf_add(line2, info2_utf8, NULL);
-				_strbuf_add(line2, info2_sub_utf8, " ");
-				num_line = 2;
-			} else if (_is_text_exist(title_utf8)) {
-				_strbuf_add(line1, title_utf8, NULL);
-				num_line = 1;
-			} else if (_is_text_exist(content_utf8)) {
-				_strbuf_add(line1, content_utf8, NULL);
-				num_line = 1;
-			}
-
-			if (num_line == 2) {
-				tmp = eina_strbuf_string_get(line1);
-				if (str_line1 != NULL && tmp != NULL) {
-					*str_line1 = strdup(tmp);
-				}
-
-				tmp = eina_strbuf_string_get(line2);
-				if (str_line2 != NULL && tmp != NULL) {
-					*str_line2 = strdup(tmp);
-				}
-			} else {
-				tmp = eina_strbuf_string_get(line1);
-				if (str_line1 != NULL && tmp != NULL) {
-					*str_line1 = strdup(tmp);
-				}
-			}
-
-			eina_strbuf_free(line1);
-			eina_strbuf_free(line2);
-		} else {
-			_E("failed to allocate string buffer");
-		}
-	} else {
-		if (title_utf8 == NULL
-				&& event_count_utf8 == NULL
-				&& content_utf8 == NULL
-				&& info1_utf8 == NULL
-				&& info1_sub_utf8 == NULL
-				&& info2_utf8 == NULL
-				&& info2_sub_utf8 == NULL) {
-			len = 0;
-		} else {
-			Eina_Strbuf *strbuf = eina_strbuf_new();
-			if (strbuf != NULL) {
-				eina_strbuf_append(strbuf, _("IDS_QP_BUTTON_NOTIFICATION"));
-				eina_strbuf_append_char(strbuf, '\n');
-				_check_and_add_to_buffer(strbuf, title_utf8, 1);
-				_check_and_add_to_buffer(strbuf, event_count_utf8, 0);
-				_check_and_add_to_buffer(strbuf, content_utf8, 1);
-				_check_and_add_to_buffer(strbuf, info1_utf8, 1);
-				_check_and_add_to_buffer(strbuf, info1_sub_utf8, 1);
-				_check_and_add_to_buffer(strbuf, info2_utf8, 1);
-				_check_and_add_to_buffer(strbuf, info2_sub_utf8, 1);
-
-				if (eina_strbuf_length_get(strbuf) > 0) {
-					len = snprintf(buf, sizeof(buf) - 1, "%s", eina_strbuf_string_get(strbuf));
-				}
-				eina_strbuf_free(strbuf);
-			}
-		}
-	}
-
-	if (title_utf8) {
-		free(title_utf8);
-	}
-	if (content_utf8) {
-		free(content_utf8);
-	}
-	if (info1_utf8) {
-		free(info1_utf8);
-	}
-	if (info1_sub_utf8) {
-		free(info1_sub_utf8);
-	}
-	if (info2_utf8) {
-		free(info2_utf8);
-	}
-	if (info2_sub_utf8) {
-		free(info2_sub_utf8);
-	}
-	if (len > 0) {
-		return strdup(buf);
-	}
-
-	return NULL;
-}
-
-static char *_ticker_get_label_layout_single(notification_h noti, int is_screenreader, char **str_line1, char **str_line2)
-{
-	int num_line = 0;
-	int len = 0;
-	char *domain = NULL;
-	char *dir = NULL;
-	char *title_utf8 = NULL;
-	char *content_utf8 = NULL;
-	char *info1_utf8 = NULL;
-	char *info1_sub_utf8 = NULL;
-	char *info2_utf8 = NULL;
-	char *info2_sub_utf8 = NULL;
-	Eina_Strbuf *line1 = NULL;
-	Eina_Strbuf *line2 = NULL;
-	const char *tmp = NULL;
-	char buf[TICKER_MSG_LEN] = { 0, };
-
-	retv_if(!noti, NULL);
-
-	notification_get_text_domain(noti, &domain, &dir);
-	if (domain != NULL && dir != NULL)
-		bindtextdomain(domain, dir);
-
-	title_utf8 = _get_text(noti, NOTIFICATION_TEXT_TYPE_TITLE);
-	content_utf8 = _get_text(noti, NOTIFICATION_TEXT_TYPE_CONTENT);
-	info1_utf8 = _get_text(noti, NOTIFICATION_TEXT_TYPE_INFO_1);
-	info1_sub_utf8 = _get_text(noti, NOTIFICATION_TEXT_TYPE_INFO_SUB_1);
-	info2_utf8 = _get_text(noti, NOTIFICATION_TEXT_TYPE_INFO_2);
-	info2_sub_utf8 = _get_text(noti, NOTIFICATION_TEXT_TYPE_INFO_SUB_2);
-
-	if (is_screenreader == 0) {
-		line1 = eina_strbuf_new();
-		line2 = eina_strbuf_new();
-
-		if (line1 != NULL && line2 != NULL) {
-			if (_is_text_exist(info1_utf8) && _is_text_exist(content_utf8)) {
-				_strbuf_add(line1, content_utf8, NULL);
-				_strbuf_add(line2, info1_utf8, NULL);
-				_strbuf_add(line2, info1_sub_utf8, " ");
-				num_line = 2;
-			} else if (_is_text_exist(title_utf8) && _is_text_exist(content_utf8)) {
-				_strbuf_add(line1, title_utf8, NULL);
-				_strbuf_add(line2, content_utf8, NULL);
-				num_line = 2;
-			} else if (_is_text_exist(title_utf8)) {
-				_strbuf_add(line1, title_utf8, NULL);
-				num_line = 1;
-			} else if (_is_text_exist(content_utf8)) {
-				_strbuf_add(line1, content_utf8, NULL);
-				num_line = 1;
-			}
-
-			if (num_line == 2) {
-				tmp = eina_strbuf_string_get(line1);
-				if (str_line1 != NULL && tmp != NULL) {
-					*str_line1 = strdup(tmp);
-				}
-
-				tmp = eina_strbuf_string_get(line2);
-				if (str_line2 != NULL && tmp != NULL) {
-					*str_line2 = strdup(tmp);
-				}
-			} else {
-				tmp = eina_strbuf_string_get(line1);
-				if (str_line1 != NULL && tmp != NULL) {
-					*str_line1 = strdup(tmp);
-				}
-			}
-
-			eina_strbuf_free(line1);
-			eina_strbuf_free(line2);
-		} else {
-			_E("failed to allocate string buffer");
-		}
-	} else {
-		if (title_utf8 == NULL
-				&& content_utf8 == NULL
-				&& info1_utf8 == NULL
-				&& info1_sub_utf8 == NULL) {
-			len = 0;
-		} else {
-			Eina_Strbuf *strbuf = eina_strbuf_new();
-			if (strbuf != NULL) {
-				eina_strbuf_append(strbuf, _("IDS_QP_BUTTON_NOTIFICATION"));
-				eina_strbuf_append_char(strbuf, '\n');
-				if (info1_utf8 == NULL) {
-					_check_and_add_to_buffer(strbuf, title_utf8, 1);
-					_check_and_add_to_buffer(strbuf, content_utf8, 1);
-				} else {
-					if (content_utf8 == NULL) {
-						_check_and_add_to_buffer(strbuf, title_utf8, 1);
-					}
-					_check_and_add_to_buffer(strbuf, content_utf8, 1);
-					_check_and_add_to_buffer(strbuf, info1_utf8, 1);
-					_check_and_add_to_buffer(strbuf, info1_sub_utf8, 1);
-				}
-
-				if (eina_strbuf_length_get(strbuf) > 0) {
-					len = snprintf(buf, sizeof(buf) - 1, "%s", eina_strbuf_string_get(strbuf));
-				}
-				eina_strbuf_free(strbuf);
-			}
-		}
-	}
-
-	if (title_utf8) {
-		free(title_utf8);
-	}
-	if (content_utf8) {
-		free(content_utf8);
-	}
-	if (info1_utf8) {
-		free(info1_utf8);
-	}
-	if (info1_sub_utf8) {
-		free(info1_sub_utf8);
-	}
-	if (info2_utf8) {
-		free(info2_utf8);
-	}
-	if (info2_sub_utf8) {
-		free(info2_sub_utf8);
-	}
-	if (len > 0) {
-		return strdup(buf);
-	}
-
-	return NULL;
-}
-
-static char *_ticker_get_text(notification_h noti, int is_screenreader, char **line1, char **line2)
-{
+	Eina_Strbuf *buffer = NULL;
 	char *result = NULL;
-	notification_ly_type_e layout;
 
 	retv_if(!noti, NULL);
 
-	notification_get_layout(noti, &layout);
+	buffer = eina_strbuf_new();
+	retvm_if(!buffer, NULL, "eina_strbuf_new failed");
 
-	if (layout == NOTIFICATION_LY_NOTI_EVENT_SINGLE) {
-		result = _ticker_get_label_layout_single(noti, is_screenreader, line1, line2);
-	} else {
-		result = _ticker_get_label_layout_default(noti, is_screenreader, line1, line2);
+	title_utf8 = _noti_get_text(noti, NOTIFICATION_TEXT_TYPE_TITLE);
+	content_utf8 = _noti_get_text(noti, NOTIFICATION_TEXT_TYPE_CONTENT);
+	info1_utf8 = _noti_get_text(noti, NOTIFICATION_TEXT_TYPE_INFO_1);
+	info1_sub_utf8 = _noti_get_text(noti, NOTIFICATION_TEXT_TYPE_INFO_SUB_1);
+	info2_utf8 = _noti_get_text(noti, NOTIFICATION_TEXT_TYPE_INFO_2);
+	info2_sub_utf8 = _noti_get_text(noti, NOTIFICATION_TEXT_TYPE_INFO_SUB_2);
+
+	//FIXME find difference between NOTIFICATION_LY_NOTI_EVENT_SINGLE display and other
+	if (_is_text_correct(title_utf8) && (_is_text_correct(content_utf8))) {
+		_strbuf_add(buffer, title_utf8, NULL);
+		_strbuf_add(buffer, content_utf8, "<br/>");
+	} else if (_is_text_correct(info1_utf8) && (_is_text_correct(content_utf8))) {
+		_strbuf_add(buffer, content_utf8, NULL);
+		_strbuf_add(buffer, info1_utf8, "<br/>");
+		_strbuf_add(buffer, info1_sub_utf8, " ");
+	} else if (_is_text_correct(info1_utf8) && _is_text_correct(info2_utf8)) {
+		_strbuf_add(buffer, info1_utf8, NULL);
+		_strbuf_add(buffer, info1_sub_utf8, " ");
+		_strbuf_add(buffer, info2_utf8, "<br/>");
+		_strbuf_add(buffer, info2_sub_utf8, " ");
+	} else if (_is_text_correct(title_utf8)) {
+		_strbuf_add(buffer, title_utf8, NULL);
+	} else if (_is_text_correct(content_utf8)) {
+		_strbuf_add(buffer, content_utf8, NULL);
+	}
+
+	result = strdup(eina_strbuf_string_get(buffer));
+
+	eina_strbuf_free(buffer);
+
+	if (title_utf8) {
+		free(title_utf8);
+	}
+	if (content_utf8) {
+		free(content_utf8);
+	}
+	if (info1_utf8) {
+		free(info1_utf8);
+	}
+	if (info1_sub_utf8) {
+		free(info1_sub_utf8);
+	}
+	if (info2_utf8) {
+		free(info2_utf8);
+	}
+	if (info2_sub_utf8) {
+		free(info2_sub_utf8);
 	}
 
 	return result;
 }
 
-static void _noti_hide_cb(void *data, Evas_Object *obj, const char *emission, const char *source)
+static char *_ticker_get_text(notification_h noti)
 {
-	ticker_info_s *ticker_info = NULL;
+	notification_ly_type_e noti_layout;
 
-	ret_if(!data);
+	retv_if(!noti, NULL);
+	int ret = notification_get_layout(noti, &noti_layout);
+	retvm_if(ret != NOTIFICATION_ERROR_NONE, NULL,
+			"notification_get_layout failed: %s", get_error_message(ret));
 
-	ticker_info = data;
+	//TODO: What is the purpose of the notification layout - for now guide says nothing
+	//	about that
+	return _ticker_get_layout_text(noti, noti_layout);
+}
 
-	if (ticker_info->timer) {
-		ecore_timer_del(ticker_info->timer);
-		ticker_info->timer = NULL;
+static void _ticker_layout_mouse_down_cb(void *data, Evas *e, Evas_Object *obj, void *event_info)
+{
+	_ticker_view_destroy();
+}
+
+static Evas_Object *_ticker_icon_create(ticker_info_s *ticker_info)
+{
+	char *icon_path = NULL;
+	char *icon_default = NULL;
+	Evas_Object *icon = NULL;
+	Evas_Object *layout = ticker.layout;
+	notification_h noti = ticker_info->noti;
+
+	retv_if(!layout, NULL);
+	retv_if(!noti, NULL);
+
+	int ret = notification_get_image(noti, NOTIFICATION_IMAGE_TYPE_ICON, &icon_path);
+	if (ret != NOTIFICATION_ERROR_NONE || !icon_path) {
+		_E("notification_get_image failed: %s", get_error_message(ret));
+		return NULL;
 	}
 
-	_destroy_ticker_noti(ticker_info);
-}
-
-static void _mouse_down_cb(void *data, Evas *e, Evas_Object *obj, void *event_info)
-{
-	_noti_hide_cb(data, NULL, NULL, NULL);
-}
-
-static void _content_changed_size_hints(void *data, Evas *e __UNUSED__, Evas_Object *obj, void *event_info __UNUSED__)
-{
-	Evas_Coord h;
-	struct Internal_Data *wd = evas_object_data_get(data, PRIVATE_DATA_KEY_DATA);
-
-	ret_if(!wd);
-
-	evas_object_size_hint_min_get(obj, NULL, &h);
-	if (h > 0) {
-		wd->h = h;
-		evas_object_size_hint_min_set(obj, wd->w, wd->h);
-		evas_object_size_hint_min_set(data, wd->w, wd->h);
+	icon = _animated_icon_get(layout, icon_path);
+	if (icon == NULL) {
+		icon = elm_image_add(layout);
+		if (icon_path == NULL
+				|| (elm_image_file_set(icon, icon_path, NULL) == EINA_FALSE)) {
+			icon_default = _pkginfo_get_icon(ticker.current->pkgname);
+			if (icon_default != NULL) {
+				elm_image_file_set(icon, icon_default, NULL);
+				elm_image_resizable_set(icon, EINA_TRUE, EINA_TRUE);
+				free(icon_default);
+			} else {
+				elm_image_file_set(icon, DEFAULT_ICON, NULL);
+				elm_image_resizable_set(icon, EINA_TRUE, EINA_TRUE);
+			}
+		}
 	}
+
+	evas_object_show(icon);
+
+	return icon;
 }
 
-static void _sub_del(void *data __UNUSED__, Evas_Object *obj, void *event_info)
+static Evas_Object *_ticker_textblock_create(ticker_info_s *ticker_info)
 {
-	struct Internal_Data *wd = evas_object_data_get(obj, PRIVATE_DATA_KEY_DATA);
-	Evas_Object *sub = event_info;
+	_D("");
 
-	ret_if(!wd);
+	Evas_Object *textblock = elm_layout_add(ticker.win);
+	char *ticker_text = NULL;
 
-	if (sub == wd->content) {
-		evas_object_event_callback_del(wd->content, EVAS_CALLBACK_CHANGED_SIZE_HINTS, _content_changed_size_hints);
-		wd->content = NULL;
+	if (!elm_layout_file_set(textblock, util_get_res_file_path(TICKER_EDJ),
+				"quickpanel/tickernoti/text")) {
+		_E("elm_layout_file_set failed");
+		evas_object_del(textblock);
+		return NULL;
 	}
-}
 
-static void _destroy_ticker_window(Evas_Object *window)
-{
-	struct Internal_Data *wd = NULL;
+	evas_object_size_hint_align_set(textblock, EVAS_HINT_FILL, EVAS_HINT_FILL);
+	evas_object_size_hint_weight_set(textblock, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
 
-	ret_if(!window);
-
-	evas_object_data_del(window, PRIVATE_DATA_KEY_NOTI);
-
-	wd = evas_object_data_del(window, PRIVATE_DATA_KEY_DATA);
-	ret_if(!wd);
-
-	if (wd->rotation_event_handler) {
-		ecore_event_handler_del(wd->rotation_event_handler);
+	if (!ticker_info->noti) {
+		_E("!ticker_info->noti");
+		evas_object_del(textblock);
+		return NULL;
 	}
-	free(wd);
 
-	evas_object_del(window);
+	ticker_text = _ticker_get_text(ticker_info->noti);
+	if (!ticker_text) {
+		_E("!ticker_text");
+		evas_object_del(textblock);
+		return NULL;
+	}
+
+	elm_object_part_text_set(textblock, "elm.text", ticker_text);
+
+	free(ticker_text);
+
+	return textblock;
 }
 
-static void _rotate_cb(void *data, Evas_Object *obj, void *event)
+static Evas_Object *_ticker_scroller_create(Evas_Object *layout)
 {
-	struct appdata *ad = data;
-	Evas_Object *win = obj;
-	struct Internal_Data *wd = NULL;
-	Evas_Object *base = NULL;
+	_D("");
+	Evas_Object *scroller = elm_scroller_add(layout);
+
+	evas_object_size_hint_weight_set(scroller, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+	evas_object_size_hint_align_set(scroller, EVAS_HINT_FILL, EVAS_HINT_FILL);
+
+	elm_scroller_gravity_set(scroller, 0, 0);
+
+	elm_scroller_policy_set(scroller, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
+	elm_scroller_movement_block_set(scroller,
+			ELM_SCROLLER_MOVEMENT_BLOCK_VERTICAL | ELM_SCROLLER_MOVEMENT_BLOCK_HORIZONTAL);
+	elm_scroller_page_scroll_limit_set(scroller, 1, 1);
+
+	elm_object_part_content_set(layout, "text_rect", scroller);
+
+	return scroller;
+}
+
+static Evas_Object *_ticker_layout_create(Evas_Object *win)
+{
+	if (!win)
+		return NULL;
+
+	Evas_Object *layout = elm_layout_add(win);
+
+	if (!elm_layout_file_set(layout, util_get_res_file_path(TICKER_EDJ),
+				"quickpanel/tickernoti/normal"))
+		_E("elm_layout_file_set failed");
+
+	evas_object_event_callback_add(layout, EVAS_CALLBACK_MOUSE_DOWN, _ticker_layout_mouse_down_cb, NULL);
+
+	elm_win_resize_object_add(win, layout);
+
+	return layout;
+}
+
+static void _ticker_win_rotation_cb(void *data, Evas_Object *obj, void *event)
+{
 	int angle = 0;
+	Evas_Object *win = obj;
 
-	ret_if(!ad);
-	ret_if(!win);
-
-	wd =  evas_object_data_get(win, PRIVATE_DATA_KEY_DATA);
-	ret_if(!wd);
-
-	base = evas_object_data_get(win, DATA_KEY_BASE_RECT);
-	ret_if(!base);
-
-	angle = elm_win_rotation_get(win);
+	angle = elm_win_active_win_orientation_get(win);
 	angle %= 360;
-	if (angle < 0) {
+
+	if (angle < 0)
 		angle += 360;
-	}
-	_D("Ticker angle is %d degree", angle);
+
+	_D("port.w = %d", ticker.ad->win.port_w);
+	_D("land.w = %d", ticker.ad->win.land_w);
+	_D("angle = %d", angle);
 
 	switch (angle) {
 	case 0:
 	case 180:
-		evas_object_resize(base, ad->win.port_w, wd->h);
-		evas_object_size_hint_min_set(base, ad->win.port_w, wd->h);
-		evas_object_resize(win, ad->win.port_w, wd->h);
+		evas_object_resize(win, ticker.ad->win.port_w, INDICATOR_HEIGHT);
 		evas_object_move(win, 0, 0);
 		break;
 	case 90:
-		evas_object_resize(base, ad->win.land_w, wd->h);
-		evas_object_size_hint_min_set(base, ad->win.land_w, wd->h);
-		evas_object_resize(win, ad->win.land_w, wd->h);
+		evas_object_resize(win, ticker.ad->win.land_w, INDICATOR_HEIGHT);
 		evas_object_move(win, 0, 0);
 		break;
 	case 270:
-		evas_object_resize(base, ad->win.land_w, wd->h);
-		evas_object_size_hint_min_set(base, ad->win.land_w, wd->h);
-		evas_object_resize(win, ad->win.land_w, wd->h);
-		evas_object_move(win, ad->win.port_w - wd->h, 0);
+		evas_object_resize(win, ticker.ad->win.land_w, INDICATOR_HEIGHT);
+		evas_object_move(win, ticker.ad->win.port_w - INDICATOR_HEIGHT, 0);
 		break;
 	default:
-		_E("cannot reach here");
+		_E("Undefined window rotation angle");
 	}
-
-	wd->angle = angle;
 }
 
-static Evas_Object *_create_ticker_window(Evas_Object *parent, struct appdata *ad)
+static Evas_Object *_ticker_window_create(struct appdata *ad)
 {
 	Evas_Object *win = NULL;
-	struct Internal_Data *wd = NULL;
-	Evas *e = NULL;
-	Ecore_Evas *ee = NULL;
 
 	_D("A window is created for ticker notifications");
 
-	win = elm_win_add(NULL, "noti_win", ELM_WIN_NOTIFICATION);
+	win = elm_win_add(NULL, "ticker_win", ELM_WIN_NOTIFICATION);
 	retv_if(!win, NULL);
 
 	elm_win_alpha_set(win, EINA_FALSE);
-	elm_win_title_set(win, "noti_win");
+	elm_win_title_set(win, "ticker_win");
 	elm_win_borderless_set(win, EINA_TRUE);
 	elm_win_autodel_set(win, EINA_TRUE);
 	efl_util_set_notification_window_level(win, EFL_UTIL_NOTIFICATION_LEVEL_HIGH);
 	elm_win_prop_focus_skip_set(win, EINA_TRUE);
 	elm_win_role_set(win, "notification-normal");
 
-	/* This is for rotation issue */
-	e = evas_object_evas_get(win);
-	goto_if(!e, error);
-
-	ee = ecore_evas_ecore_evas_get(e);
-	goto_if(!ee, error);
-
-	ecore_evas_name_class_set(ee, "APP_POPUP", "APP_POPUP");
-
-	/* you can use evas_object_resize() and evas_object_move() by using elm_win_aux_hint_add().
-	   elm_win_aux_hint_add() makes it possible to set the size and location of the notification window freely.
-	   if you do not use elm_win_aux_hint_add(), notification window is displayed full screen. */
 	elm_win_aux_hint_add(win, "wm.policy.win.user.geometry", "1");
-	evas_object_resize(win, ad->win.w, ad->win.h);
+	evas_object_resize(win, ad->win.w, INDICATOR_HEIGHT);
 	evas_object_move(win, 0, 0);
-	evas_object_hide(win);
 
 	if (elm_win_wm_rotation_supported_get(win)) {
 		int rots[4] = { 0, 90, 180, 270 };
 		elm_win_wm_rotation_available_rotations_set(win, rots, 4);
 	}
-	evas_object_smart_callback_add(win, "wm,rotation,changed", _rotate_cb, ad);
 
-	wd = (struct Internal_Data *) calloc(1, sizeof(struct Internal_Data));
-	goto_if(!wd, error);
+	evas_object_smart_callback_add(win, "wm,rotation,changed", _ticker_win_rotation_cb, ad);
 
-	evas_object_data_set(win, PRIVATE_DATA_KEY_DATA, wd);
-	evas_object_data_set(win, PRIVATE_DATA_KEY_NOTI, NULL);
-
-	wd->angle = 0;
-	wd->w = ad->win.w;
-	wd->h = ad->win.h;
-
-	evas_object_smart_callback_add(win, "sub-object-del", _sub_del, NULL);
+	_ticker_win_rotation_cb(NULL, ticker.win, NULL);
 
 	return win;
-
-error:
-	if (win)
-		evas_object_del(win);
-
-	return NULL;
 }
 
-static Evas_Object *_win_content_get(Evas_Object *obj)
+static void _ticker_window_destroy(void)
 {
-	struct Internal_Data *wd;
-
-	retv_if(!obj, NULL);
-
-	wd = evas_object_data_get(obj, PRIVATE_DATA_KEY_DATA);
-	retv_if(!wd, NULL);
-
-	return wd->content;
+	evas_object_smart_callback_del(ticker.win, "wm,rotation,changed", _ticker_win_rotation_cb);
+	evas_object_del(ticker.win);
 }
 
-static void _win_content_set(Evas_Object *obj, Evas_Object *content)
+static int _ticker_view_create(void)
 {
-	struct Internal_Data *wd;
+	_D("");
+	if (!ticker.win)
+		ticker.win = _ticker_window_create(ticker.ad);
+	if (!ticker.layout)
+		ticker.layout = _ticker_layout_create(ticker.win);
+	if (!ticker.scroller)
+		ticker.scroller = _ticker_scroller_create(ticker.layout);
 
-	ret_if (!obj);
-	ret_if (!content);
+	evas_object_show(ticker.layout);
+	evas_object_show(ticker.scroller);
+	evas_object_show(ticker.win);
 
-	wd = evas_object_data_get(obj, PRIVATE_DATA_KEY_DATA);
-	ret_if (!wd);
+	if (ticker.ad)
+		util_signal_emit_by_win(&ticker.ad->win, "message.show.noeffect", "indicator.prog");
 
-	if (wd->content) {
-		evas_object_del(wd->content);
-	}
-
-	wd->content = content;
-	if (wd->content) {
-		evas_object_show(wd->content);
-		evas_object_event_callback_add(wd->content, EVAS_CALLBACK_CHANGED_SIZE_HINTS, _content_changed_size_hints, obj);
+	if (ticker.win && ticker.layout && ticker.scroller)
+		return 0;
+	else {
+		_ticker_view_destroy();
+		return -1;
 	}
 }
 
-static void _create_ticker_noti(notification_h noti, struct appdata *ad, ticker_info_s *ticker_info)
+static void _ticker_view_destroy(void)
 {
-	Eina_Bool ret = EINA_FALSE;
-	Evas_Object *detail = NULL;
-	Evas_Object *base = NULL;
-	Evas_Object *icon = NULL;
-	Evas_Object *textblock = NULL;
-	char *line1 = NULL;
-	char *line2 = NULL;
-	int noti_height = 0;
-	int *is_ticker_executed = NULL;
-	int count = 0;
+	_D("");
+	if (ticker.win) {
+		_ticker_window_destroy();
 
-	notification_system_setting_h system_setting = NULL;
-	notification_setting_h setting = NULL;
-	bool do_not_disturb = false;
-	bool do_not_disturb_exception = false;
+		ticker.win = NULL;
+		ticker.layout = NULL;
+		ticker.scroller = NULL;
+	}
+
+	_ticker_noti_destroy(&ticker.current);
+	ticker.current = NULL;
+	_ticker_noti_destroy(&ticker.pending);
+	ticker.pending = NULL;
+
+	if (ticker.timer) {
+		ecore_timer_del(ticker.timer);
+		ticker.timer = NULL;
+	}
+
+	if (ticker.ad)
+		util_signal_emit_by_win(&ticker.ad->win, "message.hide", "indicator.prog");
+}
+
+static ticker_info_s *_ticker_noti_create(notification_h noti)
+{
+	retv_if(!noti, NULL);
 	char *pkgname = NULL;
 
-	ret_if(!ad);
-	ret_if(!ticker_info);
+	ticker_info_s *ticker_info = calloc(1, sizeof(ticker_info_s));
+	retvm_if(!ticker_info, NULL,
+			"ticker_info calloc failed");
 
-	count = eina_list_count(ticker_info->ticker_list);
-	if (count > 1) {
-		_E("ticker notification exists");
-		return;
+	int ret = notification_clone(noti, &ticker_info->noti);
+	if (ret != NOTIFICATION_ERROR_NONE || !ticker_info->noti) {
+		_E("notification_clone failed: %s", get_error_message(ret));
+		free(ticker_info);
+		return NULL;
 	}
 
-	_D("create ticker notification");
-
-	/*
-	 * @ Note
-	 * Do Not Disturb
-	 */
-	ret = notification_system_setting_load_system_setting(&system_setting);
-	if (ret != NOTIFICATION_ERROR_NONE || system_setting == NULL) {
-		_E("Failed to load system_setting");
-		return;
-	}
-	notification_system_setting_get_do_not_disturb(system_setting, &do_not_disturb);
-
-	if (system_setting)
-		notification_system_setting_free_system_setting(system_setting);
-
-	ret = notification_get_pkgname(noti, &pkgname);
-	if (ret != NOTIFICATION_ERROR_NONE) {
-		_E("Failed to get package name");
+	ret = notification_get_pkgname(ticker_info->noti, &pkgname);
+	if (ret != NOTIFICATION_ERROR_NONE || !pkgname) {
+		_E("notification_get_pkgname failed: %s", get_error_message(ret));
+		free(ticker_info);
+		return NULL;
 	}
 
-	ret = notification_setting_get_setting_by_package_name(pkgname, &setting);
-	if (ret != NOTIFICATION_ERROR_NONE || setting == NULL) {
-		_E("Failed to get setting by package name : %d", ret);
-	} else {
-		notification_setting_get_do_not_disturb_except(setting, &do_not_disturb_exception);
-
-		if (setting)
-			notification_setting_free_notification(setting);
-
-		_D("do_not_disturb = %d, do_not_disturb_exception = %d", do_not_disturb, do_not_disturb_exception);
-		if (do_not_disturb  == 1 && do_not_disturb_exception == 0)
-			return;
-	}
-
-	/* create layout */
-	detail = elm_layout_add(ad->ticker_win);
-	goto_if(!detail, ERROR);
-
-	ret = elm_layout_file_set(detail, util_get_res_file_path(TICKER_EDJ), "quickpanel/tickernoti/normal");
-
-	goto_if(ret == EINA_FALSE, ERROR);
-
-	elm_object_signal_callback_add(detail, "request,hide", "", _noti_hide_cb, ticker_info);
-	evas_object_event_callback_add(detail, EVAS_CALLBACK_MOUSE_DOWN, _mouse_down_cb, ticker_info);
-	evas_object_size_hint_min_set(detail, 1, noti_height);
-	_win_content_set(ad->ticker_win, detail);
-
-	/* create base rectangle */
-	base = evas_object_rectangle_add(evas_object_evas_get(detail));
-	goto_if(!base, ERROR);
-	evas_object_color_set(base, 0, 0, 0, 0);
-	evas_object_resize(base, ad->win.w, ad->win.h);
-	evas_object_size_hint_min_set(base, ad->win.w, ad->win.h);
-	evas_object_show(base);
-	elm_object_part_content_set(detail, "base", base);
-	evas_object_data_set(ad->ticker_win, DATA_KEY_BASE_RECT, base);
-
-	/* create icon */
-	icon = _ticker_create_icon(detail, noti);
-	if (icon) elm_object_part_content_set(detail, "icon", icon);
-	evas_object_data_set(ad->ticker_win, PRIVATE_DATA_KEY_ICON, icon);
-
-	/* create scroller */
-	ticker_info->scroller = elm_scroller_add(detail);
-	elm_scroller_gravity_set(ticker_info->scroller, 0, 0);
-	evas_object_size_hint_weight_set(ticker_info->scroller, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-	evas_object_size_hint_align_set(ticker_info->scroller, EVAS_HINT_FILL, EVAS_HINT_FILL);
-
-	elm_scroller_policy_set(ticker_info->scroller, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
-	elm_scroller_movement_block_set(ticker_info->scroller, ELM_SCROLLER_MOVEMENT_BLOCK_VERTICAL|ELM_SCROLLER_MOVEMENT_BLOCK_HORIZONTAL);
-
-	elm_object_part_content_set(detail, "text_rect", ticker_info->scroller);
+	ticker_info->pkgname = strdup(pkgname);
+	ticker_info->current_line = 0;
+	ticker_info->textblock = NULL;
 
 
-	textblock = elm_layout_add(ticker_info->scroller);
-	if (!elm_layout_file_set(textblock, util_get_res_file_path(TICKER_EDJ), "quickpanel/tickernoti/text")) {
-		_E("elm_layout_file_set failed");
-		return;
-	}
-	evas_object_size_hint_align_set(textblock, EVAS_HINT_FILL, EVAS_HINT_FILL);
-	evas_object_size_hint_weight_set(textblock, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-
-	elm_object_content_set(ticker_info->scroller, textblock);
-	evas_object_show(textblock);
-
-	/* get noti text */
-
-	ticker_info->current_page = 0;
-	ticker_info->pages = 0;
-	ticker_info->textblock = textblock;
-
-	_ticker_get_text(noti, 0, &line1, &line2);
-
-	if (line1 && line2) {
-
-		Eina_Strbuf *buffer = eina_strbuf_new();
-
-		eina_strbuf_append(buffer, line1);
-		eina_strbuf_append(buffer, "<br/>");
-		eina_strbuf_append(buffer, line2);
-
-		elm_object_part_text_set(textblock, "elm.text", eina_strbuf_string_get(buffer));
-		_D("text: %s", eina_strbuf_string_get(buffer));
-
-		eina_strbuf_free(buffer);
-
-	} else if (line1 || line2)
-		elm_object_part_text_set(textblock, "elm.text", line1 ? line1 : line2);
-	else
-		goto ERROR;
-
-	free(line1);
-	free(line2);
-
-	evas_object_show(ad->ticker_win);
-
-	elm_scroller_region_bring_in(ticker_info->scroller, 0, 0, 0, 0);
-
-	is_ticker_executed = (int *)malloc(sizeof(int));
-	if (is_ticker_executed != NULL) {
-		*is_ticker_executed = 0;
-		evas_object_data_set(detail, PRIVATE_DATA_KEY_TICKERNOTI_EXECUTED, is_ticker_executed);
-	}
-
-	/* When ticker noti is displayed, indicator window has to be hidden. */
-	if (ad) util_signal_emit_by_win(&ad->win, "message.show.noeffect", "indicator.prog");
-
-	ticker_info->timer = ecore_timer_add(TICKERNOTI_DURATION, _timeout_cb, ticker_info);
-
-	evas_object_data_set(ad->win.win, PRIVATE_DATA_KEY_TICKER_INFO, ticker_info);
-	evas_object_data_set(ticker_info->scroller, PRIVATE_DATA_KEY_APPDATA, ad);
-
-	_rotate_cb(ad, ad->ticker_win, NULL);
-
-	return;
-
-ERROR:
-	if (ad->ticker_win) _destroy_ticker_noti(ticker_info);
+	return ticker_info;
 }
 
-static void _destroy_ticker_noti(ticker_info_s *ticker_info)
+static void _ticker_noti_destroy(ticker_info_s **ticker_info)
 {
-	struct appdata *ad = NULL;
-	Evas_Object *icon = NULL;
-	Evas_Object *detail = NULL;
-	Evas_Object *base = NULL;
-	int *is_ticker_executed = NULL;
-	notification_h noti;
+	ret_if(!*ticker_info);
 
-	ret_if(!ticker_info);
-
-	_D("destroy ticker notification");
-
-	ad = evas_object_data_del(ticker_info->scroller, PRIVATE_DATA_KEY_APPDATA);
-	ret_if(!ad);
-	ret_if(!ad->ticker_win);
-
-	/* When ticker noti is hidden, indicator window has to be displayed. */
-	if (ad)	util_signal_emit_by_win(&ad->win, "message.hide", "indicator.prog");
-
-	if (ticker_info->timer) {
-		ecore_timer_del(ticker_info->timer);
-		ticker_info->timer = NULL;
+	if ((*ticker_info)->noti) {
+		_request_to_delete_noti((*ticker_info)->noti);
+		notification_free((*ticker_info)->noti);
+		(*ticker_info)->noti = NULL;
 	}
+	if ((*ticker_info)->textblock)
+		evas_object_del((*ticker_info)->textblock);
+	if ((*ticker_info)->icon)
+		evas_object_del((*ticker_info)->icon);
 
-	if (ticker_info->scroller)
-		ticker_info->scroller = NULL;
+	if (!ticker.pending && !ticker.current)
+		_ticker_view_destroy();
 
-	icon = evas_object_data_del(ad->ticker_win, PRIVATE_DATA_KEY_ICON);
-	if (icon) evas_object_del(icon);
+	free((*ticker_info)->pkgname);
+	free(*ticker_info);
 
-	base = evas_object_data_del(ad->ticker_win, DATA_KEY_BASE_RECT);
-	if (base) evas_object_del(base);
-
-	detail = _win_content_get(ad->ticker_win);
-	if (detail) {
-		is_ticker_executed = evas_object_data_del(detail, PRIVATE_DATA_KEY_TICKERNOTI_EXECUTED);
-		if (is_ticker_executed != NULL) {
-			free(is_ticker_executed);
-		}
-		_win_content_set(ad->ticker_win, NULL);
-	}
-
-	evas_object_hide(ad->ticker_win);
-
-	noti = evas_object_data_del(ad->ticker_win, PRIVATE_DATA_KEY_NOTI);
-	if (noti) {
-		_request_to_delete_noti(noti);
-		notification_free(noti);
-	}
-
-	if (ticker_info->ticker_list) {
-		noti = _get_instant_latest_message_from_list(ticker_info);
-		if (noti) {
-			_create_ticker_noti(noti, ad, ticker_info);
-		}
-	}
+	*ticker_info = NULL;
 }
 
 static void _ticker_noti_detailed_changed_cb(void *data, notification_type_e type, notification_op *op_list, int num_op)
 {
-	struct appdata *ad = data;
-	notification_h noti = NULL;
-	notification_h noti_from_master = NULL;
-	ticker_info_s *ticker_info = NULL;
-	char *pkgname = NULL;
-	int flags = 0;
-	int applist = NOTIFICATION_DISPLAY_APP_ALL;
-	int op_type = 0;
-	int priv_id = 0;
-	int lock_state = SYSTEM_SETTINGS_LOCK_STATE_UNLOCK;
-	int ret;
-
-	ret_if(!ad);
 	ret_if(!op_list);
-
+	ret_if(!op_list->noti);
 	_D("");
 
-	ret_if(num_op < 1);
-	/* FIXME : num_op can be more than 1 */
-	ret_if(num_op > 1);
-
-	ret = system_settings_get_value_int(SYSTEM_SETTINGS_KEY_LOCK_STATE, &lock_state);
-	if (ret != SYSTEM_SETTINGS_ERROR_NONE || lock_state == SYSTEM_SETTINGS_LOCK_STATE_LOCK)
-		return;
-
-	notification_op_get_data(op_list, NOTIFICATION_OP_DATA_TYPE, &op_type);
-	notification_op_get_data(op_list, NOTIFICATION_OP_DATA_PRIV_ID, &priv_id);
-	notification_op_get_data(op_list, NOTIFICATION_OP_DATA_NOTI, &noti_from_master);
-
-	//TODO: Below functions are depracated and should not be used
-	ret = notification_op_get_data(op_list, NOTIFICATION_OP_DATA_TYPE, &op_type);
-	ret_if(ret != NOTIFICATION_ERROR_NONE);
-	ret = notification_op_get_data(op_list, NOTIFICATION_OP_DATA_PRIV_ID, &priv_id);
-	ret_if(ret != NOTIFICATION_ERROR_NONE);
-	ret = notification_op_get_data(op_list, NOTIFICATION_OP_DATA_NOTI, &noti_from_master);
-	ret_if(ret != NOTIFICATION_ERROR_NONE);
-
-	if (op_type != NOTIFICATION_OP_INSERT && op_type != NOTIFICATION_OP_UPDATE) {
+	if (!_notification_accept(op_list->noti)) {
+		_E("Notification rejected");
 		return;
 	}
 
-	if (!noti_from_master) {
-		_E("failed to get a notification from master");
+	if (op_list->type != NOTIFICATION_OP_INSERT
+			&& op_list->type != NOTIFICATION_OP_UPDATE) {
+		_E("Wrong operation type");
 		return;
-	}
-
-	if (notification_clone(noti_from_master, &noti) != NOTIFICATION_ERROR_NONE) {
-		_E("failed to create a cloned notification");
-		goto ERROR;
-	}
-
-	ret_if(!noti);
-
-	notification_get_display_applist(noti, &applist);
-	if (!(applist & NOTIFICATION_DISPLAY_APP_TICKER)) {
-		_D("displaying ticker option is off");
-		goto ERROR;
 	}
 
 	if (_is_security_lockscreen_launched()) {
-		_E("lockscreen launched, creating a ticker canceled");
-		/* FIXME : In this case, we will remove this notification */
-		_request_to_delete_noti(noti);
-		goto ERROR;
+		_E("Lockscreen launched, ticker dismiss");
+		_request_to_delete_noti(op_list->noti);
+		return;
 	}
 
-	notification_get_pkgname(noti, &pkgname);
-	if (!pkgname) {
-		_D("Disabled tickernoti");
-		_request_to_delete_noti(noti);
-		goto ERROR;
+	if (_is_do_not_disturb(op_list->noti)) {
+		_E("Do not disturb");
+		_request_to_delete_noti(op_list->noti);
+		return;
 	}
 
-//	ticker_info = evas_object_data_get(ad->win.win, PRIVATE_DATA_KEY_TICKER_INFO);
-//	if (!ticker_info) {
-		ticker_info = calloc(1, sizeof(ticker_info_s));
-		if (!ticker_info) {
-			_E("calloc error");
-			_request_to_delete_noti(noti);
-			goto ERROR;
-		}
-//	}
+	ticker_info_s *ticker_info = _ticker_noti_create(op_list->noti);
+	retm_if(!ticker_info, "_ticker_noti_create failed");
 
-	notification_get_property(noti, &flags);
-	if (flags & NOTIFICATION_PROP_DISABLE_TICKERNOTI) {
-		_D("Disabled tickernoti");
-		goto ERROR;
+	retm_if(_ticker_view_create(), "_ticker_view_create failed");
+
+	if (!ticker.current)
+		ticker.current = ticker_info;
+	else {
+		if (ticker.pending)
+			_ticker_noti_destroy(&ticker.pending);
+		ticker.pending = ticker_info;
 	}
 
-	/* Moved cause of crash issue */
-	evas_object_data_set(ad->ticker_win, PRIVATE_DATA_KEY_NOTI, noti);
-
-	ticker_info->ticker_list = eina_list_append(ticker_info->ticker_list, noti);
-	_create_ticker_noti(noti, ad, ticker_info);
+	if (!ticker.timer) {
+		ticker.timer = ecore_timer_add(TICKERNOTI_DURATION, _ticker_update, NULL);
+		_ticker_update(NULL);
+	}
 
 	return;
-
-ERROR:
-	if (ticker_info) free(ticker_info);
-	if (noti) notification_free(noti);
 }
 
-int ticker_init(void *data)
+int ticker_init(struct appdata *ad)
 {
-	struct appdata *ad = data;
+	ticker.ad = ad;
 
-	ad->ticker_win = _create_ticker_window(NULL, ad);
-	retv_if(!ad->ticker_win, 0);
-
-	notification_register_detailed_changed_cb(_ticker_noti_detailed_changed_cb, ad);
+	int ret = notification_register_detailed_changed_cb(_ticker_noti_detailed_changed_cb, ad);
+	if (ret != NOTIFICATION_ERROR_NONE) {
+		_E("notification_register_detailed_changed_cb failed: %s", get_error_message(ret));
+		return INDICATOR_ERROR_FAIL;
+	}
 
 	return INDICATOR_ERROR_NONE;
 }
 
-int ticker_fini(void *data)
+int ticker_fini(struct appdata *ad)
 {
-	struct appdata *ad = data;
-	ticker_info_s *ticker_info = NULL;
-
 	retv_if(!ad, 0);
 
-	ticker_info = evas_object_data_del(ad->win.win, PRIVATE_DATA_KEY_TICKER_INFO);
-	retv_if(!ticker_info, 0);
-
-	_destroy_ticker_window(ad->ticker_win);
-	ad->ticker_win = NULL;
-
-	if (ticker_info->timer) {
-		ecore_timer_del(ticker_info->timer);
-		ticker_info->timer = NULL;
-	}
+	_ticker_view_destroy();
 
 	return INDICATOR_ERROR_NONE;
 }
