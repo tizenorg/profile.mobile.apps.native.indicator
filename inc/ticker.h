@@ -30,6 +30,7 @@ typedef enum _indicator_animated_icon_type {
 
 typedef struct ticker {
 	Evas_Object *scroller;
+	Evas_Object *textblock;
 	Ecore_Timer *timer;
 	Eina_List *ticker_list;
 	int current_page;

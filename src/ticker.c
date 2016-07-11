@@ -56,7 +56,6 @@
 #define PRIVATE_DATA_KEY_TICKERNOTI_EXECUTED "pdkte"
 #define PRIVATE_DATA_KEY_ANI_ICON_TYPE "pdkait"
 #define PRIVATE_DATA_KEY_ICON "pdki"
-#define PRIVATE_DATA_KEY_BOX "pdkb"
 #define PRIVATE_DATA_KEY_TICKER_INFO "pdkti"
 #define PRIVATE_DATA_KEY_NOTI "pdkn"
 #define PRIVATE_DATA_KEY_DATA "pdk_data"
@@ -179,6 +178,18 @@ static Eina_Bool _timeout_cb(void *data)
 
 	ticker_info = data;
 
+	Evas_Object *textblock_layout = elm_layout_edje_get(ticker_info->textblock);
+	Evas_Object *textblock = edje_object_part_object_get(textblock_layout, "elm.text");
+
+	ticker_info->current_page++;
+	int ch = 0;
+	if (!evas_object_textblock_line_number_geometry_get(textblock, ticker_info->current_page,
+				NULL, NULL, NULL, &ch)) {
+		_D("line geometry get failed or number exceeded");
+		_destroy_ticker_noti(ticker_info);
+		return ECORE_CALLBACK_CANCEL;
+	}
+
 	/* If count is 1, self */
 	if (ticker_info->ticker_list && eina_list_count(ticker_info->ticker_list) > 1) {
 		if (ticker_info->timer) {
@@ -190,13 +201,7 @@ static Eina_Bool _timeout_cb(void *data)
 		return ECORE_CALLBACK_CANCEL;
 	}
 
-	ticker_info->current_page++;
-
-	if (ticker_info->current_page >= ticker_info->pages) {
-		_destroy_ticker_noti(ticker_info);
-		return ECORE_CALLBACK_CANCEL;
-	}
-
+	elm_scroller_page_size_set(ticker_info->scroller, 0, ch);
 	elm_scroller_page_bring_in(ticker_info->scroller, 0, ticker_info->current_page);
 
 	return ECORE_CALLBACK_RENEW;
@@ -950,31 +955,12 @@ static void _win_content_set(Evas_Object *obj, Evas_Object *content)
 	}
 }
 
-static Evas_Object *_create_ticker_text_page(Evas_Object *box, char *text)
-{
-	Evas_Object *textblock = elm_layout_add(box);
-
-	evas_object_size_hint_weight_set(textblock, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-	evas_object_size_hint_align_set(textblock, EVAS_HINT_FILL, EVAS_HINT_FILL);
-
-	int ret = elm_layout_file_set(textblock, util_get_res_file_path(TICKER_EDJ), "quickpanel/tickernoti/text");
-	retvm_if(ret == EINA_FALSE, NULL, "Can not load layout file");
-
-	elm_object_part_text_set(textblock, "elm.text", text);
-	elm_box_pack_end(box, textblock);
-
-	evas_object_show(textblock);
-
-	return textblock;
-}
-
 static void _create_ticker_noti(notification_h noti, struct appdata *ad, ticker_info_s *ticker_info)
 {
 	Eina_Bool ret = EINA_FALSE;
 	Evas_Object *detail = NULL;
 	Evas_Object *base = NULL;
 	Evas_Object *icon = NULL;
-	Evas_Object *box = NULL;
 	Evas_Object *textblock = NULL;
 	char *line1 = NULL;
 	char *line2 = NULL;
@@ -1062,45 +1048,51 @@ static void _create_ticker_noti(notification_h noti, struct appdata *ad, ticker_
 
 	/* create scroller */
 	ticker_info->scroller = elm_scroller_add(detail);
-
+	elm_scroller_gravity_set(ticker_info->scroller, 0, 0);
 	evas_object_size_hint_weight_set(ticker_info->scroller, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
 	evas_object_size_hint_align_set(ticker_info->scroller, EVAS_HINT_FILL, EVAS_HINT_FILL);
 
 	elm_scroller_policy_set(ticker_info->scroller, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
 	elm_scroller_movement_block_set(ticker_info->scroller, ELM_SCROLLER_MOVEMENT_BLOCK_VERTICAL|ELM_SCROLLER_MOVEMENT_BLOCK_HORIZONTAL);
-	elm_scroller_page_scroll_limit_set(ticker_info->scroller, 1, 1);
 
 	elm_object_part_content_set(detail, "text_rect", ticker_info->scroller);
 
-	/* create box */
-	box = elm_box_add(ticker_info->scroller);
-	evas_object_size_hint_weight_set(box, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-	evas_object_size_hint_align_set(box, EVAS_HINT_FILL, EVAS_HINT_FILL);
-	elm_box_homogeneous_set(box, EINA_TRUE);
-	goto_if(!box, ERROR);
 
-	elm_object_content_set(ticker_info->scroller, box);
-	evas_object_show(box);
-	evas_object_data_set(ad->ticker_win, PRIVATE_DATA_KEY_BOX, box);
+	textblock = elm_layout_add(ticker_info->scroller);
+	if (!elm_layout_file_set(textblock, util_get_res_file_path(TICKER_EDJ), "quickpanel/tickernoti/text")) {
+		_E("elm_layout_file_set failed");
+		return;
+	}
+	evas_object_size_hint_align_set(textblock, EVAS_HINT_FILL, EVAS_HINT_FILL);
+	evas_object_size_hint_weight_set(textblock, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+
+	elm_object_content_set(ticker_info->scroller, textblock);
+	evas_object_show(textblock);
+
+	/* get noti text */
 
 	ticker_info->current_page = 0;
 	ticker_info->pages = 0;
+	ticker_info->textblock = textblock;
 
-	/* get noti text */
 	_ticker_get_text(noti, 0, &line1, &line2);
 
 	if (line1 && line2) {
 
-		ticker_info->pages = 2;
+		Eina_Strbuf *buffer = eina_strbuf_new();
 
-		textblock = _create_ticker_text_page(box, line1);
-		textblock = _create_ticker_text_page(box, line2);
+		eina_strbuf_append(buffer, line1);
+		eina_strbuf_append(buffer, "<br/>");
+		eina_strbuf_append(buffer, line2);
 
-	} else if (line1 || line2) {
+		elm_object_part_text_set(textblock, "elm.text", eina_strbuf_string_get(buffer));
+		_D("text: %s", eina_strbuf_string_get(buffer));
 
-		ticker_info->pages = 1;
-		textblock = _create_ticker_text_page(box, line1 ? line1 : line2);
-	} else
+		eina_strbuf_free(buffer);
+
+	} else if (line1 || line2)
+		elm_object_part_text_set(textblock, "elm.text", line1 ? line1 : line2);
+	else
 		goto ERROR;
 
 	free(line1);
@@ -1108,10 +1100,7 @@ static void _create_ticker_noti(notification_h noti, struct appdata *ad, ticker_
 
 	evas_object_show(ad->ticker_win);
 
-	int h = 0;
-	evas_object_geometry_get(textblock, NULL, NULL, NULL, &h);
-	elm_scroller_page_size_set(ticker_info->scroller, 0, h);
-	elm_scroller_page_show(ticker_info->scroller, 0, 0);
+	elm_scroller_region_bring_in(ticker_info->scroller, 0, 0, 0, 0);
 
 	is_ticker_executed = (int *)malloc(sizeof(int));
 	if (is_ticker_executed != NULL) {
@@ -1138,7 +1127,6 @@ ERROR:
 static void _destroy_ticker_noti(ticker_info_s *ticker_info)
 {
 	struct appdata *ad = NULL;
-	Evas_Object *box = NULL;
 	Evas_Object *icon = NULL;
 	Evas_Object *detail = NULL;
 	Evas_Object *base = NULL;
@@ -1161,10 +1149,8 @@ static void _destroy_ticker_noti(ticker_info_s *ticker_info)
 		ticker_info->timer = NULL;
 	}
 
-	box = evas_object_data_del(ad->ticker_win, PRIVATE_DATA_KEY_BOX);
-	if (box) evas_object_del(box);
-
-	if (ticker_info->scroller) ticker_info->scroller = NULL;
+	if (ticker_info->scroller)
+		ticker_info->scroller = NULL;
 
 	icon = evas_object_data_del(ad->ticker_win, PRIVATE_DATA_KEY_ICON);
 	if (icon) evas_object_del(icon);
