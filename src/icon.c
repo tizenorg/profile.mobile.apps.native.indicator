@@ -350,124 +350,6 @@ Eina_Bool icon_del(icon_s *icon)
 }
 
 
-
-/******************************************************************************
- *
- * Static functions : util functions - check priority
- *
- *****************************************************************************/
-
-static int _show_others_in_same_priority(icon_s *icon)
-{
-	icon_s *wish_add_icon;
-	int area = icon->area;
-	retvm_if(icon == NULL, FAIL, "Invalid parameter!");
-
-	wish_add_icon = list_try_to_find_icon_to_show(icon->area, icon->priority);
-	if (wish_add_icon == NULL)
-	{
-		return OK;
-	}
-
-	if (box_exist_icon(wish_add_icon))
-	{
-		/* Already shown icon */
-		return OK;
-	}
-
-	if(area == INDICATOR_ICON_AREA_NOTI)
-	{
-		box_append_icon_to_list(wish_add_icon);
-	}
-	else
-	{
-		box_add_icon_to_list(wish_add_icon);
-	}
-
-	return OK;
-}
-
-
-
-static int _hide_others_in_view_list(icon_s *icon)
-{
-	icon_s *wish_remove_icon = NULL;
-	retvm_if(icon == NULL, FAIL, "Invalid parameter!");
-
-	if (INDICATOR_ICON_AREA_SYSTEM == icon->area || INDICATOR_ICON_AREA_NOTI == icon->area || INDICATOR_ICON_AREA_MINICTRL == icon->area)
-	{
-		Icon_AddType ret;
-
-		/* In Case of Nonfixed icon, remove same or
-		 * lower priority icon. Check count of non-fixed view list
-		 * to insert icon
-		 */
-		ret = box_is_enable_to_insert_in_non_fixed_list(icon);
-		icon->wish_to_show = EINA_TRUE;
-		list_update(icon);
-
-		switch (ret) {
-		case CAN_ADD_WITH_DEL_NOTI:
-			wish_remove_icon = list_try_to_find_icon_to_remove(INDICATOR_ICON_AREA_NOTI,0);
-			box_remove_icon_from_list(wish_remove_icon);
-
-			retvm_if(wish_remove_icon == NULL, FAIL, "Unexpected Error : CAN_ADD_WITH_DEL_NOTI");
-			break;
-		case CAN_ADD_WITH_DEL_SYSTEM:
-			wish_remove_icon = list_try_to_find_icon_to_remove(INDICATOR_ICON_AREA_SYSTEM,0);
-
-			box_remove_icon_from_list(wish_remove_icon);
-			retvm_if(wish_remove_icon == NULL, FAIL, "Unexpected Error : CAN_ADD_WITH_DEL_SYSTEM");
-			break;
-		case CAN_ADD_WITH_DEL_MINICTRL:
-			wish_remove_icon = list_try_to_find_icon_to_remove(INDICATOR_ICON_AREA_MINICTRL,0);
-
-			box_remove_icon_from_list(wish_remove_icon);
-			retvm_if(wish_remove_icon == NULL, FAIL, "Unexpected Error : CAN_ADD_WITH_DEL_MINICTRL");
-			break;
-		case CAN_ADD_WITHOUT_DEL:
-			break;
-		case CANNOT_ADD:
-			return FAIL;
-		}
-
-		return OK;
-	}
-	else if (INDICATOR_ICON_AREA_FIXED == icon->area)
-	{
-		/* In Case of fixed icon, remove same priority icon */
-		wish_remove_icon = list_try_to_find_icon_to_remove(INDICATOR_ICON_AREA_FIXED,icon->priority);
-
-		/* First icon in the priority */
-		if (wish_remove_icon == NULL)
-		{
-			return OK;
-		}
-
-		/* Already shown icon */
-		if (wish_remove_icon == icon)
-		{
-			return FAIL;
-		}
-
-		icon->wish_to_show = EINA_TRUE;
-		list_update(icon);
-
-		/* Wish_remove_icon is always_top icon */
-		if (wish_remove_icon->always_top)
-		{
-			return FAIL;
-		}
-
-		/* Other Icon of Same Priority should remove in view list */
-		box_remove_icon_from_list(wish_remove_icon);
-	}
-
-	return OK;
-}
-
-
-
 /******************************************************************************
  *
  * Util Functions : external
@@ -523,7 +405,7 @@ static int _icon_update(icon_s *icon)
 			elm_image_file_set(img_eo, icon->img_obj.data, NULL);
 		}
 
-		if (icon->img_obj.width >= 0 && icon->img_obj.height>=0) {
+		if (icon->img_obj.width >= 0 && icon->img_obj.height >= 0) {
 			evas_object_size_hint_min_set(img_eo,
 				ELM_SCALE_SIZE(icon->img_obj.width),
 				ELM_SCALE_SIZE(icon->img_obj.height));
@@ -532,17 +414,11 @@ static int _icon_update(icon_s *icon)
 		}
 	}
 
-	if (icon->area == INDICATOR_ICON_AREA_SYSTEM) {
-		int bDisplay = 0;
-		bDisplay = 1;
-		if(ad->opacity_mode == INDICATOR_OPACITY_TRANSPARENT && bDisplay == 1) {
-			util_send_status_message_start(ad,2.5);
-		}
-	}
+	if (icon->area == INDICATOR_ICON_AREA_SYSTEM && ad->opacity_mode == INDICATOR_OPACITY_TRANSPARENT)
+			util_send_status_message_start(ad, 2.5);
 
 	return OK;
 }
-
 
 
 void icon_show(icon_s *icon)
@@ -552,6 +428,8 @@ void icon_show(icon_s *icon)
 	ret_if(!icon);
 	ret_if(!(icon->ad));
 
+	icon->wish_to_show = EINA_TRUE;
+
 	ad = (struct appdata *)icon->ad;
 
 	if (icon->obj_exist != EINA_FALSE) {
@@ -559,18 +437,16 @@ void icon_show(icon_s *icon)
 			box_remove_icon_from_list(icon);
 			box_add_icon_to_list(icon);
 			box_update_display(&(ad->win));
+			return;
 		} else {
 			_icon_update(icon);
 		}
 	}
 
-	if (_hide_others_in_view_list(icon) == FAIL) {
-		return;
-	}
-
 	box_add_icon_to_list(icon);
 
 	box_update_display(&(ad->win));
+
 }
 
 void icon_hide(icon_s *icon)
@@ -587,8 +463,6 @@ void icon_hide(icon_s *icon)
 
 		if (ret == FAIL)
 			_E("Failed to unpack!");
-
-		_show_others_in_same_priority(icon);
 
 		box_update_display(&(ad->win));
 
@@ -659,7 +533,7 @@ static Eina_Bool add_icon_with_area(int area)
 	if (box_exist_icon(wish_add_icon))
 		return EINA_FALSE;
 
-	box_append_icon_to_list(wish_add_icon);
+	box_add_icon_to_list(wish_add_icon);
 
 	return EINA_TRUE;
 }
@@ -680,7 +554,7 @@ Eina_Bool check_for_icons_overflow(void)
 
 void check_to_show_more_noti(win_info *win, Eina_Bool overflow)
 {
-	if (icons_overflow)
+	if (overflow)
 		indicator_more_notify_icon_change(EINA_TRUE);
 	else
 		indicator_more_notify_icon_change(EINA_FALSE);
@@ -689,9 +563,9 @@ void check_to_show_more_noti(win_info *win, Eina_Bool overflow)
 
 static void get_icons_cnt_per_area(int *s, int *m, int *n)
 {
-	int system_cnt = box_get_list_size(SYSTEM_LIST);
-	int minictrl_cnt = box_get_list_size(MINICTRL_LIST);
-	int noti_cnt = box_get_list_size(NOTI_LIST);
+	int system_cnt = list_get_active_icons_cnt(INDICATOR_ICON_AREA_SYSTEM);
+	int minictrl_cnt = list_get_active_icons_cnt(INDICATOR_ICON_AREA_MINICTRL);
+	int noti_cnt = list_get_active_icons_cnt(INDICATOR_ICON_AREA_NOTI);
 
 	int system = 0;
 	int minictrl = 0;
@@ -701,7 +575,6 @@ static void get_icons_cnt_per_area(int *s, int *m, int *n)
 	int max_icon_cnt = PORT_NONFIXED_ICON_COUNT;
 
 	if ((system_cnt + minictrl_cnt + noti_cnt) > PORT_NONFIXED_ICON_COUNT) {
-		max_icon_cnt = PORT_NONFIXED_ICON_COUNT - PORT_MORE_NOTI_ICON;
 		icons_overflow = EINA_TRUE;
 	} else
 		icons_overflow = EINA_FALSE;
@@ -722,7 +595,7 @@ static void get_icons_cnt_per_area(int *s, int *m, int *n)
 		total++;
 	}
 
-	while (total <= max_icon_cnt) {
+	while (total < max_icon_cnt) {
 
 		if (system_cnt > 0) {
 			system_cnt--;
@@ -751,57 +624,38 @@ void icon_reset_list(void)
 	int system, minictrl, noti;
 	get_icons_cnt_per_area(&system, &minictrl, &noti);
 
-	while(box_get_list_size(SYSTEM_LIST) > system) {
+	while(box_get_list_size(INDICATOR_ICON_AREA_SYSTEM) > system) {
 
 		if (!remove_icon_with_area(INDICATOR_ICON_AREA_SYSTEM))
 			break;
 	}
-	while (box_get_list_size(SYSTEM_LIST) < system) {
+	while (box_get_list_size(INDICATOR_ICON_AREA_SYSTEM) < system) {
 
 		if (!add_icon_with_area(INDICATOR_ICON_AREA_SYSTEM))
 			break;
 	}
 
-	while (box_get_list_size(MINICTRL_LIST) > minictrl) {
+	while (box_get_list_size(INDICATOR_ICON_AREA_MINICTRL) > minictrl) {
 
 		if (!remove_icon_with_area(INDICATOR_ICON_AREA_MINICTRL))
 			break;
 	}
-	while (box_get_list_size(MINICTRL_LIST) < minictrl) {
+	while (box_get_list_size(INDICATOR_ICON_AREA_MINICTRL) < minictrl) {
 
 		if (!add_icon_with_area(INDICATOR_ICON_AREA_MINICTRL))
 			break;
 	}
 
-	while (box_get_list_size(NOTI_LIST) > noti) {
+	while (box_get_list_size(INDICATOR_ICON_AREA_NOTI) > noti) {
 
 		if (!remove_icon_with_area(INDICATOR_ICON_AREA_NOTI))
 			break;
 	}
-	while (box_get_list_size(NOTI_LIST) < noti) {
+	while (box_get_list_size(INDICATOR_ICON_AREA_NOTI) < noti) {
 
-		if (!add_icon_with_area(INDICATOR_ICON_AREA_SYSTEM))
+		if (!add_icon_with_area(INDICATOR_ICON_AREA_NOTI))
 			break;
 	}
-}
-
-
-void* icon_util_make(void* input)
-{
-	icon_s *icon = (icon_s *)input;
-
-	retvm_if(input == NULL, NULL, "Invalid parameter!");
-
-	icon_s *obj = NULL;
-	obj = calloc(1, sizeof(icon_s));
-
-	if (obj) {
-		memset(obj, 0, sizeof(icon_s));
-		memcpy(obj,input,sizeof(icon_s));
-		obj->name = strdup(icon->name);
-	}
-
-	return obj;
 }
 
 /* End of file */

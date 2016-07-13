@@ -30,6 +30,5 @@ extern void list_insert_icon(icon_s *obj);
 extern void list_remove_icon(icon_s *obj);
 extern icon_s *list_try_to_find_icon_to_show(int area, int priority);
 extern icon_s *list_try_to_find_icon_to_remove(int area, int priority);
-extern unsigned int list_get_noti_count(void);
 
 #endif /*__INDICATOR_ICON_LIST_H__*/

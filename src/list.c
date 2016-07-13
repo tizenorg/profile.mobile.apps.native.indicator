@@ -46,8 +46,6 @@ extern void icon_free(icon_s *icon)
 	}
 }
 
-
-
 static void _list_free(Eina_List *list)
 {
 	Eina_List *l;
@@ -85,31 +83,32 @@ unsigned int list_get_active_icons_cnt(enum indicator_icon_area_type area)
 {
 	int count = 0;
 	Eina_List *l;
-	icon_s *data;
+	icon_s *icon;
 
 	switch (area) {
 	case INDICATOR_ICON_AREA_FIXED:
-		EINA_LIST_REVERSE_FOREACH(fixed_icon_list, l, data) {
-			if (data->wish_to_show)
+		EINA_LIST_REVERSE_FOREACH(fixed_icon_list, l, icon) {
+			if (icon->wish_to_show)
 				count++;
 		}
 		break;
 	case INDICATOR_ICON_AREA_SYSTEM:
-		EINA_LIST_REVERSE_FOREACH(system_icon_list, l, data) {
-			if (data->wish_to_show)
+		EINA_LIST_REVERSE_FOREACH(system_icon_list, l, icon) {
+			if (icon->wish_to_show)
 				count++;
 		}
 		break;
 	case INDICATOR_ICON_AREA_MINICTRL:
-		EINA_LIST_REVERSE_FOREACH(minictrl_icon_list, l, data) {
-			if (data->wish_to_show)
+		EINA_LIST_REVERSE_FOREACH(minictrl_icon_list, l, icon) {
+			if (icon->wish_to_show)
 				count++;
 		}
 		break;
 	case INDICATOR_ICON_AREA_NOTI:
-		EINA_LIST_REVERSE_FOREACH(noti_icon_list, l, data) {
-			if (data->wish_to_show)
-				count++;
+		EINA_LIST_REVERSE_FOREACH(noti_icon_list, l, icon) {
+			if (icon->wish_to_show)
+				if (strcmp(icon->name, "more_notify"))
+					count++;
 		}
 		break;
 	default:
@@ -188,9 +187,9 @@ static indicator_error_e _icon_exist_in_list(Eina_List *list, icon_s *icon)
 	icon_s *data;
 
 	/* Check name */
-	EINA_LIST_REVERSE_FOREACH(fixed_icon_list, l, data) {
-		if (data->name == icon->name) {
-			_D("[%s] is already exist in the list", icon->name);
+	EINA_LIST_REVERSE_FOREACH(list, l, data) {
+		if (!strcmp(data->name, icon->name)) {
+			_D("[%s] already exists in the list", icon->name);
 			return INDICATOR_ERROR_FAIL;
 		}
 	}
@@ -359,8 +358,6 @@ extern icon_s *list_try_to_find_icon_to_show(int area, int priority)
 		break;
 	}
 
-	retv_if(!icon, NULL);
-
 	return icon;
 }
 
@@ -375,9 +372,10 @@ extern icon_s *list_try_to_find_icon_to_remove(int area, int priority)
 
 	switch (area) {
 	case INDICATOR_ICON_AREA_FIXED:
-		EINA_LIST_REVERSE_FOREACH(fixed_icon_list, l, data) {
+		EINA_LIST_FOREACH(fixed_icon_list, l, data) {
 			if (data->priority == priority
-				&& data->wish_to_show == EINA_TRUE) {
+				&& data->wish_to_show == EINA_TRUE
+				&& data->exist_in_view == EINA_TRUE) {
 				icon = data;
 				break;
 			}
@@ -396,7 +394,7 @@ extern icon_s *list_try_to_find_icon_to_remove(int area, int priority)
 		break;
 	case INDICATOR_ICON_AREA_NOTI:
 		/* Find lowest priority of icon */
-		EINA_LIST_REVERSE_FOREACH(noti_icon_list, l, data) {
+		EINA_LIST_FOREACH(noti_icon_list, l, data) {
 			if (data->wish_to_show == EINA_TRUE
 				&& data->always_top == EINA_FALSE
 				&& data->exist_in_view == EINA_TRUE) {
@@ -407,7 +405,7 @@ extern icon_s *list_try_to_find_icon_to_remove(int area, int priority)
 		break;
 	case INDICATOR_ICON_AREA_MINICTRL:
 		/* Find lowest priority of icon */
-		EINA_LIST_REVERSE_FOREACH(minictrl_icon_list, l, data) {
+		EINA_LIST_FOREACH(minictrl_icon_list, l, data) {
 			if (data->wish_to_show == EINA_TRUE
 				&& data->always_top == EINA_FALSE
 				&& data->exist_in_view == EINA_TRUE) {
@@ -443,28 +441,8 @@ extern icon_s *list_try_to_find_icon_to_remove(int area, int priority)
 		break;
 	}
 
-	retv_if(!icon, NULL);
-
 	return icon;
 }
 
-
-
-extern unsigned int list_get_noti_count(void)
-{
-	Eina_List *l;
-	icon_s *data = NULL;
-	int cnt = 0;
-
-	EINA_LIST_FOREACH(noti_icon_list, l, data) {
-		if (data->wish_to_show == EINA_TRUE
-			|| data->exist_in_view == EINA_TRUE) {
-			if (!strcmp(data->name, "more_notify"))	continue; // Except more noti
-			cnt++;
-		}
-	}
-
-	return cnt;
-}
 
 /* End of file */
