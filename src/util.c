@@ -259,7 +259,7 @@ void util_battery_percentage_part_content_set(void* data, const char *part, cons
 
 
 
-void util_send_status_message_start(void* data,double duration)
+void util_send_status_message_start(void *data, double duration)
 {
 	Ecore_Evas *ee_port;
 	win_info* win = (win_info*)data;

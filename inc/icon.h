@@ -48,13 +48,11 @@ extern void icon_ani_set(icon_s *icon, enum indicator_icon_ani type);
 extern char *icon_label_set(const char *buf, char *font_name,
 							char *font_style, int font_size,
 							void *data);
-extern Eina_Bool icon_add(win_info *win,icon_s *icon);
+extern Eina_Bool icon_add(win_info *win, icon_s *icon);
 extern Eina_Bool icon_del(icon_s *icon);
 extern unsigned int icon_get_update_flag(void);
 extern void icon_set_update_flag(unsigned int val);
 extern void icon_reset_list(void);
-extern void icon_handle_more_notify_icon(win_info* win);
-extern void* icon_util_make(void* input);
 
 Eina_Bool check_for_icons_overflow(void);
 void check_to_show_more_noti(win_info *win, Eina_Bool overflow);

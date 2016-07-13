@@ -50,20 +50,12 @@ typedef enum _Icon_Display_Count {
 	LAND_CONNECTION_SYSTEM_ICON_COUNT = 2,
 } Icon_Display_Count;
 
-typedef enum Box_List {
-	FIXED_LIST = 0,
-	SYSTEM_LIST,
-	MINICTRL_LIST,
-	NOTI_LIST,
-	CONNECTION_SYSTEM_LIST
-} Box_List;
-
 extern int box_add_icon_to_list(icon_s *icon);
 extern int box_append_icon_to_list(icon_s *icon);
 extern int box_remove_icon_from_list(icon_s *icon);
 extern void box_init(win_info *win);
 extern void box_fini(win_info *win);
-extern unsigned int box_get_list_size(Box_List list);
+extern unsigned int box_get_list_size(indicator_icon_area_type type);
 extern int box_get_max_count_in_non_fixed_list(void);
 extern Icon_AddType box_is_enable_to_insert_in_non_fixed_list(icon_s *obj);
 extern int box_get_priority_in_move_area(win_info *win, Evas_Coord, Evas_Coord);
@@ -75,11 +67,7 @@ extern void box_noti_ani_handle(int bStart);
 extern void box_icon_state_set(int bShow,char* file,int line);
 extern int box_icon_state_get(void);
 extern unsigned int box_get_count_in_noti_list_except_minictrl(void);
-extern int box_get_enabled_noti_count(void);
 extern int box_check_more_icon_area(win_info *win, Evas_Coord curr_x, Evas_Coord curr_y);
 extern void box_update_display(win_info *win);
-extern int box_get_enabled_system_count(void);
-int box_get_enabled_connection_system_count(void);
-extern int box_get_enabled_minictrl_count(void);
 
 #endif /*__INDICATOR_BOX_UTIL_H__*/
