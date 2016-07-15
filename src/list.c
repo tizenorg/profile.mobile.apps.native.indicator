@@ -68,7 +68,7 @@ static void _list_free(Eina_List *list)
 
 
 
-extern int list_free_all(void)
+extern void list_free_all(void)
 {
 	_list_free(fixed_icon_list);
 	_list_free(system_icon_list);
@@ -76,8 +76,6 @@ extern int list_free_all(void)
 	_list_free(alarm_icon_list);
 	_list_free(connection_system_icon_list);
 	_list_free(minictrl_icon_list);
-
-	return true;
 }
 
 

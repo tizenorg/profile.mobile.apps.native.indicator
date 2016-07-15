@@ -31,26 +31,70 @@
 #define LOG_TAG "INDICATOR"
 #include <dlog.h>
 
+/**
+ * @file common.h
+ */
+
+/**
+ * @brief Definition of error logs printing function
+ *
+ * @param str string to print
+ * @param args optional variables or values for patterns(%s, %d etc.)
+ */
 #define ERR(str, args...)	LOGE("%s[%d]\t " #str "\n", \
 					__func__, __LINE__, ##args)
+
+/**
+ * @brief Definition of debug logs printing function
+ *
+ * @param str string to print
+ * @param args optional variables or values for patterns(%s, %d etc.)
+ */
 #define DBG(str, args...)	LOGD("%s[%d]\t " #str "\n", \
 					__func__, __LINE__, ##args)
+
+/**
+ * @brief Definition of information logs printing function
+ *
+ * @param str string to print
+ * @param args optional variables or values for patterns(%s, %d etc.)
+ */
 #define INFO(str, args...)	LOGI(#str"\n", ##args)
 
+/**
+ * @brief Definition of secured error logs printing function
+ *
+ * @param str string to print
+ * @param args optional variables or values for patterns(%s, %d etc.)
+ */
 #define SECURE_ERR(str, args...)	SECURE_LOGE("%s[%d]\t " #str "\n", \
 					__func__, __LINE__, ##args)
+
+/**
+ * @brief Definition of secured debug logs printing function
+ *
+ * @param str string to print
+ * @param args optional variables or values for patterns(%s, %d etc.)
+ */
 #define SECURE_DBG(str, args...)	SECURE_LOGD("%s[%d]\t " #str "\n", \
 					__func__, __LINE__, ##args)
+
+/**
+ * @brief Definition of secured information logs printing function
+ *
+ * @param str string to print
+ * @param args optional variables or values for patterns(%s, %d etc.)
+ */
 #define SECURE_INFO(str, args...)	SECURE_LOGI(#str"\n", ##args)
 
-#elif FILE_DEBUG /*_DLOG_USED*/
+#elif FILE_DEBUG /**_DLOG_USED*/
 #include "indicator_debug_util.h"
 #define ERR(str, args...)	debug_printf("%s[%d]\t " #str "\n", \
 					__func__, __LINE__, ##args)
 #define DBG(str, args...)	debug_printf("%s[%d]\t " #str "\n", \
 					__func__, __LINE__, ##args)
 #define INFO(str, args...)	debug_printf(#str"\n", ##args)
-#else /*_DLOG_USED*/
+#else /**_DLOG_USED*/
 #define ERR(str, args...)	fprintf(stderr, "%s[%d]\t " #str "\n",\
 					__func__, __LINE__, ##args)
 #define DBG(str, args...)	fprintf(stderr, "%s[%d]\t " #str "\n",\
@@ -58,17 +102,6 @@
 #define INFO(str, args...)	fprintf(stderr, #str"\n", ##args)
 #endif /*_DLOG_USED*/
 
-#define retif(cond, ret, str, args...) do {\
-	if (cond) { \
-		ERR(str, ##args);\
-		return ret;\
-	} \
-} while (0);
+
 #define ECORE_FILE_MONITOR_DELIF(p) ({if (p) {ecore_file_monitor_del(p); p = NULL; }})
 
-#define gotoif(cond, target, str, args...) do {\
-	if (cond) { \
-		DBG(str, ##args);\
-		goto target;\
-	} \
-} while (0);

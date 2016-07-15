@@ -226,7 +226,7 @@ void util_part_text_emit_by_win(void* data, const char *part, const char *text)
 
 
 
-void util_battery_percentage_part_content_set(void* data, const char *part, const char *img_path)
+void util_part_content_img_set(void *data, const char *part, const char *img_path)
 {
 	struct appdata *ad = (struct appdata *)data;
 	retm_if(data == NULL, "Invalid parameter!");
@@ -259,7 +259,7 @@ void util_battery_percentage_part_content_set(void* data, const char *part, cons
 
 
 
-void util_send_status_message_start(void* data,double duration)
+void util_send_status_message_start(void *data, double duration)
 {
 	Ecore_Evas *ee_port;
 	win_info* win = (win_info*)data;
@@ -519,14 +519,7 @@ int util_get_string_width(void* data, const char* part)
 #endif
 
 
-int util_is_orf(void)
-{
-	return 1;
-}
-
-
-
-int util_check_noti_ani(const char* path)
+int util_check_noti_ani(const char *path)
 {
 	retv_if(!path, 0);
 	if (!strcmp(path,"reserved://indicator/ani/downloading")
@@ -566,10 +559,9 @@ char *util_get_real_path(char *special_path)
 	return NULL;
 }
 
-void util_start_noti_ani(void* data)
+void util_start_noti_ani(icon_s *icon)
 {
-	icon_s *icon = (icon_s *)data;
-	retm_if(data == NULL, "Invalid parameter!");
+	retm_if(icon == NULL, "Invalid parameter!");
 
 	if(util_check_noti_ani(icon->img_obj.data))
 	{
@@ -587,10 +579,9 @@ void util_start_noti_ani(void* data)
 
 
 
-void util_stop_noti_ani(void* data)
+void util_stop_noti_ani(icon_s *icon)
 {
-	icon_s *icon = (icon_s *)data;
-	retm_if(data == NULL, "Invalid parameter!");
+	retm_if(icon == NULL, "Invalid parameter!");
 
 	if(util_check_noti_ani(icon->img_obj.data))
 	{
@@ -636,12 +627,12 @@ static bool _is_empty_str(const char *str)
 
 
 
-char *util_safe_str(const char *str, const char *strSearch)
+char *util_safe_str(const char *str, const char *str_search)
 {
 	if (_is_empty_str(str))
 		return NULL;
 
-	return strstr(str, strSearch);
+	return strstr(str, str_search);
 }
 
 
@@ -655,10 +646,10 @@ int util_dynamic_state_get(void)
 
 
 
-Ecore_File_Monitor* util_file_monitor_add(const char* file_path, Ecore_File_Monitor_Cb callback_func, void *ad)
+Ecore_File_Monitor *util_file_monitor_add(const char* file_path, Ecore_File_Monitor_Cb callback_func, void *data)
 {
-	Ecore_File_Monitor* pFileMonitor = NULL;
-	pFileMonitor = ecore_file_monitor_add(file_path, callback_func, ad);
+	Ecore_File_Monitor *pFileMonitor = NULL;
+	pFileMonitor = ecore_file_monitor_add(file_path, callback_func, data);
 	if(pFileMonitor == NULL) _D("ecore_file_monitor_add return NULL !!");
 
 	return pFileMonitor;

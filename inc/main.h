@@ -29,6 +29,20 @@
 #endif
 #include "indicator.h"
 
+
+/**
+ * @mainpage Indicator documentation
+ *
+ * @section Overview
+ *
+ * @image html indicator.png
+ *
+ * \n\n
+ * Indiacator app main purpose is to give user quick preview for what is going on in the system -
+ * connections and battery state, time, apps notifications etc.
+ */
+
+
 #if !defined(PACKAGE)
 #  define PACKAGE "indicator"
 #endif

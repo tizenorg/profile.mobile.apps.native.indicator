@@ -21,14 +21,24 @@
 #ifndef BG_COLOR_H_
 #define BG_COLOR_H_
 
+/**
+ * @file bg_color.h
+ */
 
-/*
+/**
  * @brief Registers port for receiving messages from other applications.
  * @remarks For now it is only used to change indicator background
  *
  * @param[in] data     pointer to struct appdata(passed to app_service callback of Indicator-win app as void*)
  */
 void message_port_register(void *data);
+
+/**
+ * @brief Deregisters message port to stop receiving messages from other applications.
+ *
+ * @see message_port_register()
+ */
 void message_port_unregister(void);
+
 
 #endif /* BG_COLOR_H_ */
