@@ -27,6 +27,10 @@
 #include <runtime_info.h>
 #include <network/wifi.h>
 
+/**
+ * @file util.h
+ */
+
 typedef enum {
 	INDICATOR_ERROR_NONE = 0,
 	INDICATOR_ERROR_FAIL = -1,
@@ -51,32 +55,220 @@ struct _Indicator_Data_Animation
    double         duration;
 };
 
+
+/**
+ * @brief Sets label text color.
+ *
+ * @param[in] txt the text to append color info
+ *
+ * @return txt with color info appended, or NULL if failure
+ */
 extern char *util_set_label_text_color(const char *txt);
+
+/**
+ * @brief Sets indicator background color to default.
+ *
+ * @param[in] layout layout of the indicator
+ *
+ * @see util_bg_color_rgba_set()
+ * @see util_bg_call_color_set()
+ */
 extern void util_bg_color_default_set(Evas_Object *layout);
+
+/**
+ * @brief Sets indicator background color globally.
+ *
+ * @remarks The background color is set until it is changed using the same function,
+ * util_bg_call_color_set() or util_bg_color_default_set()
+ *
+ * @param[in] layout layout of the indicator
+ * @param[in] r red component of the color
+ * @param[in] g green component of the color
+ * @param[in] b blue component of the color
+ * @param[in] a alpha component of the color
+ *
+ * @see util_bg_color_default_set()
+ * @see util_bg_call_color_set()
+ */
 extern void util_bg_color_rgba_set(Evas_Object *layout, char r, char g, char b, char a);
+
+/**
+ * @brief Sets indicator background color globally for call app purposes.
+ *
+ * @remarks The background color is set until it is changed using the same function,
+ * util_bg_call_color_set() or util_bg_color_default_set()
+ *
+ * @param[in] layout layout of the indicator
+ * @param[in] color specifies particular bg state accordingly to call app state
+ *
+ * @see util_bg_color_default_set()
+ * @see util_bg_color_rgba_set()
+ */
 extern void util_bg_call_color_set(Evas_Object *layout, bg_color_e color);
+
+/**
+ * @brief Gets icons directory.
+ *
+ * @return icons directory, or NULL if failure
+ */
 extern const char *util_get_icon_dir(void);
+
+/**
+ * @brief Emits specified signal.
+ *
+ * @param[in] data the app data
+ * @paran[in] emission signal to emit
+ * @param[in] source signal source
+ *
+ */
 extern void util_signal_emit(void* data, const char *emission, const char *source);
+
+/**
+ * @brief Emits text to specified part.
+ *
+ * @param[in] data the app data
+ * @paran[in] part part name
+ * @param[in] text text to emit
+ */
 extern void util_part_text_emit(void* data, const char *part, const char *text);
+
+/**
+ * @brief Emits text to specified part using win info structure to get layout.
+ *
+ * @param[in] data win info
+ * @paran[in] emission signal to emit
+ * @param[in] source signal source
+ */
 extern void util_signal_emit_by_win(void* data, const char *emission, const char *source);
+
+/**
+ * @brief Emits text to specified part using win info structure to get layout.
+ *
+ * @param[in] data win info
+ * @paran[in] part part name
+ * @param[in] text text to emit
+ */
 extern void util_part_text_emit_by_win(void* data, const char *part, const char *text);
-extern void util_battery_percentage_part_content_set(void* data, const char *part, const char *img_path);
+
+/**
+ * @brief Sets image to part content.
+ *
+ * @param[in] data the app data
+ * @paran[in] part part name
+ * @param[in] img_path path to image to set
+ */
+extern void util_part_content_img_set(void *data, const char *part, const char *img_path);
+
+/**
+ * @brief Launches search.
+ *
+ * @param[in] data the app data
+ */
 extern void util_launch_search(void* data);
+
+/**
+ * @brief Checks system status.
+ *
+ * @return 0 if PWLOCK is set to VCONFKEY_PWLOCK_BOOTING_UNLOCK or VCONFKEY_PWLOCK_RUNNING_UNLOCK, -1 otherwise
+ *
+ * @see #VCONFKEY_PWLOCK_BOOTING_UNLOCK
+ * @see #VCONFKEY_PWLOCK_BOOTING_LOCK
+ * @see	#VCONFKEY_PWLOCK_RUNNING_UNLOCK
+ * @see #VCONFKEY_PWLOCK_RUNNING_LOCK
+ */
 extern int util_check_system_status(void);
-extern char* util_get_timezone_str(void);
+
+/**
+ * @brief Gets timezone from vconf.
+ *
+ * @return timezone id or "N/A" on failure
+ */
+extern char *util_get_timezone_str(void);
+
+/**
+ * @brief Gets window angle property.
+ *
+ * @remarks will be removed
+ */
 extern Eina_Bool util_win_prop_angle_get(Ecore_X_Window win, int *curr);
-extern int util_is_orf(void);
+
+/**
+ * @brief Checks if path contains special string that indicates animation icon.
+ *
+ * @return 1 if contains, 0 if not
+ */
 extern int util_check_noti_ani(const char* path);
+
+/**
+ * @brief Checks if path is a one of special folder path known to indicator and returns absolute path to file contained in the folder.
+ *
+ * @param special_path a special folder path
+ *
+ * @return absolute file path on success or NULL in case of failure
+ */
 extern char *util_get_real_path(char *special_path);
-extern void util_start_noti_ani(void* data);
-extern void util_stop_noti_ani(void* data);
-extern void util_send_status_message_start(void* data,double duration);
-extern void util_char_replace(char *text, char s, char t);
+
+/**
+ * @brief Starts animation of specified notification icon.
+ *
+ * @param icon icon to animate
+ */
+extern void util_start_noti_ani(icon_s *icon);
+
+/**
+ * @brief Stops animation of specified notification icon.
+ *
+ * @param icon icon to stop animation
+ */
+extern void util_stop_noti_ani(icon_s *icon);
+
+/**
+ * @brief Sends status message.
+ *
+ * @param data win info
+ * @param duration duration of the message
+ */
+extern void util_send_status_message_start(void *data, double duration);
+
+/**
+ * @brief Replaces char in string.
+ *
+ * @param to_replace char to replace
+ * @param replacer char that will replace @a to_replace char
+ */
+extern void util_char_replace(char *text, char to_replace, char replacer);
+
+/**
+ * @brief Gets dynamic state
+ *
+ * @return state
+ */
 extern int util_dynamic_state_get(void);
 
-extern Ecore_File_Monitor* util_file_monitor_add(const char* file_path, Ecore_File_Monitor_Cb callback_func, void *ad);
-extern void util_file_monitor_remove(Ecore_File_Monitor* pFileMonitor);
-extern char *util_safe_str(const char *str, const char *strSearch);
+/**
+ * @brief Add monitor to file.
+ *
+ * @param file_path path to file to monitor
+ * @param callback_func callback function to be invoked when file state will change
+ * @param data data that will be passed to callback function
+ *
+ * @return pointer to monitor handler or NULL in case of failure
+ */
+extern Ecore_File_Monitor *util_file_monitor_add(const char *file_path, Ecore_File_Monitor_Cb callback_func, void *data);
+
+/**
+ * @brief Removes monitor to file.
+ *
+ * @param file_monitor file monitor handler
+ */
+extern void util_file_monitor_remove(Ecore_File_Monitor *file_monitor);
+
+/**
+ * @brief Gets substring that starts with specified @str_search string.
+ *
+ * @param substring or NULL if substring not found
+ */
+extern char *util_safe_str(const char *str, const char *str_search);
 
 #ifdef _SUPPORT_SCREEN_READER
 extern Evas_Object *util_access_object_register(Evas_Object *object, Evas_Object *layout);
@@ -84,11 +276,11 @@ extern void util_access_object_unregister(Evas_Object *object);
 extern void util_access_object_info_set(Evas_Object *object, int info_type, char *info_text);
 extern void util_icon_access_register(icon_s *icon);
 extern void util_icon_access_unregister(icon_s *icon);
-#endif /* _SUPPORT_SCREEN_READER */
+#endif /** _SUPPORT_SCREEN_READER */
 
 #define ARRAY_SIZE(x) (sizeof(x)/sizeof(x[0]))
 
-/*
+/**
  * @brief Application sub-directories type.
  */
 enum app_subdir {

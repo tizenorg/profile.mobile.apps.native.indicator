@@ -29,6 +29,20 @@
 #endif
 #include "indicator.h"
 
+
+/**
+ * @mainpage Indicator documentation
+ *
+ * @section Overview
+ *
+ * @image html /home/r.czerski/workspace_Reference_Native_App_Core/indicator/doxygen_res/indicator.png
+ *
+ * \n\n
+ * Indiacator app main purpose is to give user quick preview for what is going on in the system -
+ * connections and battery state, time, apps notifications etc.
+ */
+
+
 #if !defined(PACKAGE)
 #  define PACKAGE "indicator"
 #endif

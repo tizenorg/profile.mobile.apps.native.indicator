@@ -21,6 +21,10 @@
 #ifndef __INDICATOR_TICKER_H__
 #define __INDICATOR_TICKER_H__
 
+/**
+ * @file ticker.h
+ */
+
 typedef enum _indicator_animated_icon_type {
 	INDICATOR_ANIMATED_ICON_NONE = -1,
 	INDICATOR_ANIMATED_ICON_DOWNLOAD = 1,
@@ -37,7 +41,26 @@ typedef struct ticker {
 	int pages;
 } ticker_info_s;
 
+
+
+/***
+ * @brief Initializes ticker module.
+ *
+ * @remarks Ticker module is registered for receiving notifications
+ *
+ * @param[in] data the app data
+ *
+ * @return 0 on success, negative value on failure
+ */
 extern int ticker_init(void *data);
+
+/***
+ * @brief Deinitializes ticker module.
+ *
+ * @param[in] data the app data
+ *
+ * @return 0 on success, negative value on failure
+ */
 extern int ticker_fini(void *data);
 
 #endif

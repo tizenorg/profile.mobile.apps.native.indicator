@@ -21,7 +21,24 @@
 #ifndef __INDICATOR_TOAST_POPUP_H___
 #define __INDICATOR_TOAST_POPUP_H___
 
+/**
+ * @file toast_popup.h
+ */
+
+/**
+ * @brief Initializes toast popup module.
+ *
+ * @param[in] data the app data
+ *
+ * @return 0 on success, negative value on failure
+ */
 int indicator_toast_popup_init(void *data);
+
+/**
+ * @brief Deinitializes toast popup module.
+ *
+ * @return 0 on success, negative value on failure
+ */
 int indicator_toast_popup_fini(void);
 
 #endif /* __INDICATOR_TOAST_POPUP_H___ */
