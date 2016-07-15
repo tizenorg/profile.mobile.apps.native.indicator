@@ -97,25 +97,7 @@ extern void list_remove_icon(icon_s *icon);
  * @return pointer to icon to show, NULL if icon were not found
  */
 extern icon_s *list_try_to_find_icon_to_show(int area, int priority);
-
-/**
- * @brief Searches for icon to be removed from indicator.
- *
- * @remarks It searches for visible icon. In fixed are the icon is specified by priority.
- * In other areas icon with lowest priority will be choosen.
- *
- * @param[in] area area in which the icon must be removed - #indicator_icon_area_type
- * @param[in] priority priority of icon to remove (only for #INDICATOR_ICON_AREA_FIXED area)
- *
- * @return pointer to icon to show, NULL if icon were not found
- */
 extern icon_s *list_try_to_find_icon_to_remove(int area, int priority);
-
-/**
- * @brief Retrives visible notification icons count.
- *
- * @return number of visible notification icons
- */
 extern unsigned int list_get_noti_count(void);
 
 #endif /*__INDICATOR_ICON_LIST_H__*/
