@@ -443,11 +443,26 @@ static char* _get_timezone_from_vconf(void)
 	return szTimezone;
 }
 
-
-
-char* util_get_timezone_str(void)
+char *util_get_timezone_str(void)
 {
-	return _get_timezone_from_vconf();
+	/* TODO
+	 * This is temporary solution that workarounds invalid time zone set to
+	 * vconf key(VCONFKEY_SETAPPL_TIMEZONE_ID) which is set to Seoul after
+	 * device flash.
+	 */
+	char buf[1024] = {0,};
+	ssize_t len = readlink("/opt/etc/localtime", buf, sizeof(buf)-1);
+
+	_D("INDICATOR TIMEZONE -  %s",  buf);
+
+	if (len != -1) {
+		buf[len] = '\0';
+	} else {
+		ERR("INDICATOR TIMEZONE - failed to get a timezone information");
+		return _get_timezone_from_vconf();
+	}
+
+	return strdup(buf + 20);
 }
 
 

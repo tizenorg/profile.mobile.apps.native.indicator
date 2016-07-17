@@ -30,7 +30,7 @@
 #include "icon.h"
 #include "log.h"
 
-#define ICON_PRIORITY	INDICATOR_PRIORITY_SYSTEM_3
+#define ICON_PRIORITY	INDICATOR_PRIORITY_SYSTEM_4
 #define MODULE_NAME		"mmc"
 
 static int register_ext_storage_module(void *data);

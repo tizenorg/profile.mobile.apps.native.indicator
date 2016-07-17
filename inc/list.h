@@ -46,6 +46,16 @@ extern void icon_free(icon_s *icon);
 extern void list_free_all(void);
 
 /**
+ * @brief Retrieves list of icons.
+ *
+ * @remarks The lists are of all icons registered to indicator app,
+ * not only visible icons
+ *
+ * @param[in] type type of icon area
+ */
+Eina_List *list_list_get(indicator_icon_area_type type);
+
+/**
  * @brief Retrieves count of icons that are set to be visible on indicator.
  *
  * @remarks Number of visible icons may be different that returned value.
@@ -59,7 +69,18 @@ extern void list_free_all(void);
  *
  * @return count of icons that are set to be visible
  */
-unsigned int list_get_active_icons_cnt(enum indicator_icon_area_type area);
+unsigned int list_get_wish_to_show_icons_cnt(enum indicator_icon_area_type area);
+
+/**
+ * @brief Retrieves count of notification icons that are set to be visible on indicator.
+ *
+ * @remarks Number of visible icons may be different that returned value.
+ * This is due to limited space on indicator and GUI Guide.
+ *
+ * @param[in] count_more_noti indicates if more_noti icon should be taken into account or not
+ * @return count of icons that are set to be visible in notification area
+ */
+unsigned int list_get_wish_to_show_noti_icons_cnt(bool count_more_noti);
 
 /**
  * @brief Updates list related to the given icon with the icon.
@@ -70,6 +91,7 @@ unsigned int list_get_active_icons_cnt(enum indicator_icon_area_type area);
  */
 extern void list_update(icon_s *icon);
 
+void list_move_noti_icon_to_top(icon_s *icon);
 /**
  * @brief Inserts icon to the list related to the given icon.
  *
@@ -89,7 +111,7 @@ extern void list_insert_icon(icon_s *icon);
 extern void list_remove_icon(icon_s *icon);
 
 /**
- * @brief Searches for icon that is pending to be shown, but is not shown yet.
+ * @brief Searches for icon that is pending to be shown, but have not been shown yet.
  *
  * @param[in] area area of icon - #indicator_icon_area_type
  * @param[in] priority priority of icon
@@ -99,23 +121,13 @@ extern void list_remove_icon(icon_s *icon);
 extern icon_s *list_try_to_find_icon_to_show(int area, int priority);
 
 /**
- * @brief Searches for icon to be removed from indicator.
+ * @brief Searches for icon to hide due to icons overflow..
  *
- * @remarks It searches for visible icon. In fixed are the icon is specified by priority.
- * In other areas icon with lowest priority will be choosen.
- *
- * @param[in] area area in which the icon must be removed - #indicator_icon_area_type
- * @param[in] priority priority of icon to remove (only for #INDICATOR_ICON_AREA_FIXED area)
+ * @param[in] area area of icon - #indicator_icon_area_type
+ * @param[in] priority priority of icon
  *
  * @return pointer to icon to show, NULL if icon were not found
  */
 extern icon_s *list_try_to_find_icon_to_remove(int area, int priority);
-
-/**
- * @brief Retrives visible notification icons count.
- *
- * @return number of visible notification icons
- */
-extern unsigned int list_get_noti_count(void);
 
 #endif /*__INDICATOR_ICON_LIST_H__*/
