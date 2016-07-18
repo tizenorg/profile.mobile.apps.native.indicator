@@ -30,7 +30,7 @@
 #include "main.h"
 #include "log.h"
 
-#define ICON_PRIORITY	INDICATOR_PRIORITY_SYSTEM_4
+#define ICON_PRIORITY	INDICATOR_PRIORITY_SYSTEM_3
 #define MODULE_NAME		"gps"
 #define TIMER_INTERVAL	0.3
 
