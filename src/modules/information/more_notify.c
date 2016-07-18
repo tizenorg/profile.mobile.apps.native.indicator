@@ -29,14 +29,16 @@
 #include "modules.h"
 #include "main.h"
 #include "log.h"
+#include "util.h"
+#include "box.h"
 
 #define ICON_PRIORITY	INDICATOR_PRIORITY_NOTI_MIN
 #define MODULE_NAME		"more_notify"
 
+#define PART_NAME_MORE_NOTI "elm.swallow.more_noti"
+
 static int register_more_notify_module(void *data);
 static int unregister_more_notify_module(void);
-
-static bool bShow = 0;
 
 icon_s more_notify = {
 	.name = MODULE_NAME,
@@ -44,10 +46,11 @@ icon_s more_notify = {
 	.always_top = EINA_TRUE,
 	.exist_in_view = EINA_FALSE,
 	.img_obj = {0,},
+	.img_obj.data = "Notify/B03_notify_more.png",
 	.obj_exist = EINA_FALSE,
-	.area = INDICATOR_ICON_AREA_NOTI,
+	.area = INDICATOR_ICON_AREA_MORE_NOTI,
 	.init = register_more_notify_module,
-	.fini = unregister_more_notify_module,
+	.fini = unregister_more_notify_module
 };
 
 enum {
@@ -55,34 +58,10 @@ enum {
 	MUSIC_PAUSED,
 };
 
-static char *icon_path[] = {
-	"Notify/B03_notify_more.png",
-	NULL
-};
-
-
 static void set_app_state(void *data)
 {
 	more_notify.ad = data;
 }
-
-icon_s *more_noti_get_icon(void)
-{
-	return &more_notify;
-}
-
-static void show_image_icon_by_win(win_info* win)
-{
-	more_notify.img_obj.data = icon_path[0];
-	icon_show(&more_notify);
-}
-
-
-static void hide_image_icon_by_win(win_info* win)
-{
-	icon_hide(&more_notify);
-}
-
 
 void indicator_more_notify_icon_change(Eina_Bool val)
 {
@@ -91,28 +70,49 @@ void indicator_more_notify_icon_change(Eina_Bool val)
 	struct appdata *ad = more_notify.ad;
 	retm_if(ad == NULL, "Invalid parameter!");
 
-	if (bShow == val)
-		return;
-
-	bShow = val;
-
 	if (val) {
-		show_image_icon_by_win(&ad->win);
-		_D("_handle_more_notify_show");
+		util_signal_emit(ad->win.data, "indicator.more_noti.show", "indicator.prog");
+		evas_object_show(more_notify.img_obj.obj);
 	} else {
-		hide_image_icon_by_win(&ad->win);
-		_D("_handle_more_notify_hide");
+		util_signal_emit(ad->win.data, "indicator.more_noti.hide", "indicator.prog");
+		evas_object_hide(more_notify.img_obj.obj);
 	}
 
 	return;
 }
 
+Evas_Object *icon_create_and_swallow(icon_s *icon, const char *part_name)
+{
+	struct appdata *ad = (struct appdata *)icon->ad;
+	retv_if(!ad, NULL);
+
+	Evas_Object *obj = NULL;
+
+	icon_add(&ad->win, icon);
+	retv_if(!icon->img_obj.obj, NULL);
+
+	obj = box_add(ad->win.layout);
+	retv_if(!obj, NULL);
+
+	elm_box_pack_end(obj, icon->img_obj.obj);
+
+	evas_object_size_hint_align_set(obj, EVAS_HINT_FILL, EVAS_HINT_FILL);
+	edje_object_part_swallow(elm_layout_edje_get(ad->win.layout), part_name, obj);
+
+	return obj;
+}
 
 static int register_more_notify_module(void *data)
 {
+	_D("register_more_notify_module");
+
 	retvm_if(data == NULL, FAIL, "Invalid parameter!");
 
+	struct appdata *ad = (struct appdata *)data;
+
 	set_app_state(data);
+
+	ad->win._more_noti_box = icon_create_and_swallow(&more_notify, PART_NAME_MORE_NOTI);
 
 	return OK;
 }
@@ -120,5 +120,10 @@ static int register_more_notify_module(void *data)
 
 static int unregister_more_notify_module(void)
 {
+	struct appdata *ad = (struct appdata *)more_notify.ad;
+
+	icon_del(&more_notify);
+	edje_object_part_unswallow(ad->win.layout, ad->win._more_noti_box);
+
 	return OK;
 }
