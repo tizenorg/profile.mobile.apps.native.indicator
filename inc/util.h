@@ -181,9 +181,9 @@ extern int util_check_system_status(void);
 /**
  * @brief Gets timezone from vconf.
  *
- * @return timezone id or "N/A" on failure
+ * @param[in/out] timezone id or "N/A" on failure
  */
-extern char *util_get_timezone_str(void);
+extern void util_get_timezone_str(char **timezone);
 
 /**
  * @brief Gets window angle property.

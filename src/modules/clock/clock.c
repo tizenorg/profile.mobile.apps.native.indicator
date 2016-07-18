@@ -271,24 +271,22 @@ static void clock_format_changed(void *data)
 	retm_if(ret != SYSTEM_SETTINGS_ERROR_NONE, "Error getting time format value");
 
 	/* Check Time format. If timeformat have invalid value, Set to 12H */
-	if (mode_24)
-	{
-		if(clock_mode == INDICATOR_CLOCK_MODE_12H)
-		{
+	if (mode_24) {
+		if(clock_mode == INDICATOR_CLOCK_MODE_12H) {
 			clock_mode = INDICATOR_CLOCK_MODE_24H;
 			box_update_display(&(ad->win));
 		}
 	}
-	else
-	{
-		if(clock_mode==INDICATOR_CLOCK_MODE_24H)
-		{
+	else {
+		if(clock_mode == INDICATOR_CLOCK_MODE_24H) {
 			clock_mode = INDICATOR_CLOCK_MODE_12H;
 			box_update_display(&(ad->win));
 		}
 	}
 
-	char *timezone_str = util_get_timezone_str();
+	char *timezone_str = NULL;
+	util_get_timezone_str(&timezone_str);
+	ret_if(!timezone_str);
 
 	ret = i18n_timezone_create(&timezone, timezone_str);
 	if (ret != I18N_ERROR_NONE) {
@@ -468,7 +466,8 @@ void indicator_get_apm_by_region(char* output,void *data)
 	i18n_ustring_copy_au(s_best_pattern, u_best_pattern);
 	i18n_ustring_copy_ua(u_best_pattern, "a");
 
-	char *timezone_id = util_get_timezone_str();
+	char *timezone_id = NULL;
+	util_get_timezone_str(&timezone_id);
 	_D("TimeZone is %s", timezone_id);
 
 	if (s_best_pattern[0] == 'a') {
@@ -602,7 +601,9 @@ void indicator_get_time_by_region(char* output,void *data)
 		return;
 	}
 
-	char* timezone_id = util_get_timezone_str();
+	char *timezone_id = NULL;
+	util_get_timezone_str(&timezone_id);
+
 	_D("TimeZone is %s", timezone_id);
 
 	if (timezone_id) {

@@ -430,24 +430,13 @@ void util_icon_access_unregister(icon_s *icon)
 
 
 
-static char* _get_timezone_from_vconf(void)
+void util_get_timezone_str(char **timezone)
 {
-	char *szTimezone = NULL;
-	szTimezone = vconf_get_str(VCONFKEY_SETAPPL_TIMEZONE_ID);
-	if(szTimezone == NULL)
-	{
-		_E("Cannot get time zone.");
-		return strdup("N/A");
+	int ret = system_settings_get_value_string(SYSTEM_SETTINGS_KEY_LOCALE_TIMEZONE, timezone);
+	if (ret != SYSTEM_SETTINGS_ERROR_NONE) {
+		_E("system_settings_get_value_string failed: %s", get_error_message(ret));
+		*timezone = "N/A";
 	}
-
-	return szTimezone;
-}
-
-
-
-char* util_get_timezone_str(void)
-{
-	return _get_timezone_from_vconf();
 }
 
 
