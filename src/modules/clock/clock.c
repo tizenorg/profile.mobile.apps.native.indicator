@@ -271,24 +271,21 @@ static void clock_format_changed(void *data)
 	retm_if(ret != SYSTEM_SETTINGS_ERROR_NONE, "Error getting time format value");
 
 	/* Check Time format. If timeformat have invalid value, Set to 12H */
-	if (mode_24)
-	{
-		if(clock_mode == INDICATOR_CLOCK_MODE_12H)
-		{
+	if (mode_24) {
+		if(clock_mode == INDICATOR_CLOCK_MODE_12H) {
 			clock_mode = INDICATOR_CLOCK_MODE_24H;
 			box_update_display(&(ad->win));
 		}
 	}
-	else
-	{
-		if(clock_mode==INDICATOR_CLOCK_MODE_24H)
-		{
+	else {
+		if(clock_mode == INDICATOR_CLOCK_MODE_24H) {
 			clock_mode = INDICATOR_CLOCK_MODE_12H;
 			box_update_display(&(ad->win));
 		}
 	}
 
 	char *timezone_str = util_get_timezone_str();
+	ret_if(!timezone_str);
 
 	ret = i18n_timezone_create(&timezone, timezone_str);
 	if (ret != I18N_ERROR_NONE) {
