@@ -18,7 +18,6 @@
  */
 
 
-
 #include <vconf.h>
 #include <app.h>
 #include <app_common.h>
@@ -165,8 +164,7 @@ const char *util_get_icon_dir(void)
 }
 
 
-
-void util_signal_emit(void* data, const char *emission, const char *source)
+void util_signal_emit(void *data, const char *emission, const char *source)
 {
 	struct appdata *ad = NULL;
 	Evas_Object *edje = NULL;
@@ -181,8 +179,7 @@ void util_signal_emit(void* data, const char *emission, const char *source)
 }
 
 
-
-void util_part_text_emit(void* data, const char *part, const char *text)
+void util_part_text_emit(void *data, const char *part, const char *text)
 {
 	struct appdata *ad = (struct appdata *)data;
 	retm_if(data == NULL, "Invalid parameter!");
@@ -194,15 +191,14 @@ void util_part_text_emit(void* data, const char *part, const char *text)
 }
 
 
-
-void util_signal_emit_by_win(void* data, const char *emission, const char *source)
+void util_signal_emit_by_win(void *data, const char *emission, const char *source)
 {
 	win_info *win = NULL;
 	Evas_Object *edje = NULL;
 
 	ret_if(!data);
 
-	win = (win_info*)data;
+	win = (win_info *)data;
 	ret_if(!win->layout);
 
 	_D("emission %s", emission);
@@ -212,10 +208,9 @@ void util_signal_emit_by_win(void* data, const char *emission, const char *sourc
 }
 
 
-
-void util_part_text_emit_by_win(void* data, const char *part, const char *text)
+void util_part_text_emit_by_win(void *data, const char *part, const char *text)
 {
-	win_info *win = (win_info*)data;
+	win_info *win = (win_info *)data;
 	retm_if(data == NULL, "Invalid parameter!");
 	Evas_Object *edje;
 
@@ -223,7 +218,6 @@ void util_part_text_emit_by_win(void* data, const char *part, const char *text)
 	edje = elm_layout_edje_get(win->layout);
 	edje_object_part_text_set(edje, part, text);
 }
-
 
 
 void util_part_content_img_set(void *data, const char *part, const char *img_path)
@@ -239,17 +233,12 @@ void util_part_content_img_set(void *data, const char *part, const char *img_pat
 	retm_if(!icon, "Cannot create elm icon object!");
 
 	if (strncmp(img_path, "/", 1) != 0)
-	{
 		snprintf(path, sizeof(path), "%s/%s", util_get_icon_dir(), img_path);
-	}
 	else
-	{
-		strncpy(path, img_path, sizeof(path)-1);
-	}
+		strncpy(path, img_path, sizeof(path) - 1);
 
-	if (!ecore_file_exists(path))
-	{
-		_E("icon file does not exist!!: %s",path);
+	if (!ecore_file_exists(path)) {
+		_E("icon file does not exist!!: %s", path);
 		return;
 	}
 	elm_image_file_set(icon, path, NULL);
@@ -258,11 +247,10 @@ void util_part_content_img_set(void *data, const char *part, const char *img_pat
 }
 
 
-
 void util_send_status_message_start(void *data, double duration)
 {
 	Ecore_Evas *ee_port;
-	win_info* win = (win_info*)data;
+	win_info* win = (win_info *)data;
 	retm_if(data == NULL, "Invalid parameter!");
 	struct appdata *ad = win->data;
 	Indicator_Data_Animation msg = {0,};
@@ -270,15 +258,14 @@ void util_send_status_message_start(void *data, double duration)
 	msg.xwin = ad->active_indi_win;
 	msg.duration = duration;
 
-	_D("status start %x, %f",ad->active_indi_win,duration);
+	_D("status start %x, %f", ad->active_indi_win, duration);
 	ee_port = ecore_evas_ecore_evas_get(evas_object_evas_get(win->win));
 	ecore_evas_msg_send(ee_port, MSG_DOMAIN_CONTROL_INDICATOR, MSG_ID_INDICATOR_ANI_START, &(msg), sizeof(Indicator_Data_Animation));
 
 }
 
 
-
-void util_launch_search(void* data)
+void util_launch_search(void *data)
 {
 	int lock_state = SYSTEM_SETTINGS_LOCK_STATE_UNLOCK;
 	app_control_h service;
@@ -287,9 +274,8 @@ void util_launch_search(void* data)
 	retm_if(ret != SYSTEM_SETTINGS_ERROR_NONE, "system_settings_get_value_int failed %s", get_error_message(ret));
 
 	/* In Lock Screen, home button don't have to do */
-	if (lock_state == SYSTEM_SETTINGS_LOCK_STATE_LOCK) {
+	if (lock_state == SYSTEM_SETTINGS_LOCK_STATE_LOCK)
 		return;
-	}
 
 	if (util_check_system_status() == FAIL) {
 		_D("util_check_system_status failed");
@@ -302,13 +288,11 @@ void util_launch_search(void* data)
 
 	ret = app_control_send_launch_request(service, NULL, NULL);
 
-	if(ret != APP_CONTROL_ERROR_NONE) {
+	if (ret != APP_CONTROL_ERROR_NONE)
 		_E("Cannot launch app");
-	}
 
 	app_control_destroy(service);
 }
-
 
 
 int util_check_system_status(void)
@@ -325,12 +309,11 @@ int util_check_system_status(void)
 }
 
 
-
 #ifdef _SUPPORT_SCREEN_READER
 Evas_Object *util_access_object_register(Evas_Object *object, Evas_Object *layout)
 {
 	if ((object == NULL) || (layout == NULL)) {
-		_E("Access object doesn't exist!!! %x %x",object,layout);
+		_E("Access object doesn't exist!!! %x %x", object, layout);
 		return NULL;
 	}
 
@@ -338,11 +321,10 @@ Evas_Object *util_access_object_register(Evas_Object *object, Evas_Object *layou
 }
 
 
-
 void util_access_object_unregister(Evas_Object *object)
 {
 	if (object == NULL) {
-		_E("Access object doesn't exist!!! %x",object);
+		_E("Access object doesn't exist!!! %x", object);
 		return NULL;
 	}
 
@@ -350,11 +332,10 @@ void util_access_object_unregister(Evas_Object *object)
 }
 
 
-
 void util_access_object_info_set(Evas_Object *object, int info_type, char *info_text)
 {
 	if ((object == NULL) || (info_text == NULL)) {
-		_E("Access info set fails %x, %x!!!",object,info_text);
+		_E("Access info set fails %x, %x!!!", object, info_text);
 		return;
 	}
 
@@ -362,11 +343,10 @@ void util_access_object_info_set(Evas_Object *object, int info_type, char *info_
 }
 
 
-
 void util_access_object_activate_cb_set(Evas_Object *object, Elm_Access_Activate_Cb activate_cb, void *cb_data)
 {
 	if ((object == NULL) || (activate_cb == NULL)) {
-		_E("Access activated cb set fails %x %x!!!",object,activate_cb);
+		_E("Access activated cb set fails %x %x!!!", object, activate_cb);
 		return;
 	}
 
@@ -374,11 +354,10 @@ void util_access_object_activate_cb_set(Evas_Object *object, Elm_Access_Activate
 }
 
 
-
 void util_access_object_info_cb_set(Evas_Object *object, int type, Elm_Access_Info_Cb info_cb, void *cb_data)
 {
 	if ((object == NULL) || (info_cb == NULL)) {
-		_E("Access info cb set fails  %x %x!!!",object,info_cb);
+		_E("Access info cb set fails  %x %x!!!", object, info_cb);
 		return;
 	}
 
@@ -386,48 +365,39 @@ void util_access_object_info_cb_set(Evas_Object *object, int type, Elm_Access_In
 }
 
 
-
 void util_icon_access_register(icon_s *icon)
 {
 
-	if(icon == NULL)
-	{
+	if (icon == NULL) {
 		_E("ICON NULL");
 		return;
 	}
 
-	if(icon->tts_enable == EINA_TRUE && icon->ao==NULL)
-	{
+	if (icon->tts_enable == EINA_TRUE && icon->ao == NULL) {
 		Evas_Object *to = NULL;
 
 		to = (Evas_Object *) edje_object_part_object_get(elm_layout_edje_get(icon->img_obj.obj), "elm.rect.icon.access");
 		icon->ao = util_access_object_register(to, icon->img_obj.obj);
 
-		if(icon->access_cb!=NULL)
-		{
-			util_access_object_info_cb_set(icon->ao,ELM_ACCESS_INFO,icon->access_cb,icon->ad);
-		}
+		if (icon->access_cb != NULL)
+			util_access_object_info_cb_set(icon->ao, ELM_ACCESS_INFO, icon->access_cb, icon->ad);
 	}
 }
 
 
-
 void util_icon_access_unregister(icon_s *icon)
 {
-	if(icon == NULL)
-	{
+	if (icon == NULL) {
 		_E("ICON NULL");
 		return;
 	}
 
-	if(icon->tts_enable == EINA_TRUE&&icon->ao!=NULL)
-	{
+	if (icon->tts_enable == EINA_TRUE && icon->ao != NULL) {
 		util_access_object_unregister(icon->ao);
 		icon->ao = NULL;
 	}
 }
 #endif /* _SUPPORT_SCREEN_READER */
-
 
 
 void util_get_timezone_str(char **timezone)
@@ -440,29 +410,32 @@ void util_get_timezone_str(char **timezone)
 }
 
 
-
 Eina_Bool util_win_prop_angle_get(Ecore_X_Window win, int *req)
 {
 	Eina_Bool res = EINA_FALSE;
 #if 0
 	int ret, count;
 	int angle[2] = {-1, -1};
-	unsigned char* prop_data = NULL;
+	unsigned char *prop_data = NULL;
+
 	ret = ecore_x_window_prop_property_get(win, ECORE_X_ATOM_E_ILLUME_ROTATE_WINDOW_ANGLE, ECORE_X_ATOM_CARDINAL, 32, &prop_data, &count);
+
 	if (ret <= 0) {
 		if (prop_data) free(prop_data);
 		return res;
 	}
 
 	if (ret && prop_data) {
-		memcpy (&angle, prop_data, sizeof (int)*count);
-		if (count == 2) res = EINA_TRUE;
+		memcpy(&angle, prop_data, sizeof(int) * count);
+		if (count == 2)
+			res = EINA_TRUE;
 	}
 
 	if (prop_data) free(prop_data);
-	*req  = angle[0]; //current angle
+	*req  = angle[0]; /* current angle */
 
-	if (angle[0] == -1 && angle[1] == -1) res = EINA_FALSE;
+	if (angle[0] == -1 && angle[1] == -1)
+		res = EINA_FALSE;
 #endif
 
 	return res;
@@ -470,15 +443,15 @@ Eina_Bool util_win_prop_angle_get(Ecore_X_Window win, int *req)
 
 
 #if 0
-int util_get_block_width(void* data, const char* part)
+int util_get_block_width(void *data, const char *part)
 {
-	Evas_Object * eo = NULL;
+	Evas_Object *eo = NULL;
 	int geo_dx = 0;
 	int geo_dy = 0;
 	retvm_if(data == NULL, -1, "Invalid parameter!");
 	retvm_if(part == NULL, -1, "Invalid parameter!");
 
-	win_info* win = (win_info*)data;
+	win_info *win = (win_info *)data;
 
 	eo = (Evas_Object *) edje_object_part_object_get(elm_layout_edje_get(win->layout), part);
 
@@ -488,16 +461,15 @@ int util_get_block_width(void* data, const char* part)
 }
 
 
-
-int util_get_string_width(void* data, const char* part)
+int util_get_string_width(void *data, const char *part)
 {
-	Evas_Object * eo = NULL;
+	Evas_Object *eo = NULL;
 	int text_dx = 0;
 	int text_dy = 0;
 	retvm_if(data == NULL, -1, "Invalid parameter!");
 	retvm_if(part == NULL, -1, "Invalid parameter!");
 
-	win_info* win = (win_info*)data;
+	win_info *win = (win_info *)data;
 
 	eo = (Evas_Object *) edje_object_part_object_get(elm_layout_edje_get(win->layout), part);
 
@@ -511,10 +483,9 @@ int util_get_string_width(void* data, const char* part)
 int util_check_noti_ani(const char *path)
 {
 	retv_if(!path, 0);
-	if (!strcmp(path,"reserved://indicator/ani/downloading")
-		|| !strcmp(path,"reserved://indicator/ani/uploading")) {
+	if (!strcmp(path, "reserved://indicator/ani/downloading")
+		|| !strcmp(path, "reserved://indicator/ani/uploading"))
 		return 1;
-	}
 	return 0;
 }
 
@@ -526,7 +497,7 @@ char *util_get_real_path(char *special_path)
 
 	int i;
 	for (i = 0; i < ARRAY_SIZE(reserved_paths); ++i) {
-		if(!strcmp(special_path, reserved_paths[i].path)) {
+		if (!strcmp(special_path, reserved_paths[i].path)) {
 
 			real_path = calloc(
 					strlen(util_get_icon_dir())
@@ -534,7 +505,7 @@ char *util_get_real_path(char *special_path)
 					+ 1,
 					sizeof(char));
 
-			if(!real_path)
+			if (!real_path)
 				return NULL;
 
 			snprintf(real_path,
@@ -552,42 +523,33 @@ void util_start_noti_ani(icon_s *icon)
 {
 	retm_if(icon == NULL, "Invalid parameter!");
 
-	if(util_check_noti_ani(icon->img_obj.data))
-	{
-		_D("%s",icon->name);
-		if(!strcmp(icon->img_obj.data,"reserved://indicator/ani/downloading"))
-		{
-			icon_ani_set(icon,ICON_ANI_DOWNLOADING);
-		}
+	if (util_check_noti_ani(icon->img_obj.data)) {
+		_D("%s", icon->name);
+
+		if (!strcmp(icon->img_obj.data, "reserved://indicator/ani/downloading"))
+			icon_ani_set(icon, ICON_ANI_DOWNLOADING);
 		else
-		{
-			icon_ani_set(icon,ICON_ANI_UPLOADING);
-		}
+			icon_ani_set(icon, ICON_ANI_UPLOADING);
 	}
 }
-
 
 
 void util_stop_noti_ani(icon_s *icon)
 {
 	retm_if(icon == NULL, "Invalid parameter!");
 
-	if(util_check_noti_ani(icon->img_obj.data))
-	{
+	if (util_check_noti_ani(icon->img_obj.data)) {
+
 		Evas_Object *img_edje;
 		img_edje = elm_layout_edje_get(icon->img_obj.obj);
-		_D("%s",icon->name);
-		if(!strcmp(icon->img_obj.data,"reserved://indicator/ani/downloading"))
-		{
-			edje_object_signal_emit(img_edje, "indicator.ani.downloading.stop","elm.swallow.icon");
-		}
+		_D("%s", icon->name);
+
+		if (!strcmp(icon->img_obj.data, "reserved://indicator/ani/downloading"))
+			edje_object_signal_emit(img_edje, "indicator.ani.downloading.stop", "elm.swallow.icon");
 		else
-		{
-			edje_object_signal_emit(img_edje, "indicator.ani.uploading.stop","elm.swallow.icon");
-		}
+			edje_object_signal_emit(img_edje, "indicator.ani.uploading.stop", "elm.swallow.icon");
 	}
 }
-
 
 
 void util_char_replace(char *text, char s, char t)
@@ -599,12 +561,10 @@ void util_char_replace(char *text, char s, char t)
 	text_len = strlen(text);
 
 	for (i = 0; i < text_len; i++) {
-		if (*(text + i) == s) {
+		if (*(text + i) == s)
 			*(text + i) = t;
-		}
 	}
 }
-
 
 
 static bool _is_empty_str(const char *str)
@@ -613,7 +573,6 @@ static bool _is_empty_str(const char *str)
 		return true;
 	return false;
 }
-
 
 
 char *util_safe_str(const char *str, const char *str_search)
@@ -625,30 +584,30 @@ char *util_safe_str(const char *str, const char *str_search)
 }
 
 
-
 int util_dynamic_state_get(void)
 {
 	int val = 0;
-	//vconf_get_bool(VCONFKEY_SETAPPL_DYNAMIC_STATUS_BAR, &val);
+	/*TODO vconf_get_bool(VCONFKEY_SETAPPL_DYNAMIC_STATUS_BAR, &val); */
 	return val;
 }
 
 
-
-Ecore_File_Monitor *util_file_monitor_add(const char* file_path, Ecore_File_Monitor_Cb callback_func, void *data)
+Ecore_File_Monitor *util_file_monitor_add(const char *file_path, Ecore_File_Monitor_Cb callback_func, void *data)
 {
 	Ecore_File_Monitor *pFileMonitor = NULL;
 	pFileMonitor = ecore_file_monitor_add(file_path, callback_func, data);
-	if(pFileMonitor == NULL) _D("ecore_file_monitor_add return NULL !!");
+
+	if (pFileMonitor == NULL)
+		_D("ecore_file_monitor_add return NULL !!");
 
 	return pFileMonitor;
 }
 
 
-
-void util_file_monitor_remove(Ecore_File_Monitor* pFileMonitor)
+void util_file_monitor_remove(Ecore_File_Monitor *pFileMonitor)
 {
-	if(pFileMonitor == NULL) return;
+	if (pFileMonitor == NULL)
+		return;
 
 	ecore_file_monitor_del(pFileMonitor);
 	pFileMonitor = NULL;
@@ -685,6 +644,7 @@ const char *util_get_file_path(enum app_subdir dir, const char *relative)
 		_E("Not handled directory type.");
 		return NULL;
 	}
+
 	if (prefix == NULL)
 		return NULL;
 
@@ -733,16 +693,16 @@ static void _wifi_state_cb(wifi_connection_state_e state, wifi_ap_h ap, void *us
 	wifi_handler_t *hdl;
 
 	EINA_LIST_FOREACH(wifi_callbacks, l, hdl) {
-		if (hdl->cb) hdl->cb(state, ap, hdl->data);
+		if (hdl->cb)
+			hdl->cb(state, ap, hdl->data);
 	}
 }
 
 int util_wifi_set_connection_state_changed_cb(wifi_connection_state_changed_cb cb, void *data)
 {
 	wifi_handler_t *hdl = malloc(sizeof(wifi_handler_t));
-	if (!hdl) {
+	if (!hdl)
 		return -1;
-	}
 
 	if (!wifi_callbacks) {
 		int err = wifi_set_connection_state_changed_cb(_wifi_state_cb, NULL);
@@ -782,7 +742,8 @@ static void _wifi_device_state_cb(wifi_device_state_e state, void *user_data)
 	wifi_device_handler_t *hdl;
 
 	EINA_LIST_FOREACH(wifi_device_callbacks, l, hdl) {
-		if (hdl->cb) hdl->cb(state, hdl->data);
+		if (hdl->cb)
+			hdl->cb(state, hdl->data);
 	}
 }
 
@@ -796,10 +757,10 @@ int util_wifi_set_device_state_changed_cb(wifi_device_state_changed_cb cb, void 
 
 	if (!wifi_device_callbacks) {
 		int err = wifi_set_device_state_changed_cb(_wifi_device_state_cb, NULL);
-		if (err != WIFI_ERROR_NONE) {
-			free(hdl);
 
+		if (err != WIFI_ERROR_NONE) {
 			_D("wifi_set_device_state_changed_cb failed[%d]:%s", err, get_error_message(err));
+			free(hdl);
 			return err;
 		}
 	}
@@ -834,20 +795,20 @@ static void _system_settings_cb(system_settings_key_e key, void *data)
 	system_settings_handler_t *hdl;
 
 	EINA_LIST_FOREACH(ss_callbacks, l, hdl) {
-		if (hdl->key == key) {
-			if (hdl->cb) hdl->cb(key, hdl->data);
-		}
+		if (hdl->key == key && hdl->cb)
+				hdl->cb(key, hdl->data);
 	}
 }
 
 int util_system_settings_set_changed_cb(system_settings_key_e key, system_settings_changed_cb cb, void *data)
 {
 	system_settings_handler_t *handler = malloc(sizeof(system_settings_handler_t));
-	if (!handler) {
+
+	if (!handler)
 		return -1;
-	}
 
 	system_settings_unset_changed_cb(key);
+
 	int err = system_settings_set_changed_cb(key, _system_settings_cb, NULL);
 	if (err != SYSTEM_SETTINGS_ERROR_NONE) {
 		_E("system_settings_set_changed_cb failed[%d]: %s", err, get_error_message(err));
@@ -875,8 +836,7 @@ void util_system_settings_unset_changed_cb(system_settings_key_e key, system_set
 			if (hdl->cb == cb) {
 				ss_callbacks = eina_list_remove_list(ss_callbacks, l);
 				free(hdl);
-			}
-			else {
+			} else {
 				del_key_cb = EINA_FALSE;
 			}
 		}
@@ -891,20 +851,19 @@ static void _runtime_info_cb(runtime_info_key_e key, void *data)
 	runtime_info_handler_t *hdl;
 
 	EINA_LIST_FOREACH(ri_callbacks, l, hdl) {
-		if (hdl->key == key) {
-			if (hdl->cb) hdl->cb(key, hdl->data);
-		}
+		if (hdl->key == key && hdl->cb)
+				hdl->cb(key, hdl->data);
 	}
 }
 
 int util_runtime_info_set_changed_cb(runtime_info_key_e key, runtime_info_changed_cb cb, void *data)
 {
 	runtime_info_handler_t *handler = malloc(sizeof(runtime_info_handler_t));
-	if (!handler) {
+	if (!handler)
 		return -1;
-	}
 
 	runtime_info_unset_changed_cb(key);
+
 	int err = runtime_info_set_changed_cb(key, _runtime_info_cb, NULL);
 	if (err != RUNTIME_INFO_ERROR_NONE) {
 		_E("runtime_info_set_changed_cb failed: %s", get_error_message(err));
@@ -932,8 +891,7 @@ void util_runtime_info_unset_changed_cb(runtime_info_key_e key, runtime_info_cha
 			if (hdl->cb == cb) {
 				ri_callbacks = eina_list_remove_list(ri_callbacks, l);
 				free(hdl);
-			}
-			else {
+			} else {
 				del_key_cb = EINA_FALSE;
 			}
 		}
