@@ -31,7 +31,7 @@
 #include "log.h"
 #include "util.h"
 
-#define ICON_PRIORITY	INDICATOR_PRIORITY_SYSTEM_6
+#define ICON_PRIORITY	INDICATOR_PRIORITY_SYSTEM_1
 #define MODULE_NAME		"silent"
 
 static int register_silent_module(void *data);

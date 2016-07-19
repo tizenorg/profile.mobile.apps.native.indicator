@@ -29,7 +29,7 @@
 #include "icon.h"
 #include "log.h"
 
-#define ICON_PRIORITY	INDICATOR_PRIORITY_SYSTEM_1
+#define ICON_PRIORITY	INDICATOR_PRIORITY_SYSTEM_5
 #define MODULE_NAME		"alarm"
 
 static int bShown = 0;

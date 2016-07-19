@@ -440,7 +440,6 @@ void util_get_timezone_str(char **timezone)
 }
 
 
-
 Eina_Bool util_win_prop_angle_get(Ecore_X_Window win, int *req)
 {
 	Eina_Bool res = EINA_FALSE;
