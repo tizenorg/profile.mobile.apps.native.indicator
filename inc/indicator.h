@@ -95,14 +95,15 @@ enum indicator_icon_type {
 	INDICATOR_DIGIT_ICON,
 };
 
-enum indicator_icon_area_type {
+typedef enum indicator_icon_area_type {
 	INDICATOR_ICON_AREA_FIXED = 0,
 	INDICATOR_ICON_AREA_SYSTEM,
 	INDICATOR_ICON_AREA_MINICTRL,
 	INDICATOR_ICON_AREA_NOTI,
+	INDICATOR_ICON_AREA_MORE_NOTI,
 	INDICATOR_ICON_AREA_ALARM,
 	INDICATOR_ICON_AREA_CONNECTION_SYSTEM
-};
+} indicator_icon_area_type;
 
 typedef enum indicator_icon_ani {
 	ICON_ANI_NONE = 0,
@@ -167,7 +168,7 @@ typedef struct _ind_win_info
 	int land_w;
 	int angle;
 	Evas_Object *_fixed_box[FIXED_COUNT];
-	Evas_Object *_non_fixed_box;
+	Evas_Object *_system_box;
 	Evas_Object *_minictrl_box;
 	Evas_Object *_noti_box;
 	Evas_Object *_connection_system_box;
@@ -175,6 +176,7 @@ typedef struct _ind_win_info
 	Evas_Object *_dynamic_box_noti;
 	Evas_Object *_alarm_box;
 	Evas_Object *_digit_box;
+	Evas_Object *_more_noti_box;
 
 	struct {
 		int x;
