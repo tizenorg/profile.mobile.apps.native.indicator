@@ -108,13 +108,23 @@ extern void box_init(win_info *win);
 extern void box_fini(win_info *win);
 
 /**
+ * @brief Retrieves list containing only icons to show.
+ *
+ * @param[in] type list type
+ *
+ * @return The list
+ */
+
+Eina_List *box_list_get(indicator_icon_area_type type);
+
+/**
  * @brief Retrieves size of a given list.
  *
- * @param[in] list list type of list to get size
+ * @param[in] type list type of list to get size
  *
  * @return The size of the list
  */
-extern unsigned int box_get_list_size(Box_List list);
+extern unsigned int box_get_list_size(indicator_icon_area_type type);
 
 /**
  * @brief Retrieves count of max allowed number of non fixed icons.
@@ -248,24 +258,13 @@ extern int box_check_more_icon_area(win_info *win, Evas_Coord curr_x, Evas_Coord
 extern void box_update_display(win_info *win);
 
 /**
- * @brief Gets enabled system area icons count.
+ * @brief Creates box.
  *
- * @return count of icons
- */
-extern int box_get_enabled_system_count(void);
-
-/**
- * @brief Gets enabled connection/system area icons count.
+ * @param[in] parent parent fo box container
  *
- * @return count of icons
- */
-int box_get_enabled_connection_system_count(void);
-
-/**
- * @brief Gets enabled minicontrol area icons count.
+ * @return box
  *
- * @return count of icons
  */
-extern int box_get_enabled_minictrl_count(void);
+Evas_Object *box_add(Evas_Object *parent);
 
 #endif /*__INDICATOR_BOX_UTIL_H__*/
