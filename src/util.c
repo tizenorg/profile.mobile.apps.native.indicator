@@ -437,7 +437,6 @@ void util_get_timezone_str(char **timezone)
 		_E("system_settings_get_value_string failed: %s", get_error_message(ret));
 		*timezone = "N/A";
 	}
-}
 
 
 

@@ -116,41 +116,15 @@ extern void icon_set_update_flag(unsigned int val);
  */
 extern void icon_reset_list(void);
 
-/**
- * @brief Handles more noti icon.
- * @remarks The icon will be shown if more that #PORT_NONFIXED_ICON_COUNT otherwise the icon will be hidden
- *
- * @param win win info
- *
- */
-extern void icon_handle_more_notify_icon(win_info *win);
 
 /**
- * @brief Makes util.
- *
- * @remarks Will be removed
- *
- */
-extern void* icon_util_make(void *input);
-
-/**
- * @brief Checks if non fixed icons count is greater than #PORT_NONFIXED_ICON_COUNT.
+ * @brief Checks if non fixed icons count is greater than #PORT_NONFIXED_ICON_COUNT
+ * and shows or hides more noti icon.
  *
  * @return EINA_TRUE if icons count is greater then #PORT_NONFIXED_ICON_COUNT, EINA_FALSE otherwise
  *
  */
 
-Eina_Bool check_for_icons_overflow(void);
-
-/**
- * @brief Checks to show more noti icon.
- *
- * @remarks Will be removed
- *
- * @param[in] win win info
- * @param[in] overflow indicates if there is to much icons pending to be shown
- *
- */
-void check_to_show_more_noti(win_info *win, Eina_Bool overflow);
+void check_to_show_more_noti(win_info *win);
 
 #endif /*__INDICATOR_ICON_UTIL_H__*/
