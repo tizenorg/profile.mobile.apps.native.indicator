@@ -200,13 +200,22 @@ extern Eina_Bool util_win_prop_angle_get(Ecore_X_Window win, int *curr);
 extern int util_check_noti_ani(const char* path);
 
 /**
- * @brief Checks if path is a one of special folder path known to indicator and returns absolute path to file contained in the folder.
+ * @brief Checks if @a path is a one of special reserved strings and returns absolute path to real file related to the string.
  *
- * @param special_path a special folder path
+ * @param path a path to examine
  *
  * @return absolute file path on success or NULL in case of failure
  */
-extern char *util_get_real_path(char *special_path);
+extern char *util_get_real_path(char *path);
+
+/**
+ * @brief Checks if @a path is a one of special reserved strings.
+ *
+ * @param path a path to examine
+ *
+ * @return true if @a path is a special string, false otherwise.
+ */
+bool util_reserved_path_check(char *path);
 
 /**
  * @brief Starts animation of specified notification icon.

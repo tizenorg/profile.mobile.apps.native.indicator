@@ -519,7 +519,7 @@ int util_check_noti_ani(const char *path)
 
 char *util_get_real_path(char *special_path)
 {
-	retv_if(!special_path, 0);
+	retvm_if(!special_path, 0, "path:%s", special_path);
 
 	char *real_path = NULL;
 
@@ -545,6 +545,18 @@ char *util_get_real_path(char *special_path)
 	}
 
 	return NULL;
+}
+
+bool util_reserved_path_check(char *path)
+{
+	retvm_if(!path, 0, "path:%s", path);
+
+	int i;
+	for (i = 0; i < ARRAY_SIZE(reserved_paths); ++i)
+		if(!strcmp(path, reserved_paths[i].path))
+			return true;
+
+	return false;
 }
 
 void util_start_noti_ani(icon_s *icon)

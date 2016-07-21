@@ -100,7 +100,7 @@ static Eina_List **_list_list_ptr_get(indicator_icon_area_type type)
 	case INDICATOR_ICON_AREA_ALARM:
 		return &alarm_icon_list;
 	default:
-		_E("Invalid area type");
+		_E("Invalid area type:%d", type);
 		return NULL;
 	}
 }
