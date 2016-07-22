@@ -95,7 +95,7 @@ static void _ext_storage_cb(keynode_t *node, void *user_data)
 
 	int storage_status;
 
-	if(icon_get_update_flag() == 0) {
+	if (!icon_get_update_flag()) {
 		updated_while_lcd_off = 1;
 		return;
 	}
@@ -122,7 +122,7 @@ static void _ext_storage_cb(keynode_t *node, void *user_data)
 
 static int wake_up_cb(void *data)
 {
-	if(updated_while_lcd_off == 0)
+	if (updated_while_lcd_off == 0)
 		return OK;
 
 	_ext_storage_cb(NULL, data);

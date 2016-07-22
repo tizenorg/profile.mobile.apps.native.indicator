@@ -18,7 +18,6 @@
  */
 
 
-
 #ifndef _INDICATOR_REMOVE_SEARCH
 #include <stdio.h>
 #include <stdlib.h>
@@ -66,12 +65,10 @@ static const char *icon_path[] = {
 };
 
 
-
 static void set_app_state(void *data)
 {
 	search.ad = data;
 }
-
 
 
 static void show_image_icon(int index)
@@ -81,12 +78,10 @@ static void show_image_icon(int index)
 }
 
 
-
 static void hide_image_icon(void)
 {
 	icon_hide(&search);
 }
-
 
 
 EXPORT_PUBLIC void hide_search_icon(void)
@@ -95,12 +90,10 @@ EXPORT_PUBLIC void hide_search_icon(void)
 }
 
 
-
 EXPORT_PUBLIC void show_search_icon(void)
 {
 	show_image_icon(0);
 }
-
 
 
 static void _handle_search_icon(void *data)
@@ -134,13 +127,11 @@ static void _handle_search_icon(void *data)
 }
 
 
-
 static void _lock_status_cb(system_settings_key_e key, void *data)
 {
 	_D("lock state change");
 	_handle_search_icon(data);
 }
-
 
 
 static int register_search_module(void *data)
@@ -160,7 +151,6 @@ static int register_search_module(void *data)
 }
 
 
-
 static int unregister_search_module(void)
 {
 	util_system_settings_unset_changed_cb(SYSTEM_SETTINGS_KEY_LOCK_STATE, _lock_status_cb);
@@ -169,13 +159,11 @@ static int unregister_search_module(void)
 }
 
 
-
 #ifdef _SUPPORT_SCREEN_READER
 static void _apptray_access_cb(void *data, Evas_Object *obj, Elm_Object_Item *item)
 {
 	util_launch_search(data);
 }
-
 
 
 static char *_access_info_cb(void *data, Evas_Object *obj)
@@ -188,7 +176,6 @@ static char *_access_info_cb(void *data, Evas_Object *obj)
 
 	return strdup(buf);
 }
-
 
 
 static int register_search_tts(void *data)

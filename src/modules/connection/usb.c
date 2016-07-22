@@ -18,7 +18,6 @@
  */
 
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <vconf.h>
@@ -59,8 +58,7 @@ static const char *icon_path[] = {
 static int bShown = 0;
 
 
-
-static void set_app_state(void* data)
+static void set_app_state(void *data)
 {
 	usb.ad = data;
 }

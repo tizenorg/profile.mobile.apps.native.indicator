@@ -64,7 +64,7 @@ static void _popup_timeout_cb(void *data, Evas_Object *obj, void *event_info)
 	evas_object_del((Evas_Object *)data); /* toast window */
 
 	count = eina_list_count(s_info.toast_list);
-	if (count == 1){
+	if (count == 1) {
 		msg = (char *)eina_list_nth(s_info.toast_list, 0);
 		free(msg);
 
@@ -89,7 +89,7 @@ static void _post_toast_message(char *message)
 
 	if (elm_win_wm_rotation_supported_get(toast_window)) {
 		int rots[4] = { 0, 90, 180, 270 };
-		elm_win_wm_rotation_available_rotations_set(toast_window, (const int*)(&rots), 4);
+		elm_win_wm_rotation_available_rotations_set(toast_window, (const int *)(&rots), 4);
 	}
 	elm_win_role_set(toast_window, "notification-normal");
 	evas_object_show(toast_window);
@@ -157,8 +157,7 @@ static void _post_toast_message_callback(const char *message, void *data)
 		} else {
 			s_info.toast_list = eina_list_append(s_info.toast_list, msg);
 		}
-	}
-	else
+	} else
 		free(msg);
 
 	return;

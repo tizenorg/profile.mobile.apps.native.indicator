@@ -110,7 +110,7 @@ static void show_connection_transfer_icon(void *data)
 			return;
 		}
 
-		_D("type %d",state);
+		_D("type %d", state);
 		transfer_state = state;
 
 		switch (state) {

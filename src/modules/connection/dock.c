@@ -18,7 +18,6 @@
  */
 
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <vconf.h>
@@ -56,20 +55,16 @@ static const char *icon_path[] = {
 };
 
 
-
-static void set_app_state(void* data)
+static void set_app_state(void *data)
 {
 	dock.ad = data;
 }
 
 
-
 static void show_image_icon(void)
 {
-	if(bShown == 1)
-	{
+	if (bShown == 1)
 		return;
-	}
 
 	dock.img_obj.data = icon_path[0];
 	icon_show(&dock);
@@ -78,14 +73,12 @@ static void show_image_icon(void)
 }
 
 
-
 static void hide_image_icon(void)
 {
 	icon_hide(&dock);
 
 	bShown = 0;
 }
-
 
 
 static void indicator_dock_change_cb(keynode_t *node, void *data)
@@ -97,50 +90,41 @@ static void indicator_dock_change_cb(keynode_t *node, void *data)
 
 	/* First, check dock status */
 	ret = vconf_get_int(VCONFKEY_SYSMAN_CRADLE_STATUS, &status);
+	_D("dock Status: %d", status);
+
 	if (ret == OK) {
-		if (status > 0) {
-			_D("dock Status: %d", status);
+		if (status > 0)
 			show_image_icon();
-		}
 		else
-		{
 			hide_image_icon();
-		}
 	}
 
 	return;
 }
 
 
-
 static int register_dock_module(void *data)
 {
-	int r = 0, ret = -1;
+	int ret = -1;
 
 	retvm_if(data == NULL, FAIL, "Invalid parameter!");
 
 	set_app_state(data);
 
-	ret = vconf_notify_key_changed(VCONFKEY_SYSMAN_CRADLE_STATUS,
-				       indicator_dock_change_cb, data);
-	if (ret != OK)
-	{
-		r = ret;
-	}
+	ret = vconf_notify_key_changed(VCONFKEY_SYSMAN_CRADLE_STATUS, indicator_dock_change_cb, data);
+	retvm_if(ret != OK, FAIL, "vconf_notify_key_changed failed");
 
 	indicator_dock_change_cb(NULL, data);
 
-	return r;
+	return ret;
 }
-
 
 
 static int unregister_dock_module(void)
 {
 	int ret;
 
-	ret = vconf_ignore_key_changed(VCONFKEY_SYSMAN_CRADLE_STATUS,
-				       indicator_dock_change_cb);
+	ret = vconf_ignore_key_changed(VCONFKEY_SYSMAN_CRADLE_STATUS, indicator_dock_change_cb);
 
 	return ret;
 }

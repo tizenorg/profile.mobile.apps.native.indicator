@@ -71,14 +71,14 @@ icon_s *more_noti_get_icon(void)
 	return &more_notify;
 }
 
-static void show_image_icon_by_win(win_info* win)
+static void show_image_icon_by_win(win_info *win)
 {
 	more_notify.img_obj.data = icon_path[0];
 	icon_show(&more_notify);
 }
 
 
-static void hide_image_icon_by_win(win_info* win)
+static void hide_image_icon_by_win(win_info *win)
 {
 	icon_hide(&more_notify);
 }

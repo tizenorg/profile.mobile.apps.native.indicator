@@ -63,7 +63,7 @@ static char *icon_path[] = {
 
 
 
-static void set_app_state(void* data)
+static void set_app_state(void *data)
 {
 	useralarm.ad = data;
 }
@@ -72,10 +72,8 @@ static void set_app_state(void* data)
 
 static void show_image_icon(void *data)
 {
-	if(bShown == 1)
-	{
+	if (bShown == 1)
 		return;
-	}
 
 	useralarm.img_obj.data = icon_path[0];
 	icon_show(&useralarm);
@@ -128,10 +126,8 @@ static char *access_info_cb(void *data, Evas_Object *obj)
 
 	vconf_get_int(VCONFKEY_ALARM_STATE, &status);
 
-	if(status>0)
-	{
-		snprintf(buf, sizeof(buf), "%s, %s, %s", _("IDS_COM_BODY_ALARM"),_("IDS_IDLE_BODY_ICON"),_("IDS_IDLE_BODY_STATUS_BAR_ITEM"));
-	}
+	if (status > 0)
+		snprintf(buf, sizeof(buf), "%s, %s, %s", _("IDS_COM_BODY_ALARM"), _("IDS_IDLE_BODY_ICON"), _("IDS_IDLE_BODY_STATUS_BAR_ITEM"));
 
 	tmp = strdup(buf);
 	if (!tmp) return NULL;

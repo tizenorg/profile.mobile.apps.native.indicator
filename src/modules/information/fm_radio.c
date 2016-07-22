@@ -17,7 +17,7 @@
  *
  */
 
-// TODO No possibility to be notified about radio status for now.
+/* TODO No possibility to be notified about radio status for now. */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,12 +53,10 @@ static char *icon_path[] = {
 };
 
 
-
-static void set_app_state(void* data)
+static void set_app_state(void *data)
 {
 	fm_radio.ad = data;
 }
-
 
 
 static void show_image_icon(void *data)
@@ -68,12 +66,10 @@ static void show_image_icon(void *data)
 }
 
 
-
 static void hide_image_icon(void)
 {
 	icon_hide(&fm_radio);
 }
-
 
 
 static void indicator_fm_radio_change_cb(void *data)
@@ -90,21 +86,17 @@ static void indicator_fm_radio_change_cb(void *data)
 			show_image_icon(data);
 		else
 			hide_image_icon();
-	}
-	else
-	{
+	} else
 		_D("Fail to get vconfkey (ret:%d)", ret);
-	}
+
 	return;
 }
-
 
 
 void hide_fm_radio_icon(void)
 {
 	hide_image_icon();
 }
-
 
 
 static int register_fm_radio_module(void *data)
@@ -120,7 +112,6 @@ static int register_fm_radio_module(void *data)
 
 	return ret;
 }
-
 
 
 static int unregister_fm_radio_module(void)

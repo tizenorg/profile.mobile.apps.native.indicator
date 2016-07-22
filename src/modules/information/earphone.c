@@ -31,8 +31,6 @@
 #define MODULE_NAME		"earphone"
 #define TIMER_INTERVAL	0.3
 
-//#define _(str) gettext(str)
-
 static int register_earphone_module(void *data);
 static int unregister_earphone_module(void);
 static int wake_up_cb(void *data);
@@ -59,14 +57,14 @@ static int bShown = 0;
 
 
 
-static void set_app_state(void* data)
+static void set_app_state(void *data)
 {
 	earphone.ad = data;
 }
 
 static void show_image_icon(void)
 {
-	if(bShown == 1)
+	if (bShown == 1)
 		return;
 
 	earphone.img_obj.data = icon_path[0];
@@ -90,10 +88,11 @@ void check_jack_port(void *data)
 
 	retm_if(data == NULL, "Invalid parameter!");
 
-	if(icon_get_update_flag()==0) {
+	if (!icon_get_update_flag()) {
 		updated_while_lcd_off = 1;
 		return;
 	}
+
 	updated_while_lcd_off = 0;
 	ret = runtime_info_get_value_bool(RUNTIME_INFO_KEY_AUDIO_JACK_CONNECTED, &is_jack_connected);
 	retm_if(ret != RUNTIME_INFO_ERROR_NONE, "runtime_info_get_value_bool failed[%s]", get_error_message(ret));
@@ -104,8 +103,7 @@ void check_jack_port(void *data)
 	if (is_jack_connected || is_tv_out_connected) {
 		_D("Earphone connected");
 		show_image_icon();
-	}
-	else
+	} else
 		hide_image_icon();
 }
 
@@ -116,7 +114,7 @@ void indicator_earphone_change_cb(runtime_info_key_e key, void *data)
 
 static int wake_up_cb(void *data)
 {
-	if(updated_while_lcd_off == 0)
+	if (updated_while_lcd_off == 0)
 		return OK;
 
 	check_jack_port(data);
