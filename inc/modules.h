@@ -64,6 +64,8 @@ extern void modules_region_changed(void *data);
 /**
  * @brief Propagates minicontrol action request to all initialized modules.
  *
+ * @param[in] action action
+ * @param[in] name name
  * @param[in] data the app data
  */
 extern void modules_minictrl_control(int action, const char* name, void *data);

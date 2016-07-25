@@ -39,8 +39,6 @@ extern void icon_free(icon_s *icon);
  *
  * @remarks The lists are of all icons registered to indicator app, not only visible icons
  *
- * @param[in] icon icon related to object to delete
- *
  * @see icon_free() allows to free only one specified list
  */
 extern void list_free_all(void);

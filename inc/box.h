@@ -62,7 +62,7 @@ typedef enum Box_List {
 	CONNECTION_SYSTEM_LIST
 } Box_List;
 
-/***
+/**
  * @brief Adds @a icon to list of icons to show.
  *
  * @param[in] icon the icon to add
@@ -71,7 +71,7 @@ typedef enum Box_List {
  */
 extern int box_add_icon_to_list(icon_s *icon);
 
-/***
+/**
  * @brief Appends @a icon to list of icons to show.
  *
  * @param[in] icon the icon to append
@@ -136,7 +136,7 @@ extern int box_get_max_count_in_non_fixed_list(void);
  * @retval CAN_ADD_WITHOUT_DEL
  */
 
-extern Icon_AddType box_is_enable_to_insert_in_non_fixed_list(icon_s *obj);
+extern Icon_AddType box_is_enable_to_insert_in_non_fixed_list(icon_s *icon);
 
 /**
  * @brief Gets priority in move area.
@@ -192,7 +192,7 @@ extern int box_handle_animated_gif(icon_s *icon);
 /**
  * @brief Handles notification animation.
  *
- * @param[in] icon icon which animation need to be handled
+ * @param[in] bStart triggers animation start and stop
  *
  */
 extern void box_noti_ani_handle(int bStart);

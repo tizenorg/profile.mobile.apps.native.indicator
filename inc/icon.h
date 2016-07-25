@@ -63,7 +63,7 @@ extern void icon_hide(icon_s *obj);
 /**
  * @brief Sets icon animation.
  *
- * @param[in] obj icon to show
+ * @param[in] icon icon to show
  * @param[in] type animation type
  */
 extern void icon_ani_set(icon_s *icon, enum indicator_icon_ani type);
@@ -118,7 +118,7 @@ extern void icon_reset_list(void);
 
 /**
  * @brief Handles more noti icon.
- * @remarks The icon will be shown if more that #PORT_NONFIXED_ICON_COUNT otherwise the icon will be hidden
+ * @remarks The icon will be shown if more that PORT_NONFIXED_ICON_COUNT otherwise the icon will be hidden
  *
  * @param win win info
  *
@@ -134,9 +134,9 @@ extern void icon_handle_more_notify_icon(win_info *win);
 extern void* icon_util_make(void *input);
 
 /**
- * @brief Checks if non fixed icons count is greater than #PORT_NONFIXED_ICON_COUNT.
+ * @brief Checks if non fixed icons count is greater than PORT_NONFIXED_ICON_COUNT.
  *
- * @return EINA_TRUE if icons count is greater then #PORT_NONFIXED_ICON_COUNT, EINA_FALSE otherwise
+ * @return EINA_TRUE if icons count is greater then PORT_NONFIXED_ICON_COUNT, EINA_FALSE otherwise
  *
  */
 
