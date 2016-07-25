@@ -179,7 +179,7 @@ static Eina_Bool _timeout_cb(void *data)
 	ticker_info = data;
 
 	Evas_Object *textblock_layout = elm_layout_edje_get(ticker_info->textblock);
-	Evas_Object *textblock = edje_object_part_object_get(textblock_layout, "elm.text");
+	const Evas_Object *textblock = edje_object_part_object_get(textblock_layout, "elm.text");
 
 	ticker_info->current_page++;
 	int ch = 0;
