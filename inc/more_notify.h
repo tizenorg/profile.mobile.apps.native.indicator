@@ -26,12 +26,25 @@
  */
 
 /**
+ * @defgroup more_noti More Notification
+ */
+
+/**
+ * @addtogroup more_noti
+ * @{
+ */
+
+/**
  * @brief Shows or Hides more notify icon.
  *
- * @remarks The icon should be shown only if non fixed icon count exceeds #PORT_NONFIXED_ICON_COUNT
+ * @remarks The icon should be shown only if non fixed icon count exceeds PORT_NONFIXED_ICON_COUNT
  *
  * @param[in] val If EINA_TRUE, the icon will be shown, If EINA_FALSE, the icon will be hidden
  */
 void indicator_more_notify_icon_change(Eina_Bool val);
+
+/**
+ * @}
+ */
 
 #endif /* MORE_NOTIFY_H_ */

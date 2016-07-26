@@ -22,8 +22,6 @@
 #define __DEF_indicator_H_
 
 #include <Elementary.h>
-//#include <Ecore_X.h>
-//FIXME
 #if 0
 #include <tzsh_indicator_service.h>
 #endif
@@ -33,13 +31,132 @@
 /**
  * @mainpage Indicator documentation
  *
- * @section Overview
+ * @section overview Overview
  *
  * @image html indicator.png
  *
  * \n\n
  * Indiacator app main purpose is to give user quick preview for what is going on in the system -
  * connections and battery state, time, apps notifications etc.
+ * \n
+ *
+ * @section h_s Helpful snippets
+ *
+ * @ref post_noti \n
+ * @ref update_noti \n
+ * @ref delete_noti \n\n
+ *
+ * @ref bg_change \n
+ *
+ * \n\n
+ *
+ *
+ * @subsection post_noti Post notification icon to Indicator app
+ *
+ * @code
+ * #define TAG_FOR_NOTI "example_unique_tag_to_set"
+ *
+ * void example_notification_prepare_and_post(void)
+ * {
+ *	notification_h noti;
+ * 	notification_type_e noti_type = NOTIFICATION_TYPE_NOTI;
+ *	notification_image_type_e img_type = NOTIFICATION_IMAGE_TYPE_ICON_FOR_INDICATOR;
+ *	const char *img_path = "example_path_to_notification_icon_in_shared res_folder";
+ *	int applist = NOTIFICATION_DISPLAY_APP_INDICATOR;
+ *
+ *	noti = notification_create(noti_type);
+ *	notification_set_image(noti, img_type, img_path);
+ *	notification_set_display_applist(noti, applist);
+ *	notification_set_tag(noti, TAG_FOR_NOTI);
+ *
+ *	notification_post(noti);
+ *	notification_free(noti);
+ * }
+ * @endcode
+ * @remarks If you want to post notification with icon that is related to minicontroller(play/pause/record etc),
+ * you need to add tag that consists of "minicontrol_<specific_tag>" \n
+ *  <b>\<specific_tag\></b> must be established in cooperation with indicator maintainers. \n\n
+ *  For now six actions/apps are supported in showing minicontrol icons:
+ *  - "call" - notifies about call status(ongoing/outgoing/established)
+ *  - "call_mute" - mute microphone during call
+ *  - "call_speaker" - speaker on during call
+ *  - "music" - play/pause music
+ *  - "video" - play/pause video
+ *  - "voice_recorder" - while recording voice \n\n
+ *
+ * e.g.
+ * To notify about music playing status(play/pause) use following tag:
+ * @code
+ * const char *tag = "minicontrol_music";
+ * notification_set_tag(noti, tag);
+ * @endcode
+ * \n
+ *
+ * @subsection update_noti Update notification icon
+ *
+ * @code
+ * void example_notification_update(void)
+ * {
+ *	const char *img_path_new = "example_path_to_new_notification_icon";
+ *	notification_image_type_e img_type = NOTIFICATION_IMAGE_TYPE_ICON_FOR_INDICATOR;
+ *	notification_h noti = NULL;
+ *
+ *	noti = notification_load_by_tag(TAG_FOR_NOTI);
+ *	notification_set_image(noti, img_type, img_path_new);
+ *
+ *	notification_update(noti);
+ *	notification_free(noti);
+ * }
+ * @endcode
+ * \n
+ *
+ * @subsection delete_noti Delete notification icon
+ *
+ * @code
+ * void example_notification_delete(void)
+ * {
+ *	notification_h noti = NULL;
+ *	noti = notification_load_by_tag(TAG_FOR_NOTI);
+ *
+ *	notification_delete(noti);
+ *	notification_free(noti);
+ * }
+ * @endcode
+ * \n\n
+ *
+ * @subsection bg_change Change indicator background color
+ * Please note that default state is (0, 0, 0, 255)
+ * @code
+ * void example_indicator_bg_change(void)
+ * {
+ *	bundle *message;
+ *	int ret = 0;
+ *	int rgba_r = 255;
+ *	int rgba_g = 0;
+ *	int rgba_b = 100;
+ *	int rgba_a = 100;
+ *
+ *
+ *	char *remote_port_name = "indicator/bg/color"; //That name must not be changed
+ *
+ *	// Register message port
+ *	port_id = message_port_register_trusted_local_port("port/name/defined/by/you", message_port_cb, NULL);
+ *	// Create and set bundle message
+ *	message = bundle_create();
+ *
+ *	ret = bundle_add_str(message, KEY_INDICATOR_BG, VALUE_INDICATOR_BG_RGB);
+ *	ret = bundle_add_byte(message, KEY_R, (const void *)&rgba_r, sizeof(int));
+ *	ret = bundle_add_byte(message, KEY_G, (const void *)&rgba_g, sizeof(int));
+ *	ret = bundle_add_byte(message, KEY_B, (const void *)&rgba_b, sizeof(int));
+ *	ret = bundle_add_byte(message, KEY_A, (const void *)&rgba_a, sizeof(int));
+ *
+ *	//Send message
+ *	ret = message_port_send_trusted_message_with_local_port("org.tizen.indicator", remote_port_name, message, port_id);
+ *
+ *	bundle_free(message);
+ * }
+ * @endcode
+ *
  */
 
 
