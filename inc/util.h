@@ -31,6 +31,15 @@
  * @file util.h
  */
 
+/**
+ * @defgroup util Util
+ */
+
+/**
+ * @addtogroup util
+ * @{
+ */
+
 typedef enum {
 	INDICATOR_ERROR_NONE = 0,
 	INDICATOR_ERROR_FAIL = -1,
@@ -117,7 +126,7 @@ extern const char *util_get_icon_dir(void);
  * @brief Emits specified signal.
  *
  * @param[in] data the app data
- * @paran[in] emission signal to emit
+ * @param[in] emission signal to emit
  * @param[in] source signal source
  *
  */
@@ -127,7 +136,7 @@ extern void util_signal_emit(void* data, const char *emission, const char *sourc
  * @brief Emits text to specified part.
  *
  * @param[in] data the app data
- * @paran[in] part part name
+ * @param[in] part part name
  * @param[in] text text to emit
  */
 extern void util_part_text_emit(void* data, const char *part, const char *text);
@@ -136,7 +145,7 @@ extern void util_part_text_emit(void* data, const char *part, const char *text);
  * @brief Emits text to specified part using win info structure to get layout.
  *
  * @param[in] data win info
- * @paran[in] emission signal to emit
+ * @param[in] emission signal to emit
  * @param[in] source signal source
  */
 extern void util_signal_emit_by_win(void* data, const char *emission, const char *source);
@@ -145,7 +154,7 @@ extern void util_signal_emit_by_win(void* data, const char *emission, const char
  * @brief Emits text to specified part using win info structure to get layout.
  *
  * @param[in] data win info
- * @paran[in] part part name
+ * @param[in] part part name
  * @param[in] text text to emit
  */
 extern void util_part_text_emit_by_win(void* data, const char *part, const char *text);
@@ -154,7 +163,7 @@ extern void util_part_text_emit_by_win(void* data, const char *part, const char 
  * @brief Sets image to part content.
  *
  * @param[in] data the app data
- * @paran[in] part part name
+ * @param[in] part part name
  * @param[in] img_path path to image to set
  */
 extern void util_part_content_img_set(void *data, const char *part, const char *img_path);
@@ -171,17 +180,17 @@ extern void util_launch_search(void* data);
  *
  * @return 0 if PWLOCK is set to VCONFKEY_PWLOCK_BOOTING_UNLOCK or VCONFKEY_PWLOCK_RUNNING_UNLOCK, -1 otherwise
  *
- * @see #VCONFKEY_PWLOCK_BOOTING_UNLOCK
- * @see #VCONFKEY_PWLOCK_BOOTING_LOCK
- * @see	#VCONFKEY_PWLOCK_RUNNING_UNLOCK
- * @see #VCONFKEY_PWLOCK_RUNNING_LOCK
+ * @see VCONFKEY_PWLOCK_BOOTING_UNLOCK
+ * @see VCONFKEY_PWLOCK_BOOTING_LOCK
+ * @see	VCONFKEY_PWLOCK_RUNNING_UNLOCK
+ * @see VCONFKEY_PWLOCK_RUNNING_LOCK
  */
 extern int util_check_system_status(void);
 
 /**
  * @brief Gets timezone from vconf.
  *
- * @param[in/out] timezone id or "N/A" on failure
+ * @param[in,out] timezone id or "N/A" on failure
  */
 extern void util_get_timezone_str(char **timezone);
 
@@ -233,6 +242,7 @@ extern void util_send_status_message_start(void *data, double duration);
 /**
  * @brief Replaces char in string.
  *
+ * @param text text to replace in
  * @param to_replace char to replace
  * @param replacer char that will replace @a to_replace char
  */
@@ -264,9 +274,12 @@ extern Ecore_File_Monitor *util_file_monitor_add(const char *file_path, Ecore_Fi
 extern void util_file_monitor_remove(Ecore_File_Monitor *file_monitor);
 
 /**
- * @brief Gets substring that starts with specified @str_search string.
+ * @brief Gets substring that starts with specified @a str_search string.
  *
- * @param substring or NULL if substring not found
+ * @param str string to search in
+ * @param  str_search string to search
+ *
+ * @return substring or NULL if substring not found
  */
 extern char *util_safe_str(const char *str, const char *str_search);
 
@@ -296,7 +309,7 @@ enum app_subdir {
 /**
  * @brief Returns absolute path to resource file located in applications directory.
  *
- * @param subdir type of subdirectory
+ * @param dir type of subdirectory
  * @param relative path of resource in application's subdir.
  *        eg. for DATA_DIR subdir and relative "database.db" => "/home/owner/apps/org.tizen.homescreen-efl/data/database.db"
  * @return absolute path string.
@@ -316,7 +329,7 @@ const char *util_get_file_path(enum app_subdir dir, const char *relative);
 
 /**
  * @brief Initializes WiFi using wifi_initialize API
- * @remarks If WiFi is already initialized, #WIFI_ERROR_NONE will be returned.
+ * @remarks If WiFi is already initialized, WIFI_ERROR_NONE will be returned.
  * @return 0 on success, other value on failure
  */
 int util_wifi_initialize(void);
@@ -398,5 +411,9 @@ int util_runtime_info_set_changed_cb(runtime_info_key_e key, runtime_info_change
  * @param cb callback.
  */
 void util_runtime_info_unset_changed_cb(runtime_info_key_e key, runtime_info_changed_cb cb);
+
+/**
+ * @}
+ */
 
 #endif /* __INDICATOR_UTIL_H__ */

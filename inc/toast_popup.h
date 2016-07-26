@@ -26,6 +26,15 @@
  */
 
 /**
+ * @defgroup toast_popup Toast Popup
+ */
+
+/**
+ * @addtogroup toast_popup
+ * @{
+ */
+
+/**
  * @brief Initializes toast popup module.
  *
  * @param[in] data the app data
@@ -40,5 +49,9 @@ int indicator_toast_popup_init(void *data);
  * @return 0 on success, negative value on failure
  */
 int indicator_toast_popup_fini(void);
+
+/**
+ * @}
+ */
 
 #endif /* __INDICATOR_TOAST_POPUP_H___ */

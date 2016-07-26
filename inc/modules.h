@@ -30,6 +30,16 @@
  * @file modules.h
  */
 
+
+/**
+ * @defgroup modules Modules
+ */
+
+/**
+ * @addtogroup modules
+ * @{
+ */
+
 #define TIMER_STOP	ECORE_CALLBACK_CANCEL
 #define TIMER_CONTINUE	ECORE_CALLBACK_RENEW
 
@@ -64,6 +74,8 @@ extern void modules_region_changed(void *data);
 /**
  * @brief Propagates minicontrol action request to all initialized modules.
  *
+ * @param[in] action action
+ * @param[in] name name
  * @param[in] data the app data
  */
 extern void modules_minictrl_control(int action, const char* name, void *data);
@@ -89,4 +101,10 @@ extern void modules_init_first(void *data);
 #ifdef _SUPPORT_SCREEN_READER
 extern void modules_register_tts(void *data);
 #endif
-#endif
+
+/**
+ * @}
+ */
+
+#endif /* __INDICATOR_MODULES_H__ */
+

@@ -25,25 +25,39 @@
  * @file ticker.h
  */
 
+/**
+ * @defgroup ticker Ticker
+ */
+
+/**
+ * @addtogroup ticker
+ * @{
+ */
+
+/**
+ * @brief Enumeration for animated icon type
+ */
 typedef enum _indicator_animated_icon_type {
 	INDICATOR_ANIMATED_ICON_NONE = -1,
 	INDICATOR_ANIMATED_ICON_DOWNLOAD = 1,
 	INDICATOR_ANIMATED_ICON_UPLOAD,
 	INDICATOR_ANIMATED_ICON_INSTALL,
 } indicator_animated_icon_type;
-
+/**
+ * @brief Definition for ticker data structure
+ */
 typedef struct ticker {
-	Evas_Object *scroller;
-	Evas_Object *textblock;
-	Ecore_Timer *timer;
-	Eina_List *ticker_list;
-	int current_page;
-	int pages;
+	Evas_Object *scroller; /**< Scroller*/
+	Evas_Object *textblock; /**< text block for notification content*/
+	Ecore_Timer *timer;	/**< timer*/
+	Eina_List *ticker_list;	/**< List for notifications*/
+	int current_page;	/**< Current page*/
+	int pages;	/**< Number of pages*/
 } ticker_info_s;
 
 
 
-/***
+/**
  * @brief Initializes ticker module.
  *
  * @remarks Ticker module is registered for receiving notifications
@@ -54,7 +68,7 @@ typedef struct ticker {
  */
 extern int ticker_init(void *data);
 
-/***
+/**
  * @brief Deinitializes ticker module.
  *
  * @param[in] data the app data
@@ -63,4 +77,9 @@ extern int ticker_init(void *data);
  */
 extern int ticker_fini(void *data);
 
-#endif
+
+/**
+ * @}
+ */
+
+#endif /* __INDICATOR_TICKER_H__ */

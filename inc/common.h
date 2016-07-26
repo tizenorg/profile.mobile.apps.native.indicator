@@ -36,6 +36,15 @@
  */
 
 /**
+ * @defgroup common Common
+ */
+
+/**
+ * @addtogroup common
+ * @{
+ */
+
+/**
  * @brief Definition of error logs printing function
  *
  * @param str string to print
@@ -105,3 +114,6 @@
 
 #define ECORE_FILE_MONITOR_DELIF(p) ({if (p) {ecore_file_monitor_del(p); p = NULL; }})
 
+/**
+ * @}
+ */

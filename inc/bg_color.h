@@ -26,6 +26,15 @@
  */
 
 /**
+ * @defgroup bg_color Background color
+ */
+
+/**
+ * @addtogroup bg_color
+ * @{
+ */
+
+/**
  * @brief Registers port for receiving messages from other applications.
  * @remarks For now it is only used to change indicator background
  *
@@ -40,5 +49,8 @@ void message_port_register(void *data);
  */
 void message_port_unregister(void);
 
+/**
+ * @}
+ */
 
 #endif /* BG_COLOR_H_ */
