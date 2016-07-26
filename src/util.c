@@ -637,6 +637,16 @@ char *util_safe_str(const char *str, const char *str_search)
 
 
 
+bool util_string_prefix_check(const char *prefix, const char *str)
+{
+    size_t lenpre = strlen(prefix);
+    size_t lenstr = strlen(str);
+
+    return lenstr < lenpre ? false : !strncmp(prefix, str, lenpre);
+}
+
+
+
 int util_dynamic_state_get(void)
 {
 	int val = 0;

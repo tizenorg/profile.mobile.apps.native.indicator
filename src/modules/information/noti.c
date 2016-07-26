@@ -55,6 +55,24 @@ icon_s noti = {
 	.fini = unregister_noti_module
 };
 
+
+#define NOTI_MINICTRL_APP_LIST_SIZE 6
+
+typedef struct {
+	char *name;
+	int priority;
+} minictrl_prop;
+
+static minictrl_prop noti_minictrl_app_list[NOTI_MINICTRL_APP_LIST_SIZE] = {
+		{"call", 1},
+		{"call_mute", 2},
+		{"call_speaker", 3},
+		{"music", 4},
+		{"video", 5},
+		{"voice_recorder", 6},
+		/* {"3rd_party", 7} TODO This will be handled later*/
+};
+
 struct noti_status {
 	notification_h noti;
 	icon_s *icon;
@@ -186,6 +204,40 @@ static void show_image_icon_all(void)
 }
 
 
+static int noti_icon_priority_get(const char *tag)
+{
+	int i;
+	int minictrl_len = strlen("minicontrol_");
+	for (i = 0; i < NOTI_MINICTRL_APP_LIST_SIZE; i++){
+		if (!strcmp(tag + minictrl_len, noti_minictrl_app_list[i].name)) {
+			_D("Sufix is is:%s", noti_minictrl_app_list[i].name);
+			return noti_minictrl_app_list[i].priority;
+		}
+	}
+	return 0;
+}
+
+
+static void _noti_minicontrol_set(struct noti_status *noti_data)
+{
+	const char *tag = NULL;
+	int ret;
+
+	ret = notification_get_tag(noti_data->noti, &tag);
+	retm_if(ret != NOTIFICATION_ERROR_NONE,
+			"notification_get_tag failed[%d]:%s", ret, get_error_message(ret));
+
+	if (util_string_prefix_check("minicontrol", tag)){
+		int p = noti_icon_priority_get(tag);
+		if(p) {
+			_D("The icon is for minicontrol area.");
+			noti_data->icon->priority = p;
+			noti_data->icon->area = INDICATOR_ICON_AREA_MINICTRL;
+		}
+	}
+}
+
+
 static void _icon_add(struct noti_status *noti_data, const char *name, void *data)
 {
 	retm_if(noti_data == NULL || data == NULL, "Invalid parameter!");
@@ -204,6 +256,8 @@ static void _icon_add(struct noti_status *noti_data, const char *name, void *dat
 		obj->exist_in_view = EINA_FALSE;
 
 		noti_data->icon = obj;
+
+		_noti_minicontrol_set(noti_data);
 	}
 
 	return;
@@ -310,8 +364,8 @@ static void _insert_noti_by_privid(notification_h noti, void *data)
 
 	if (!_is_exist_by_privid(prev_id_str)) {
 		status = calloc(1, sizeof(struct noti_status));
-		_icon_add(status, prev_id_str, data);
 		notification_clone(noti, &status->noti);
+		_icon_add(status, prev_id_str, data);
 
 		insert_icon_list(status);
 		status_list = eina_list_append(status_list, status);

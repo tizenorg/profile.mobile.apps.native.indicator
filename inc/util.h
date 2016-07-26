@@ -279,6 +279,16 @@ extern void util_file_monitor_remove(Ecore_File_Monitor *file_monitor);
  */
 extern char *util_safe_str(const char *str, const char *str_search);
 
+/**
+ * @brief Checks if @a str starts with @a prefix
+ *
+ * @param[in] prefix prefix candidate
+ * @param[in] str string to examine
+ *
+ * @return true if @a prefix is a prefix of @a str, false otherwise
+ */
+bool util_string_prefix_check(const char *prefix, const char *str);
+
 #ifdef _SUPPORT_SCREEN_READER
 extern Evas_Object *util_access_object_register(Evas_Object *object, Evas_Object *layout);
 extern void util_access_object_unregister(Evas_Object *object);
