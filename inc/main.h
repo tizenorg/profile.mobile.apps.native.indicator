@@ -31,24 +31,76 @@
 /**
  * @mainpage Indicator documentation
  *
- * @section overview Overview
+ * @section overview Detailed Description
  *
  * @image html indicator.png
  *
- * \n\n
- * Indiacator app main purpose is to give user quick preview for what is going on in the system -
- * connections and battery state, time, apps notifications etc.
  * \n
+ * <b>App ID:</b> org.tizen.indicator\n
  *
+ * Indiacator app main purpose is to give user quick preview for what is going on in the system: connections,
+ * battery state, alarms time and apps notifications.
+ * \n
+ * On the left hand side you can find connections icons - Mobile network signal strength, mobile data, Wi-Fi, Bluetooth and call divert.\n
+ * In the middle you can find clock which format you can set in Settings->Time and Date\n
+ * On the right hand side(from right to left) there are icons related to:
+ * - <b>battery</b> - You can show percentage by enabling it in Settings->Battery.\n\n
+ * - <b>System</b>
+ * \n\t- Sound profile - Vibrations only/Silent mode. You can change the mode in quickpanel or in Settings->Sound.
+ * \n\t- Do not disturb mode - You can trigger it in Settings app.
+ * \n\t- GPS - The icon will be shown when GPS module is in use.
+ * \n\t- External storage - Appears when SD card is inserted.
+ * \n\t- Alarm - Appears when at least one alarm is scheduled\n\n
+ * - <b>Minicontrol</b> - the icons are posted by apps that creates minicontroller
+ * \n\t- Call - icon appear during call or when call is incoming or outgoing.
+ * \n\t- Call Mute - Mute during call
+ * \n\t- Call Speaker- Shown when speaker is on during call.
+ * \n\t- Music - Shown when org.tizen.music-player/sound-player apps plays music
+ * \n\t- Video - Shown when org.tizen.video-player apps plays video
+ * \n\t- Voice recorder - Shown when Voice Recorder records.
+ * \n\t- 3rd party - Other apps that are using Minicontrol may post icon here. Snippet explaining how to do so, will be available soon.\n\n
+ * - <b>Notification</b> - Every app is allowed to post icons here. you can find code snippets below of how to post, update or delete such icon.\n\n
+ *
+ * <b>Background</b> - You can change indicator background color using code snippet from below.\n\n
+ *
+ * <b>Hidden mode</b> - You can trigger hidden mode in your app using:
+ * @code
+ * elm_win_indicator_mode_set(win, ELM_WIN_INDICATOR_SHOW);
+ * @endcode
+ * Where win is a pointer to main elm_win of your application \n\n\n
+ *
+ * <HR>
+ * \n
+ *  @section instant Instant message(Ticker)
+ *
+ *  To Post message to be displayed on Indicator app you need to use Notification API. You can find snippet of how to display it below.\n
+ *  The order of displayed text types is:
+ *  - NOTIFICATION_TEXT_TYPE_TITLE
+ *  - NOTIFICATION_TEXT_TYPE_CONTENT
+ *  - NOTIFICATION_TEXT_TYPE_INFO_1
+ *  - NOTIFICATION_TEXT_TYPE_INFO_SUB_1
+ *  - NOTIFICATION_TEXT_TYPE_INFO_2
+ *  - NOTIFICATION_TEXT_TYPE_INFO_SUB_2
+ *\n\n\n
+ *
+ * <HR>
+ * \n
+ *@section toast Toast popup
+ * To display Toast popup you need to call only one function as follows:
+ * @code
+ * notification_status_message_post("Message");
+ * @endcode
+ *\n\n
+ *
+ * <HR>
+ * \n
  * @section h_s Helpful snippets
  *
- * @ref post_noti \n
- * @ref update_noti \n
- * @ref delete_noti \n\n
- *
- * @ref bg_change \n
- *
- * \n\n
+ * - @ref post_noti \n
+ * - @ref update_noti \n
+ * - @ref delete_noti \n
+ * - @ref ticker \n
+ * - @ref bg_change \n\n
  *
  *
  * @subsection post_noti Post notification icon to Indicator app
@@ -119,6 +171,31 @@
  *	noti = notification_load_by_tag(TAG_FOR_NOTI);
  *
  *	notification_delete(noti);
+ *	notification_free(noti);
+ * }
+ * @endcode
+ * \n\n
+ *
+ * @subsection ticker Post instant message(Ticker)
+ *
+ * @code
+ * #define TAG_FOR_NOTI "example_unique_tag_to_set"
+ *
+ * void example_instatnt_message_prepare_and_post(void)
+ * {
+ *	notification_h noti;
+ * 	notification_type_e noti_type = NOTIFICATION_TYPE_NOTI;
+ *	const char *img_path = "example_path_to_notification_icon_in_shared res_folder";
+ *	int applist = NOTIFICATION_DISPLAY_APP_INDICATOR & NOTIFICATION_DISPLAY_APP_TICKER;
+ *
+ *	noti = notification_create(noti_type);
+ *	notification_set_image(noti, NOTIFICATION_IMAGE_TYPE_ICON, img_path);
+ *	notification_set_text(noti, NOTIFICATION_TEXT_TYPE_TITLE, "I'm Title", NULL, NOTIFICATION_VARIABLE_TYPE_NONE);
+ *	notification_set_text(noti, NOTIFICATION_TEXT_TYPE_CONTENT, "I'm Content", NULL, NOTIFICATION_VARIABLE_TYPE_NONE);
+ *	notification_set_display_applist(noti, applist);
+ *	notification_set_tag(noti, TAG_FOR_NOTI);
+ *
+ *	notification_post(noti);
  *	notification_free(noti);
  * }
  * @endcode
